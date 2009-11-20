@@ -11,7 +11,8 @@ This is all.
   $x->foreach(sub {
     my $_ = $y ** $Pi::Twenty2Sevenths;
 
-    return "foo" unless m/\A\d+\z/o;
+    return "foo $x" unless m/\A\d+\z/o;
+    return 'bar'    if __PACKAGE__ eq <>;
 
     # sorry, dude.
     dump;

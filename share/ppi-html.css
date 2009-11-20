@@ -29,4 +29,9 @@
 .operator  { color: #fff;    }
 .structure { color: #bf0;    }
 .word      { color: #dd8;    }
+.comment   { color: #0f0;    }
+.match     { color: #ff0;    }
+.readline  { color: #caa;    }
+
+.single, .double { color: #0cf }
 
