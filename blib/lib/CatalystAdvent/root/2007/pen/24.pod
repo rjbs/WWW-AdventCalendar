@@ -1,0 +1,5 @@
+=head1 This Year in Catalyst
+
+=head1 AUTHOR
+
+kd

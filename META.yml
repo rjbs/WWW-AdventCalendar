@@ -1,0 +1,35 @@
+---
+abstract: 'Catalyst Application'
+author:
+  - 'Catalyst developers'
+build_requires:
+  ExtUtils::MakeMaker: 6.42
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
+distribution_type: module
+generated_by: 'Module::Install version 0.91'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: CatalystAdvent
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  Calendar::Simple: 0
+  Catalyst: 5.60
+  Catalyst::Plugin::Cache::FileCache: 0
+  Catalyst::Plugin::DefaultEnd: 0
+  Catalyst::Plugin::Unicode: 0
+  DateTime: 0
+  File::stat: 0
+  HTTP::Date: 0
+  List::Util: 0
+  Pod::Xhtml: 0
+  XML::Atom::SimpleFeed: 0
+resources:
+  license: http://dev.perl.org/licenses/
+  repository: http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/CatalystAdvent/
+version: 0.03

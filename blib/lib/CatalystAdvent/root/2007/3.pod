@@ -1,0 +1,244 @@
+=head1 Application Design Techniques
+
+Happy 3 December!  Today, I'm going to talk about some techniques for
+making your Catalyst applications as maintainable (and enjoyable) as
+possible.  These are all techniques I use in my applications daily, so
+don't think that this is just some theoretical nonsense that I think
+might be fun to write an article about :)
+
+Note that most of the code below is paraphrased for readability.  If
+you use C<$self> in a method, you have to write C<< my $self = shift;
+>> at the top, of course.  The same goes for C<$c> in actions.  You
+already know this, so there's no point in hurting your eyes with it
+here :)
+
+=head1 Sugaring up the stash
+
+Typing C<< $c->stash->{foo} >> all the time can get tiring.  It's not
+easy to type, it's not pretty to look at, and it's easy to misspell
+C<foo>.  In controllers where I refer to a few stash keys frequently,
+I usually write some quick accessor method like this:
+
+   package My::Controller::Of::Some::Sort;
+   use base qw/Catalyst::Component::ACCEPT_CONTEXT Catalyst::Controller/;
+
+   sub foo {
+       my $self = shift;
+       $self->context->stash->{foo} = shift if @_;
+       return $self->context->stash->{foo};
+   }
+
+Then I can easily get and set C<foo>:
+
+   sub base :Chained ... {
+       if(!$self->foo){ $self->foo(42) }
+   }
+
+   sub action :Chained ... Args(0)
+       my ($self, $c) = @_;
+       $self->foo($c->req->params->{foo});
+   }
+
+This all subclasses nicely, so you can write the accessor once, and
+then inherit it when necessary.
+
+=head1 Base controllers
+
+If you have multiple controllers that do something similar, you should
+consider factoring out the common elements into a base controller.  I
+recently wrote an application where a few controllers had actions that
+accepted two arguments in the URL, a user id and a request id.  I
+initially started with something like:
+
+   sub begin :Private {
+     my ($self, $c, $user, $request);
+     $c->stash->{user} = $c->model('Users')->inflate($user);
+     # same for request
+   }
+
+   sub action :Local Args(2) {
+     my ($self, $c) = @_;
+     $c->stash->{user}->do_something_with($c->req);
+   }
+
+I then added my accessors as above, to save a bit of typing.  But
+then, another controller needed the same begin action.  So, I factored
+it out:
+
+  package MyApp::ControllerBase::RequestId;
+  use base 'Catalyst::Controller';
+
+  sub begin :Private { ... }
+
+Then I subclassed it for my actual controllers:
+
+  package MyApp::Controller::Foo;
+  use base 'MyApp::ControllerBase::RequestId';
+
+  sub action :Local Args(2) {
+    $self->user->do_something_with($c->req);
+  }
+
+  sub another_action :Local Args(2) {
+    $self->request->mark_as_accepted_by($self->user);
+  }
+
+Very clean.  There's no reliance on strings indexing into hashes, and
+there's no repeated code. 
+
+(BTW, the reason I put user and request into C<< $c->stash >> instead
+of into C<$self> is because we show a message like "Thank you,
+C<< $user->name >>, for approving request C<< $request->uuid >>".  The
+begin action that inflates and stashes the URL params makes the both
+the template and the controller eaiser to work with.)
+
+=head1 Actions from base controllers
+
+You can do more than inherit a common C<begin> action, though.  Any
+action can be inherited, and it conveniently shows up in the URL
+namespace of the consuming class.  As an example:
+
+  package MyApp::ControllerBase::ThingBase;
+  use base 'Catalyst::Controller';
+
+  sub delete :Local {
+    $self->things->delete;
+  }
+
+  sub list :Local {
+    $c->stash->{things} = [$self->things];
+  }
+
+(As an aside, note that this superclass calls into its subclass when
+it does C<< $self->things >>, so it's really a role and not a
+superclass.)
+
+Then we can inherit from the class and get actions that act on
+C<things>:
+
+  package MyApp::Controller::Foos;
+  use base 'MyApp::ControllerBase::ThingBase';
+
+  sub things { return $c->model('Foos')->get_everything }
+
+and
+
+  package MyApp::Controller::Bars;
+  use base 'MyApp::ControllerBase::ThingBase';
+
+  sub things { return $c->model('Bars')->get_everything }
+
+Now my application has four actions:
+
+  /bars/delete
+  /bars/list
+  /foos/delete
+  /foos/list
+
+And these all do what you would expect.
+
+We can improve this a bit further by pulling the C<things> method up
+to a superclass:
+
+  package MyApp::ControllerBase::ThingBase;
+  use base qw/Catalyst::Component::ACCEPT_CONTEXT Catalyst::Controller/;
+
+  sub things {
+    my $c = $self->context;
+    return $c->model($self->{thing_source})->get_everything;
+  }
+
+  sub delete :Local {
+    $self->things->delete;
+  }
+
+  sub list :Local {
+    $c->stash->{things} = [$self->things];
+  }
+
+Here we inherit from C<Catalyst::Component::ACCEPT_CONTEXT> to get C<<
+$self->context >> (that way we can get C<$c> without passing it around
+to everything), and we add a C<things> method that uses C<<
+$self->{thing_source} >> as the model.  C<< $self->{thing_source} >>
+is specified by:
+
+  __PACAKGE__->config(thing_source => 'Whatever') 
+
+in the subclasses:
+
+  package MyApp::Controller::Foos;
+  use base 'MyApp::ControllerBase::ThingBase';
+
+  __PACKAGE__->config(thing_source => 'Foos');
+
+
+  package MyApp::Controller::Bars;
+  use base 'MyApp::ControllerBase::ThingBase';
+
+  __PACKAGE__->config(thing_source => 'Bars');
+
+The end result is the same as our original example, but this is a
+little bit less code.  
+
+The real advantage is that if I want to add a new feature (maybe
+"delete_inactive_users"), I only need to add it to the base
+controller.  The subclasses just "pick it up", and it can be
+customized by configuration options.
+
+=head1 Thin controllers
+
+There will be another article this month on Rails-style "mvC" versus
+real MVC design, but for now I'll just briefly explain the concept.
+
+You'll notice above that my example Catalyst actions above look like:
+
+  sub approve_request :Local Args(2) {
+    my ($self, $c) = @_;
+    $self->request->set_status_to_approved;
+  }
+
+This is not abbreviating for the sake of an article; this is really
+what my code looks like.  My goal is for there to be no code in the
+controller.  Obviously that never happens, but I try to get as close
+as possible.  The only things I do in the controller is read data from
+C<< $c->req >> into something that makes sense for passing to my
+model:
+
+  my $foo = $c->model('Foos')->lookup({ food => $c->req->params->{food} });
+
+Whatever work is required to lookup a C<foo> by its C<food> is handled
+completely outside of Catalyst.  This way I can easily write tests,
+and use the code in other applications.  (We save a lot of development
+time by writing common code that can be subclassed for different
+clients or interfaces.)
+
+The rest of the action is something like preparing C<$foo> for display
+to the user:
+
+  $c->stash->{foo} = $foo;
+
+(Note that formatting C<$foo> is then handled in the View class.)
+
+I can also mutate C<$foo>, if the action is verby:
+
+  $foo->change_in_the_way_that_the_user_wants
+
+That's it.  Catalyst is a module for gluing my backend modules to the
+web.  Nothing more.
+
+=head1 SEE ALSO
+
+If you are looking for more Catalyst reading material, check out my new
+Catalyst book at:
+
+L<http://www.packtpub.com/catalyst-perl-web-application/book>
+
+Or, my open-enrollment Catalyst training class:
+
+L<http://www.stonehenge.com/open_enrollment.html>
+
+=head1 AUTHOR
+
+Jonathan Rockway C<< <jrockway@cpan.org> >>
+
+Infinity Interactive, Inc L<http://www.iinteractive.com>.

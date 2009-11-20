@@ -1,0 +1,126 @@
+=head1 Catalyst Advent - Day 14 - Authentication/Authorization
+
+B<NOTE: This article is now obsolete.> Please refer to
+L<http://dev.catalyst.perl.org/wiki/gettingstarted/howtos/interim_authorization_and_authentication_example>.
+
+This is done in several steps:
+
+=over 4
+
+=item Verification
+
+Getting the user to identify themselves, by giving you some piece of
+information known only to you and the user. Then you can assume that the user
+is who they say they are. This is called B<credential verification>.
+
+=item Authorization
+
+Making sure the user only accesses functions you want them to access. This is
+done by checking the verified users data against your internal list of groups,
+or allowed persons for the current page.
+
+=back
+
+=head1 Modules
+
+The Catalyst Authentication system is made up of many interacting modules, to
+give you the most flexibility possible.
+
+=head2 Credential verifiers
+
+A Credential module tables the user input, and passes it to a Store, or some
+other system, for verification. Typically, a user object is created by either
+this module or the Store and made accessible by a C<< $c->user >> call.
+
+Examples:
+
+ Password - Simple username/password checking.
+ HTTPD    - Checks using basic HTTP auth.
+ TypeKey  - Check using the typekey system.
+
+=head2 Storage backends
+
+A Storage backend contains the actual data representing the users. It is
+queried by the credential verifiers. Updating the store is not done within
+this system, you will need to do it yourself.
+
+Examples:
+
+ DBIC     - Storage using a database.
+ Minimal  - Storage using a simple hash (for testing).
+
+=head2 User objects
+
+A User object is created by either the storage backend or the credential
+verifier, and filled with the retrieved user information.
+
+Examples:
+
+ Hash     - A simple hash of keys and values.
+
+=head2 ACL authorization
+
+ACL stands for Access Control List. The ACL plugin allows you to regulate
+access on a path by path basis, by listing which users, or roles, have access
+to which paths.
+
+=head2 Roles authorization
+
+Authorization by roles is for assigning users to groups, which can then be
+assigned to ACLs, or just checked when needed.
+
+=head1 Logging in
+
+When you have chosen your modules, all you need to do is call the C<<
+$c->login >> method. If called with no parameters, it will try to find
+suitable parameters, such as B<username> and B<password>, or you can pass it
+these values.
+
+=head1 Checking roles
+
+Role checking is done by using the C<< $c->check_user_roles >> method, this will
+check using the currently logged in user (via C<< $c->user >>). You pass it
+the name of a role to check, and it returns true if the user is a member.
+
+=head1 EXAMPLE
+
+ use Catalyst qw/Authentication
+                 Authentication::Credential::Password
+                 Authentication::Store::Htpasswd
+                 Authorization::Roles/;
+
+ __PACKAGE__->config->{authentication}{htpasswd} = "passwdfile";
+
+  sub login : Local {
+     my ($self, $c) = @_;
+
+     if (    my $user = $c->req->param("user")
+         and my $password = $c->req->param("password") )
+     {
+         if ( $c->login( $user, $password ) ) {
+              $c->res->body( "hello " . $c->user->name );
+         } else {
+            # login incorrect
+         }
+     }
+     else {
+         # invalid form input
+     }
+  }
+
+  sub restricted : Local {
+     my ( $self, $c ) = @_;
+
+     $c->detach("unauthorized")
+       unless $c->check_user_roles( "admin" );
+
+     # do something restricted here
+  }
+
+
+=head1 More information
+
+L<http://search.cpan.org/perldoc?Catalyst::Plugin::Authentication> has a longer explanation.
+
+
+ --castaway

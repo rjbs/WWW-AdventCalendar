@@ -1,0 +1,241 @@
+
+=head1 Intermix Bricolage and Catalyst::View::Mason
+
+Remember the calendar entry about delivering "semi static" files from
+a CMS like I<Bricolage> (L<http://catalyst.perl.org/calendar/2007/17>)? 
+Today I show another special feature combination that combines
+I<Bricolage> with a Catalyst application.
+
+I want to use pages generated from I<Bricolage> as page frames around
+minimalistic templates in my Catalyst application.
+
+=head1 Intro
+
+=head2 Mason
+
+I use C<HTML::Mason> as my preferred template language.
+
+Mason provides a nice mechanism called C<autohandler> that can combine
+several layers around an inner template depending on the directory
+structure. I use that very often to create general html page frame at
+top level, adding primary navigation on next subdir, then secondary
+navigation, then the plain inner content. Think of Matryoshka dolls
+(L<http://en.wikipedia.org/wiki/Matrjoschka>).
+
+=head2 Mason in Bricolage and Catalyst
+
+Creating sophisticated templates is the main focus in a I<Bricolage>
+project. When I augment a mostly static website with dynamic pages
+from Catalyst application I want to re-use all the template logic
+instead of maintaining a second set of autohandlers and components for
+the Catalyst application.
+
+=head2 The goal
+
+I want to take an existing page from I<Bricolage> and use its frame
+with all navigation bars, breadcrumbs and other context, but replace
+the inner content with the minimalistic template from Catalyst.
+
+=head1 Bricolage "Output Channels"
+
+"Output channels" are the mechanism of I<Bricolage> to render one
+content element in different ways, e.g, for language variants or
+different markup variants like HTML/XML/TXT. But other, even strange
+ideas are possible.
+
+You can either apply a completely different template per output
+channel or re-use the template from the primary output channel and
+conditionally handle special situations. The latter is what we need
+here.
+
+=head1 autohandler
+
+An C<autohandler> template in I<Bricolage> could look like this:
+
+ <!DOCTYPE html ... >
+ <html ... >
+ <head>
+   <& /html_meta.mc &>
+ </head>
+ <body>
+   <& /navigation.mc &>
+   ...
+
+ % if ( $burner->get_mode == PUBLISH_MODE &&
+ %      $burner->get_oc->get_name eq "myapp_Pageframe" )
+ % {
+     <!-- __pageframe_content__ -->
+ % } else {
+ %   $m->call_next;
+ % }
+
+   ...
+   <& /footer.mc &>
+ </body>
+ </html>
+
+This is the outline of a page, with html head, beginning body,
+navigation stuff and when it comes to the inner area of the page, it
+specially handles the output channel C<myapp_Pageframe> to just
+generate a html comment that we will use as placeholder in our
+Catalyst application, else it calls the next "Russian doll"
+(C<call_next>), meaning the normal CMS content is rendered there.
+
+
+=head1 Output channel
+
+The used output channel C<myapp_Pageframe> is configured in
+I<Bricolage> to generate a file C<pageframe.html> in the same path as
+the default output channel file C<index.html>.
+
+Both files are basically the same, only the inner content is either
+really there or just a placeholder. This way I can have a page frame
+who always provides the same look as its corresponding content page.
+
+You can apply this output channel to single stories or to all stories
+of the same type. I apply it only to single stories.
+
+=head1 Catalyst controller root
+
+In my Catalyst application I want to declare such a page frame file,
+additionally to the normal template.
+
+To have it everywhere available I placed the following action in
+C<Catalyst::Controller::Root>. It completes a typical I<Bricolage>
+story URI into a complete file path and puts this into the stash.
+
+ package MyApp::Controller::Root;
+ use base 'Catalyst::Controller::BindLex';
+
+ sub set_pageframe : Private {
+   my ( $self, $c, $story_uri ) = @_;
+
+   my $pageframe : Stash =
+     '/home/renormalist/myapp/myappsite'     # DocumentRoot
+     .$story_uri
+     . "/pageframe.html";
+ }
+
+
+=head1 Catalyst controller
+
+I typically have one controller with all of its actions corresponding
+to one same page frame. Therefore I declare the needed pageframe from
+I<Bricolage> using C<auto>:
+
+ package MyApp::Controller::App::News::Daily;
+
+ # Set frame template to use from CMS
+ sub auto : Private {
+   my ( $self, $c ) = @_;
+   $c->forward ('/set_pageframe', [ '/news/daily' ]);
+ }
+
+That means all templates that are used by
+C<MyApp::Controller::App::News::Daily> should be wrapped by the page
+frame corresponding to the C</news/daily> story in I<Bricolage> .
+
+
+=head1 Catalyst view
+
+My C<Catalyst::View::Mason> now should create a temporary template
+that consists of my original template embedded into the given page
+frame where the placeholder, well, holds the place.
+
+This is done by overwriting the C<get_component_path> method from
+C<Catalyst::View::Mason> in C<MyApp::View::Mason>.
+
+It takes the original component path to find the template, merges it
+with the page frame into a temporary file and gives back that
+temporary filename instead of the original template path.
+
+Here are the important lines from C<MyApp::View::Mason>:
+
+ package MyApp::View::Mason;
+ use base 'Catalyst::View::Mason';
+
+ use File::Temp qw/ tempfile tempdir /;
+ use File::Slurp qw/ slurp /;
+ use File::Basename;
+
+ our $re_placehalter    = qr/<!-- \s* __pageframe_content__ \s* -->/x;
+ our $tmpdir            = "/tmp/myapp_view_mason";
+ __PACKAGE__->config(
+   comp_root => [
+                 [ myapproot => MyApp->config->{root}.'' ], # stringify
+                 [ docroot   => '/home/renormalist/myapp/myappsite' ],
+                 [ merged    => $tmpdir ],
+                ]
+ );
+
+In the C<comp_root> config the C<merged> entry is the one where our
+merged files are written to.
+
+ sub get_component_path {
+     my ($self, $c) = (shift, @_);
+
+     my $component_path = $self->SUPER::get_component_path ( @_ );
+     return $component_path unless $c->stash->{pageframe};
+
+     my $pageframe             = $c->stash->{pageframe};
+     my $merged_component_path = $self->embed_template_into_pageframe(
+                                   $c,
+                                   $component_path,
+                                   $pageframe
+                                 );
+     return $merged_component_path;
+ }
+
+The sub doing the real work is this:
+
+ # returns a filename of a combined template
+ sub embed_template_into_pageframe {
+     my ($self, $c, $component_path, $pageframe) = (shift, @_);
+
+     my $template = $c->config->{root} . "/$component_path";
+
+     return $component_path unless -e $pageframe; # original template
+
+     my ($mergedfh, $mergedfile) = tempfile("XXXXXXXX", DIR => $tmpdir);
+
+     # slurp original template and pageframe
+     my $template_content  = slurp( $template  );
+     my $pageframe_content = slurp( $pageframe );
+
+     # create a merged component
+     $pageframe_content =~ s/$re_placeholder/$template_content/msg;
+     print $mergedfh $pageframe_content;
+
+     return basename $mergedfile;
+ }
+
+This is slightly simplified for the article, to make the principle
+obvious. It creates a lot of temp files and is probably not the
+fastest way.
+
+In my project I don't use File::Temp but a predictable name derived
+from the original template and the pageframe, solving the problem with
+lots of temporary files and a caching mechanism at once.
+
+=head1 That's it
+
+Thanks to rafl for maintaining and accepting some refactoring in
+C<Catalyst::View::Mason> that allowed the described mechanism in the
+first place.
+
+=head1 Author
+
+Steffen "renormalist" Schwigon
+
+L<http://renormalist.net>
+
+=head1 See also
+
+=over 2
+
+=item * L<http://bricolage.cc> - Bricolage, statically publishing,
+enterprise-class CMS, written in Perl
+
+=item * L<http://masonhq.com> - HTML::Mason head quarter.
+
+=back

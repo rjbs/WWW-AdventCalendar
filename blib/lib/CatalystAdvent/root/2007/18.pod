@@ -1,0 +1,182 @@
+=head1 Handling Growing FastCGI Processes
+
+You've finished writing your Catalyst application!  You tested it thoroughly
+yourself, had some others help you with QA, and even wrote some unit tests.
+You just launched it into production, and you couldn't be more proud.
+
+But wait... after a few hours of production level traffic, something looks
+wrong.  Those FCGI processes that started out around 40MB just keep
+getting bigger.  Everything was fine at first, but then they grew to 100MB
+each.  Now they're over 200MB each and have thrown the machine into swap!
+Help!  What to do?
+
+If you're running on a Linux system, this article will give you some
+answers.  If you're running on a different UNIX-like system, much of it
+should be easily adaptable.  If you're on Windows... well, at least some
+of the concepts should apply.  I think.
+
+=head2 Buy Some Time
+
+First, buy yourself some time.  Since the processes start out small and
+grow over time, you can temporarily calm the chaos by restarting all of
+your FCGI child processes.  Sound drastic?  It depends on how desperate
+your situation already is.  If your processes are growing without bound,
+your server(s) are thrashing in swap, and your web site response rate
+is grinding to a halt, you need some immediate relief.  A simple restart
+will give you that.
+
+Assuming you are running the standard C<myapp_fastcgi.pl>, you can gracefully
+restart all of the child processes by sending a HUP signal to the manager
+(parent) process.  Hopefully you started your app with the C<-p> switch
+and have a pidfile handy.  If so, all you'll need to do is this:
+
+ kill -HUP `cat myapp.pid`
+
+Now check your process list again.  Things should be back at the nice,
+sane, small size for another few hours.
+
+=head2 The Root of the Evil
+
+So what is causing the memory bloat?  Do you have a memory leak?  While
+it's certainly possible, it could be something far less sinister.  Before
+you spend the next several days chipping away at your sanity while hunting
+for leaks, you should consider the possibility that you are seeing normal
+B<copy-on-write> behavior.  There is an excellent description of this effect
+in the book B<Practical mod_perl>, and you can read the relevant portions
+online:
+
+L<http://modperlbook.org/html/10-1-Sharing-Memory.html>
+
+In a nutshell, when the parent FCGI process forks a child process,
+much of the memory is shared.  As the child process continues to run, it 
+writes its own data into memory, which causes more and more of that shared
+memory to become unshared.  Over time, this really starts to add up.
+
+Of course, you could actually have a memory leak as well.  The root cause
+could be a combination of copy-on-write and leaky plumbing.  Luckily, the
+solution for copy-on-write management happens to also buy you time for
+hunting down a memory leak.
+
+=head2 Process Management
+
+Those of you with C<mod_perl> experience may wonder where the FCGI
+equivalent to C<MaxRequestsPerChild> is.  This configuration directive sets
+a maximum number of requests that each Apache instance should handle before
+it dies, releasing its memory, and allowing a fresh new Apache instance to
+be spawned in its place.  Using this setting is a common and recommended
+practice when running mod_perl applications.  It would certainly solve
+our FCGI problem, if we only had such a setting.
+
+You could simply set an upper memory limit with C<ulimit> or the C<daemontools>
+C<softlimit> command.  That way, if one of the children reached the
+predetermined upper limit, it would die; the FCGI manager would spawn a new
+child; all would be well.  There is only one problem with this approach.
+
+When the child process hits the upper memory limit, it dies a horrible death.
+The unfortunate web user that process was serving will be cut off in
+mid-request, left with a broken page, and even worse -- a half-finished
+action on the backend.  At best, this means a bad user experience.  At worst,
+if you aren't using a fully transactional database system, it could mean
+data corruption.
+
+Faced with this dilemma and growing tired of restarting my application
+by hand every few hours, I reached for the tools I knew.  I wrote my own
+process reaping cron that would gracefully kill any child processes that
+had grown too large.  Thankfully, L<FCGI::ProcManager> gives us a relatively
+easy way to do this.  If you send a HUP signal to an individual child FCGI
+process, it will finish handling its current request and then end.  The
+FCGI manager will then spawn a new child to replace it.  That is exactly
+what we want.
+
+=head2 The Script
+
+This script will check all of the child FCGI processes to see if any have
+grown beyond a specified memory size.  If they have, it will send them a
+HUP signal, asking them to end after finishing their current request.
+
+I currently run this every 30 minutes via cron, just to be safe.  You never
+know exactly when a process may cross that line:
+
+ */30 * * * * /path/to/kidreaper `cat /tmp/myapp.pid` 104857600
+
+The script is fairly simple and relies on a C<ps> command that supports the
+C<--ppid> switch:
+
+ #!/usr/bin/perl
+
+ use strict;
+
+ my ($ppid, $bytes) = @ARGV;
+
+ die "Usage: kidreaper PPID ram_limit_in_bytes\n" unless $ppid && $bytes;
+
+ my $kids;
+
+ if (open($kids, "/bin/ps -o pid=,vsz= --ppid $ppid|")) {
+    my @goners;
+ 
+    while (<$kids>) {
+       chomp;
+       my ($pid, $mem) = split;
+ 
+       # ps shows KB.  we want bytes.
+       $mem *= 1024;
+ 
+       if ($mem >= $bytes) {
+          push @goners, $pid;
+       }
+    }
+ 
+    close($kids);
+ 
+    if (@goners) {
+       # kill them slowly, so that all connection serving
+       # children don't suddenly die at once.
+       
+       foreach my $victim (@goners) {
+          kill 'HUP', $victim;
+          sleep 10;
+       }
+    }
+ }
+ else {
+    die "Can't get process list: $!\n";
+ }
+
+No, the script is not bullet-proof.  It could stand to have better error checking,
+improved option handling, etc.  It's a functional starting point, though.
+
+=head2 A Better Solution?
+
+Is there a better solution?  Probably.  I've thought of writing a L<FCGI::ProcManager>
+subclass that has child memory limit support built in.  Maybe someday I will.  For now,
+this C<kidreaper> cron is working nicely enough that I don't urgently need to pursue
+another solution.  I get to focus on other needs, which I assume you'd like to do as well.
+
+=head2 Caveats
+
+If you find that sending a HUP signal to a FCGI child actually causes the whole manager
+process tree to die, you may have run into the same strange situation that I did on
+one of my boxes.  It happened on B<only> one of my boxes, which of course had to be a
+production machine.  I finally stopped chasing down the root cause when I got into the
+L<POSIX> module and decided it was something to do either with my Linux kernel or Perl
+version.  In any case, the bad behavior only happened when I used the C<-d> switch
+of the C<myapp_fastcgi.pl> script to B<daemonize> the process.  On a tip from another
+Catalyst user, I switched to C<daemontools> for managing my application startup, since
+it does not require the daemonize switch.  Presto!  That problem was solved.
+
+=head1 SEE ALSO
+
+=over
+
+=item L<http://modperlbook.org/html/10-1-Sharing-Memory.html>
+
+=item L<http://cr.yp.to/daemontools.html>
+
+=item L<FCGI::ProcManager>
+
+=back
+
+=head1 AUTHOR
+
+Mark Blythe <perl@markblythe.com>

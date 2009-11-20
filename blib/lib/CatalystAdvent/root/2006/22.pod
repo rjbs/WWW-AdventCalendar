@@ -1,0 +1,293 @@
+=head1 Day  22 - LDAP Autocomplete 
+
+Creating an LDAP Autocomplete field with B<Catalyst::Plugin::Prototype>
+
+=head2 Introduction
+
+We've all heard and used Google's Suggest Searches, and to be honest,
+they are cool!
+
+So in your admin/client web applications, why not create the same
+thing using the power of Open Source to help find that user name
+quickly.
+
+Read on to find out how.
+
+=head2 Getting the Plugins and Modules 
+
+The easiest way to obtain Prototype for Catalyst is from L<CPAN>.
+Install L<Catalyst::Plugin::Prototype>.
+
+Also grab B<Catalyst::Model::LDAP>
+
+Install that as per any other CPAN module and include it your B<MyApp.pm>
+
+ 	use Catalyst qw/Prototype/;
+
+=head2 Adding an LDAP Model
+
+L<Catalyst::Helper::Model::LDAP> lets you generate a pre-rolled model
+with all your connection info included. Here's an example:
+	
+	script/myapp_create.pl model User LDAP ldap.suretecsystems.com ou=Users,dc=suretecsystems,dc=com
+	
+Or to create a model to add config to later:
+
+	script/myapp_create.pl model User LDAP	
+
+=head2 Creating the LDAP configuration
+
+If you chose to set your configuration in the manually, you should now
+see something like:
+
+    # lib/MyApp/Model/User.pm
+    package MyApp::Model::User;
+
+    use base 'Catalyst::Model::LDAP';
+
+    __PACKAGE__->config(
+        host              => 'ldap.suretecsystems.com',
+        base              => 'ou=Users,dc=suretecsystems,dc=com',
+        dn                => '',
+        password          => '',
+        start_tls         => 1,
+        start_tls_options => { verify => 'require' },
+        options           => {},  # Options passed to all Net::LDAP methods
+                                  # (e.g. SASL for bind or sizelimit for
+                                  # search)
+    );
+
+    1;
+
+If you chose C<Config.yml>, set it up like:
+
+ 	# Model::LDAP config and search setting for admin auto
+ 	Model::User:
+ 	  host: ldap.suretecsystems.com
+ 	  base: ou=Users,dc=suretecsystems,dc=com
+ 	  scope: one
+ 	  user_filter: (|(objectClass=sambaSamAccount)(objectclass=posixAccount))
+ 	  attrs: uid
+ 	  dn:
+ 	  password:
+ 	  options:
+ 	  
+
+In the above you can see that you can assign a filter to find your
+users. In our example, we are looking for users that either have an
+account in Samba or a standard Unix/Linux account.
+
+=head2 Creating your Autocomplete template
+
+In our example, we are going to use the Autocomplete features for when
+we are searching for a user to delete. So I'll create
+C<root/admin/users.tt>:
+
+  <div id="deluser" height:80px;width:350px;">
+ 	      <div>
+ 		        <form action="[% c.uri_for('/admin/users/deluser') %]" method="post" id="removeuser">
+ 	           
+ 	            <div class="row">
+ 	                <span class="label">Username:</span>
+ 	                <span class="formrw"><input id="ldap_user"
+ 	                                            name="ldap_user"
+ 	                                            type="text" size="20"/></span>
+ 	               
+ 	                <div id="ldap_user_auto_complete" style="text-align: left;"></div>
+ 	           
+ 	                [% auto_url = base _ 'admin/suggest_ldap_user' %]
+ 	                [% c.prototype.auto_complete_field( 'ldap_user', { url => auto_url } ) %]
+ 	            </div>
+ 	           
+ 	            <div class="row">
+	                <span class="formrw"><input type="submit" name="deluser" value="Delete"/></span>
+ 	            </div>
+ 	         </form>
+ 	       </div>
+ 	    </div>
+ 	    
+You can see we have a standard CSS form, with one div tag identified for the autocomplete, and
+two other lines that set the url where our B<GET> requests will go to fetch our user info:
+
+	[% auto_url = base _ 'admin/suggest_ldap_user' %]
+ 	[% c.prototype.auto_complete_field( 'ldap_user', { url => auto_url } ) %]
+ 	
+=head2 Creating your LDAP Autocomplete Controller
+
+We have a C<admin.pm> already, so we just need to add B<suggest_ldap_user>:
+
+	=head2 suggest_ldap_user
+
+	=cut
+
+	sub suggest_ldap_user : Local {
+	    my ($self, $c) = @_;
+	    $c->stash->{template} = "admin/userscontent.tt";
+    	
+	    my $tabs = "\t\t\t\t\t\t";
+	    $c->log->debug( 
+	                    "Reading config:",
+	                    "$tabs". $c->model('User')->{base}, 
+	                    "$tabs". $c->model('User')->{scope}, 
+	                    "$tabs". $c->model('User')->{user_filter}, 
+	                    "$tabs". $c->model('User')->{attrs},
+	                  );
+
+	    # Search for the LDAP users and stick them in @users
+	    my $search =
+	        $c->model('User')->search(
+	                                    base   => $c->model('User')->{base},
+	                                    scope  => $c->model('User')->{scope},
+	                                    filter => $c->model('User')->{user_filter},
+	                                    attrs  => [$c->model('User')->{attrs}],
+	                                 );
+	    my @users = $search->entries;
+	    $c->log->debug( 
+	                    "Checking first entry in search result array:",
+	                    "$tabs". $users[0]->get_value('uid'), 
+	                  );
+
+
+	    for my $user ( @users ) {
+	        for my $uid ( $user->attributes ) {
+	            # We don't want workstations, or the nobody user
+	            # (they have $ on end of name)
+	            my $ldap_user = $user->get_value( $uid );
+	            next if ( $ldap_user =~ /\$$/ );
+	            next if ( $ldap_user =~ /^nobody/ );
+	            
+	            push @{$c->stash->{'users'}}, $ldap_user;
+	        }
+	    }
+
+
+	    # Grab the search term
+	    my $req = $c->req->param('ldap_user');
+    
+	    $c->log->debug();
+	    $c->log->debug( "Search term to auto_complete is $req"); 
+	    $c->log->debug();
+	    $c->log->debug( "Looking through these users: @{$c->stash->{'users'}}" );
+	    
+	    # Only return users that start with the above letter
+	    my @found_users = grep { /^$req/ } @{$c->stash->{'users'}};
+    
+	    $c->log->debug( "Found user/s @found_users as per your search. 
+	                     Sending results.." );
+	    $c->log->debug();
+    
+	    # Only works this way and not by just passing @found_users?
+	    my @ldap_users = @found_users;
+
+	    # Send results   
+	    $c->res->output( $c->prototype->auto_complete_result(\@ldap_users) );
+	}
+
+The above was designed for a Samba application I am doing in my spare
+time (spare time!?!), so certain things won't apply. (L<http://sosa.sf.net>)
+
+=head2 Putting it all together
+
+Lastly we need some CSS to make the drop down look nice. Put this in
+one of your CSS files:
+
+ 	#ldap_user_auto_complete ul {
+ 	    border:1px solid #FFAF53;
+ 	    margin:0;
+ 	    padding:0;
+ 	    width:100%;
+ 	    list-style-type:none;
+ 	}
+ 	
+ 	#ldap_user_auto_complete ul li {
+ 	    margin:0;
+ 	    padding:3px;
+ 	}
+ 	
+ 	#ldap_user_auto_complete ul li.selected {
+ 	    background-color: #ffb;
+ 	    background-color: #ff6;
+ 	}
+ 	
+ 	#ldap_user_auto_complete ul strong.highlight {
+ 	    color: #800;
+ 	    margin:0;
+ 	    padding:0;
+ 	}
+
+With that done, fire up the server, and watch the debug screen!
+(please note that this is an old-ish application, hence the lack of
+Controller::Root for example)
+
+ ghenry@suretec SOSA]$ script/sosa_server.pl 
+ [debug] Debug messages enabled
+ [debug] Loaded plugins:
+ .----------------------------------------------------------------------------.
+ | Catalyst::Plugin::Prototype  1.32                                          |
+ [snipped some output]
+ [info] SOSA powered by Catalyst 5.7006
+ You can connect to your server at http://blackhat:300
+	
+Now lets type a letter in our autocomplete input field and see what happens:
+
+ [info] *** Request 1 (0.003/s) [24084] [Tue Dec 19 23:34:46 2006] ***
+ [debug] Body Parameters are:
+ .-------------------------------------+--------------------------------------.
+ | Parameter                           | Value                                |
+ +-------------------------------------+--------------------------------------+
+ | _                                   |                                      |
+ | ldap_user                           | g                                    |
+ '-------------------------------------+--------------------------------------'
+ [debug] "POST" request for "admin/suggest_ldap_user" from "192.168.10.9"
+ [debug] Path is "admin/suggest_ldap_user"
+ [debug] Reading config:  ou=Users,ou=OxObjects,dc=suretecsystems,dc=com
+ [...]
+ [debug] Checking first entry in search result array:
+ [debug] Search term to auto_complete is g
+ [debug] Looking through these users: fred wilma barney ghenry betty dino bart homer pebbles lisa maggie
+ [debug] Found user/s ghenry as per your search. 
+                      Sending results..
+ [debug] 
+ [info] Request took 0.290863s (3.438/s)
+ [...snip...]
+
+To see a screenshot of this in action, please see
+L<http://sosa.sourceforge.net/screenshot2-big.png>
+
+=head2 Conclusion
+
+You don't need to use Prototype to use this, you could use Dojo,
+JQuery or YUI Javascript toolkits to name just three. The choice is
+yours.
+
+If you get stuck, come visit us on the lists or in IRC (see
+L<http://lists.rawmode.org/mailman/listinfo/catalyst> and on irc:
+#catalyst@irc.perl.org
+
+We hope that's given you some things to think about. Have fun! ;-)
+
+=head2 Warning
+
+The above example doesn't limit the amount of LDAP users returned, so please
+implement that yourself. 
+
+If you are running B<OpenLDAP>, then you can enforce the amount of entries 
+returning per search (C<man slapd.conf(5)> ):
+
+    sizelimit size[.{soft|hard|unchecked}]=<integer> [...]
+              Specify the maximum number of entries to return from a search 
+              operation. The default size limit is 500. 
+
+=head3 AUTHOR
+
+Gavin Henry B<ghenry@suretecsystems.com>
+
+=head3 COPYRIGHT
+
+Copyright 2006 Suretec Systems Ltd. - http://www.suretecsystems.com
+
+This document can be freely redistributed and can be modified and 
+re-distributed under the same conditions as Perl itself.
+
+=cut
+

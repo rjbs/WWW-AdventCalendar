@@ -1,0 +1,142 @@
+=head1 Day 8 - A YouTube Catalyst Application 
+
+Creating a Catalyst application that integrates the YouTube webservice.
+
+=head2 CatTube
+
+For today's entry, we have a screencast to accompany the write-up.
+Unfortunately there is no audio right now, but we'll update it with audio
+shortly.
+
+The point of this screencast is to demonstrate how to setup a Catalyst
+application and use a ready-made Model and a helper to integrate YouTube
+videos with your Catalyst application.
+
+=head2 Video
+
+The video is available at L<http://www.catalystframework.org/videos/CatTube_Screencast.avi>
+
+If you are unable to view the video, please try to use VLC or mplayer.  We'll be
+re-encoding the videos shortly.  It is encoded in h.264 now.
+
+VLC is available from L<http://www.videolan.org/vlc>
+
+MPlayer is available from L<http://www.mplayerhq.hu>
+
+=head2 Getting prepared
+
+We're going to build a simple AJAX-based YouTube search application.  Lets begin
+by installing a few extensions, for this application we're going to be using
+the YouTube Model, the Template Toolkit View and the Graphics helper package.
+
+To make sure we have them all installed, run:
+
+    cpan Catalyst::Helper::Graphics Catalyst::Model::YouTube Catalyst
+
+=head2 Getting started
+
+After that's done, the first step is to use the Catalyst script to create your
+new application.  We'll call this application "CatTube", so we just run:
+
+    catalyst.pl CatTube
+
+This will bootstrap our application and provide a skeleton for how the code is
+laid out, including directories for the Models, Views and Controllers as well as
+for static files.
+
+Once you have your application you can start the development server to see
+that everything is setup and running.  Lets do this now.
+
+    script/cattube_server.pl
+
+The important paths here are "script" which contains all the Catalyst
+generated application scripts, along with the test server, and the
+"root" directory which contains all templates and other static files used by
+the application.
+
+All the Perl goes under the lib directory, in one of the "Model", "View"
+or "Controller" directories, based upon what that code is supposed to be doing.
+
+The MVC components are created by using the same "cattube_create.pl"
+script that would also use to create or install other modules.  It will
+generate the files, with the proper paths, tailored for your application.  As
+an example, lets create the graphics for our application:
+
+    script/cattube_create.pl Graphics
+
+And we'll need to make sure we have the Template Toolkit view installed, so
+we'll run:
+
+    script/cattube_create view TT TT
+
+Once that is complete, use can use the Catalyst helper functions to get
+the Model class installed in the application.  We do this by running:
+
+    script/cattube_create.pl model YouTube YouTube <dev-id>
+
+The second "YouTube" in that command line tells Catalyst to
+construct a model class based upon Catalyst::Model::YouTube, and then
+it properly configures that model based upon the dev-id that is also
+provided as a command line option.
+
+Once these packages are installed, we can now begin with our application.
+
+=head2 Building the Application
+
+First, we have to define any plugins we may want, and in this case
+we'll be using the prototype.js plugin.
+
+Open the C<lib/CatTube.pm> file and add the Prototype line in the configuration.
+
+Next, we'll need to create a controller action for our default page load.
+Catalyst will populate some defaults for us, but we'll want to add our index
+action and create the template to correspond with it.  Catalyst will match the
+template name with the action unless a template is explicitely provided.
+
+    sub index : Private {
+        # Loads root/index.tt
+    }
+
+In this case, we just will create an "index.tt" file in our root directory.
+This is effectively an HTML page, that Template Toolkit will take in and perform
+whatever operations, like variable substitution and other simple programmatic
+constructs in it.  Of special note is the C<c> variable, which is our Catalyst
+context object.  This helps us create paths, use plugins, and do a few other
+things that I'm sure you'll learn about.
+
+We're using the prototype plugin to define a search form that will connect
+to a soon to be created Search controller.  This is a convenience method that
+will simply generate the form tag, along with some JavaScript.
+
+The C<c.uri_for> is a great function that helps construct the final URI,
+without having to worry about hostnames or other environment information
+outside of the application.
+
+After the base template and CSS is created, we then want to create our
+Search controller.  This is accomplished by once again using the
+cattube_create.pl script.
+
+    script/cattube_create.pl controller Search
+
+After the Controller class is created, we go ahead and put our search
+logic in there to query the YouTube model.  We're sending the results
+back via AJAX, and doing a partial render on the results page so our
+template is pretty simple.
+
+We trigger this now by going back to our index.tt template and
+configuring the JavaScript and away we go.
+
+After some quick debugging, we have a nice way to search and embed YouTube
+videos in our application!  I hope you enjoyed this screencast, and enjoy
+using Catalyst.
+
+=head2 For more
+
+You can download this application from our Subversion repository at:
+
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/CatTube/>
+
+=head3 AUTHOR
+
+J. Shirley <jshirley@gmail.com>
+

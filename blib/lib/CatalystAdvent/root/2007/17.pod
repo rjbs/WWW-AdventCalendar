@@ -1,0 +1,311 @@
+
+=head1 Running under Apache/mod_perl
+
+Today we discuss some topics around running Catalyst applications in a
+Apache/mod_perl environment. (In fact used with Apache2/mod_perl2.)
+
+=head1 Motivation
+
+Why should you need to run Catalyst applications under Apache?
+
+Several reasons:
+
+=over 2
+
+=item * Deliver static files
+
+Sometimes delivering static files through the
+C<Catalyst::Plugin::Static::Simple> is not enough.
+
+All your content is generated statically from a Content Management
+System (CMS) that does not know about your C<root/static> subdir. The
+static files are scattered over many non-conforming places or you
+can't work out what they are just by file type.
+
+=item * Some of your static files are "less static" than others
+
+You might want to deliver images as really static files but have
+enriched some of your html files with template code and want to
+execute this through your preferred Catalyst::View.
+
+=item * Integrate your application into the same context of other
+applications on your server
+
+You might have several applications that are already delivered through
+Apache. They together with your Catalyst app might all share the same
+environment, e.g. from a common authentication layer providing a singe
+sign-on.
+
+=item * Enhance a generally static website with some application pages
+
+You want to mix only a few application URIs into your otherwise
+perfect static website, e.g. a newsletter subscription, a search
+function or some forms. You take URIs seriously - you want them
+B<anywhere>, maybe right in the middle.
+
+=item * You want to use advanced Apache/mod_perl features
+
+You might want to apply features like reverse proxies, mod_rewrite,
+output filtering or authentication/authorization to your applications,
+all at the same time and consecutive.
+
+=item * You want all of the above at once
+
+Of course. I did.
+
+=back
+
+=head1 Virtual host
+
+All the following Apache configuration is assumed inside a virtual
+host:
+
+ <VirtualHost myapp.myhost.net>
+   # ...
+ </VirtualHost>
+
+=head1 Configuration during Apache startup
+
+Configuring things like environment variables, load path, etc. can be
+tricky in a mod_perl environment because changing C<@INC> or C<%ENV>
+is not at any time possible. Calling a startup file helps. In Apache
+config use:
+
+ PerlConfigRequire /home/renormalist/myapp/lib/MyApp/Config.pm
+
+That file contains lines like
+
+ use lib '/home/renormalist/myapp/lib';
+
+pointing to where C<MyApp> is installed and maybe other interesting
+initialization stuff.
+
+=head1 Static delivery
+
+Define your website with a typical C<DocumentRoot> to deliver
+everything through Apache by default:
+
+ DocumentRoot /home/renormalist/myapp/myappsite/
+
+=head1 Deliver files through MyApp
+
+Match html files of wanted subdirs through Catalyst with the
+C<LocationMatch> directives and assign C<MyApp> as ResponseHandler:
+
+ <LocationMatch "/(start|news|blog)[-_\w\d/]*\.html$">
+   SetHandler          modperl
+   PerlResponseHandler MyApp
+ </LocationMatch>
+
+This way all the matched URIs are handled by MyApp.
+
+In catalyst you need a controller that matches the same URIs and
+delivers the files, e.g.:
+
+ package MyApp::Controller::DeliverHtmlFiles;
+ use base 'Catalyst::Controller::BindLex';
+
+ sub html_pages : Regex('^(start|news|blog)[-_\w\d/]+\.html$')
+ {
+   my ( $self, $c ) = @_;
+   my $template : Stash = $c->request->path;
+ }
+
+The example is simplified. You need more code to handle nonexistent
+files or to handle URIs that end in dir names and need "/index.html"
+added.
+
+Your view needs to know about your base path. I point C<Mason> to my
+original application C<root/> and to the same DocumentRoot as
+configured for Apache above.
+
+ package MyApp::View::Mason;
+ use base 'Catalyst::View::Mason';
+ 
+ __PACKAGE__->config(
+   comp_root => [
+                 [ myapproot => MyApp->config->{root}.'' ], # stringify
+                 [ docroot   => '/home/renormalist/myapp/myappsite' ],
+                ]
+ );
+
+
+=head1 Deliver more URIs through MyApp
+
+Additionally provide applications under C<app/> through Catalyst:
+
+ <LocationMatch "/app/.*">
+   SetHandler          modperl
+   PerlResponseHandler MyApp
+ </LocationMatch>
+
+To serve this URIs I use controllers below the
+C<MyApp::Controller::App> namespace and a C<root/app/> directory for
+its application templates:
+
+ package MyApp::Controller::App::News;
+ use base 'Catalyst::Controller::BindLex';
+ 
+ sub daily : Local
+ {
+    my ($self, $c) = @_;
+    # ...
+ }
+
+=head1 One for all
+
+All the above ResponseHandlers are pointing to the very same single
+application instance C<MyApp>. It is lazily started on the first
+request to one of the matched URIs.
+
+That's a specific feature of C<Catalyst::Engine::Apache>. If you want
+more application instances in one Apache instance, then the mod_perl
+engine probably isn't the right thing for you.
+
+=head1 Application base
+
+The C<Catalyst::Engine::Apache> tries to set your base path to the
+place where your C<Location> or C<LocationMatch> points to, meaning
+that all other paths are used relative to that. This is sometimes not
+the Right Thing.
+
+My html files all use links that are relative to C</> (i.e., they are
+B<not> relative but absolute) and we cannot rewrite them all to use
+C<uri_for()> because they come from a CMS that does things its own way
+and we want to re-use the same files for static preview purposes.
+
+A workaround is to not use C<Location> but C<LocationMatch> and make
+its regex "non-trivial enough" so that deriving a single base path
+from that Regex isn't possible, even when it is in fact a single
+location:
+
+  <LocationMatch "/app/.*$">
+    # ...
+  </LocationMatch>
+
+Who doesn't like that dirty trick needs to overwrite
+C<prepare_path>. (Or is there an easier way to do it?)
+
+=head1 Take information from apache request into your application
+
+Your application might not always run under Apache. E.g., during unit
+tests you might not have Apache specific request information or
+cookies from the browser available.
+
+One possibility is to overwrite C<prepare_headers> to collect that
+information if available and then access it engine-independent in the
+rest of your application.
+
+Here I mix information about the originally wanted uri and the
+authentication reason (both resulting from my authentication layer
+based on C<Apache2::AuthCookie>) into application request headers:
+
+ # MyApp.pm
+ 
+ sub prepare_headers {
+   my $self = shift;
+ 
+   $self->NEXT::ACTUAL::prepare_headers(@_);
+ 
+   if ($self->can('apache')) {
+     if ($self->apache->prev) {
+       $self->request->header(
+         'X-MyApp-Destination' => $self->apache->prev->uri
+       );
+       $self->request->header(
+         'X-MyApp-AuthCookieReason' => $self->apache->prev->subprocess_env('AuthCookieReason')
+       );
+     }
+   }
+   return;
+ }
+
+=head1 Chained actions, captured arguments and utf-8
+
+There are some issues if you want to use chained actions and capture
+args as parts of the uri and these args contain non trivial values
+similar to the way wikipedia does it
+(e.g. http://en.wikipedia.org/wiki/Na%C3%AFve ).
+
+Sooner or later you wonder how to allow slashes in arguments. Then
+remember this Apache option:
+
+    AllowEncodedSlashes On
+
+To take such params as utf-8 it is neccessary to explicitely tag it as
+such:
+
+ sub prepare_foo : Chained('/') PathPrefix CaptureArgs(1)
+ {
+   my ($self, $c, $param_foo) = @_;
+   Encode::_utf8_on($param_foo);
+   # ...
+ } 
+
+(Maybe that would be a worthy extension to
+C<Catalyst::Plugin::Unicode>.)
+
+=head1 Multi level templates for CMS purposes
+
+Our C<DeliverHtmlFiles> controller above delivers all files through
+the default view, e.g. C<Catalyst::View::Mason>. So you can augment
+the .html files with Mason code to do dynamic stuff.
+
+Unfortunately providing template code can be tricky if you already use
+the same template language in your CMS where you create those pages.
+
+You could use two different template engines that don't interfere,
+e.g. Mason in your CMS templates that in turn contain TT2 code used
+during the Catalyst delivery. Or vice versa.
+
+Alternatively you could escape template code to realize multi level
+templating. I escaped multi level Mason code with an alternative
+syntax, like
+
+ <!--metamason% my $MYAPP_UNAME = $c->req->header('MYAPP_UNAME'); -->
+ Your login is: <!--% $MYAPP_UNAME %-->
+
+and preprocess it in C<MyApp::View::Mason>:
+
+ __PACKAGE__->config( preprocess => sub {
+     my $text = shift; # ref
+     
+     # <!--% ... %--> becomes <% ... %>
+     $$text =~ s/<!--%/<%/g;
+     $$text =~ s/%-->/%>/g;
+     
+     # <!--metamason% ... --> becomes % ... at linestart
+     $$text =~ s,^\s*<!--\s*metamason%(.*?)-->,%$1,msg;
+   }
+ );
+
+I saw something similar for Template Toolkit here (German, sorry):
+
+=over 2
+
+=item * L<http://www.perl-uwe.de/blog/2007-03/template-im-template-teil-2/>
+
+=back
+
+=head1 That's it
+
+Thanks to the people in #catalyst and especially to rafl for always
+having ideas and solutions to my problems.
+
+=head1 Author
+
+Steffen "renormalist" Schwigon
+
+L<http://renormalist.net>
+
+=head1 See also
+
+=over 2
+
+=item * L<http://bricolage.cc> - Bricolage, statically publishing,
+enterprise-class CMS, written in Perl
+
+=item * http://modperl2book.org/ - mod_perl2 User's Guide
+Book.
+
+=back

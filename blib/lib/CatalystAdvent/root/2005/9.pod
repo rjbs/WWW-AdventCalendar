@@ -1,0 +1,63 @@
+=head1 Catalyst Advent - Day 9 - YAML, YAML, YAML!
+
+B<NOTE>: This article was written in 2005. In the meantime, Catalyst has
+switched to using Config::General as the format for its configuration files.
+YAML files being whitespace-sensitive, copy/pasting from POD often caused
+problems. See also the Catalyst Wiki (L<http://dev.catalyst.perl.org/wiki>).
+
+When you start a new Catalyst app you configure it directly
+with __PACKAGE__->config, thats ok for development but admins
+will hate you when they have to deploy this.
+
+    __PACKAGE__->config( name => 'MyApp', 'View::TT' => { EVAL_PERL => 1 } );
+
+You didn't know you could configure your view from the application class, eh? :)
+Thats possible for every component that inherits from Catalyst::Component
+or it's subclasses (Catalyst::Base, Catalyst::Controller, Catalyst::View,
+Catalyst::Model).
+
+    __PACKAGE__->config(
+        name => 'MyApp',
+        'View::TT' => {
+            EVAL_PERL => 1
+        },
+        'Controller::Foo' => {
+            fool => 'sri'
+        }
+    );
+    
+    
+    package MyApp::Controller::Foo;
+    use base 'Catalyst::Controller';
+    
+    __PACKAGE__->config( lalala => " can't sing!" );
+    
+    sub default : Private {
+        my ( $self, $c ) = @_;
+        $c->res->body( $self->{fool} . $self->{lalala} );
+    }
+
+But back to the topic, lets make our admins happy with this little idiom.
+
+    use YAML ();
+    
+    __PACKAGE__->config( YAML::LoadFile( __PACKAGE__->path_to('myapp.yml') ) );
+
+The C<path_to()> method is a nice little helper that returns paths relative to the
+current application home.
+
+Thats it, now just create a file C<myapp.yml>.
+
+    ---
+    name: MyApp
+    View::TT:
+      EVAL_PERL: 1
+    Controller::Foo:
+      fool: sri
+
+
+Have fun!
+
+-- sri
+
+=cut

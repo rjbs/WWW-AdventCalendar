@@ -1,0 +1,321 @@
+=head1 NAME 
+
+DBIx::Class::Tutorial::Part1
+
+=head1 DESCRIPTION
+
+This is part one of a DBIx::Class tutorial I started writing for the
+folks at work, I hope to turn it into a multi-part releasable
+document.
+
+=head1 GLOSSARY
+
+See L<DBIx::Class::Manual::Glossary>.
+
+Some terms needed for this doc:
+
+=over 
+
+=item Schema
+
+A L<DBIx::Class::Schema> object is created by calling C<< ->connect >>
+on our Schema subclass, and passing it the DSN (and other possible
+values, see L<DBIx::Class::Schema>). Eg: C<< my $schema =
+Breadcrumbs::Schema->connect('dbi:mysql;dbname=Breadcrumbs',
+'user', 'passwd'); >> Creating this object does not attempt to connect
+to the database yet.
+
+NB: To make use of an existing mechanism to store credentials for
+databases, we can do: C<< my $schema = Breadcrumbs::Schema->connect(
+sub { My::Util('Breadcrumbs') } ); >>.
+
+=item ResultSet
+
+A L<DBIx::Class::ResultSet>, an object which represents a database
+query, including all conditions/clauses. Creating one does not run the
+associated query, it is stored and used when actual data objects are
+requested. The simplest form of ResultSet represents an entire table,
+and can be retrieved from the schema object like this: C<< my $rs =
+$schema->resultset('Path') >>.
+
+=item ResultSource
+
+A class that describes a table, it's columns and it's relations with
+other tables.
+
+=item Row
+
+A L<DBIx::Class::Row> representing an actual row of data resulting
+from a database query. This could be and entire row, or just certain
+fields as restricted by a ResultSet.
+
+=head1 SETUP
+
+To create a new set of DBIx::Class L<DBIx::Class::ResultSource>
+classes, you can either write them by hand, or create from an existing
+database.
+
+=head2 Create ResultSource classes from existing database
+
+L<DBIx::Class::Schema::Loader>'s C<make_schema_at> can extract schema
+definitions from existing databases and create a complete
+L<DBIx::Class> schema for you, example:
+
+  perl -MDBIx::Class::Schema::Loader=make_schema_at,dump_to_dir:./lib -e 'make_schema_at("Breadcrumbs::Schema", { debug => 1 }, [ "dbi:mysql:dbname=Breadcrumbs","user", "passwd" ])'
+
+This will create a file for each database table (in
+F<lib/Breadcrumbs/Schema/>), plus the file F<Breadcrumbs/Schema.pm> which is
+the L<DBIx::Class::Schema> file.
+
+The table files will contain information about the columns and their
+types. If the database is innodb, it will also extract relationships
+based on foreign key references etc. An md5 sum of the contents is
+added, so that the user can add more relations or other methods to the
+file, and a later update will not overwrite them.
+
+=head2 If the database layout changes
+
+Re-run the C<make_schema_at> command shown above. 
+
+=head2 Create ResultSource classes from scratch
+
+See L<DBIx::Class::Manual::Intro/SETTING UP DBIx::Class>.
+
+=head2 Setting up relationships
+
+If your databases is mysql and not using innodb, you will have
+to add the table relationships ourselves. These are the most useful
+part of DBIx::Class, otherwise we might as well just use DBI..
+
+There are 3 main/useful relationship types, for the rest and a more wordy
+description, see L<DBIx::Class::Relationship>.
+
+The C<name> of each relationship (the first argument), is important,
+it is used both as an accessor and as a key to joni across tables.
+
+=head2 belongs_to (foreign keys)
+
+=begin notes
+
+Create duplicate blueprint db to play with and show how this works.
+
+Also figure out SQL created and add to doc.
+
+=end notes
+
+Breadcrumbs's C<Name> table has a C<PathID> column which contains
+an ID from the C<Path> table. To make the Path object simple to
+retrieve and update, we add the following to the Name.pm file,
+after the md5 sum from Loader:
+
+  __PACKAGE__->belongs_to('path', 'Breadcrumbs::Schema::Path', 'PathID');
+
+Read as: The value in the C<PathID> column belongs_to the table
+represented by C<Breadcrumbs::Schema::Path>.
+
+This creates an accessor C<path>, which we can call on a Name
+L<DBIx::Class::Row> which will retrieve the appropriate
+L<DBIx::Class::Row> in the C<Path> table.
+
+  ## Print the path of the current name entry
+  print $name->path->path;
+
+We can also set a PathID for a new Name row by calling:
+
+  $name->path($pathobj);
+  $name->update;
+
+=head2 has_many (reverse foreign key)
+
+Going in the opposite direction, each C<Path> row has 0 to many
+C<Name> entries associated with it, indicated by the C<PathID> column
+in the C<Name> table. We can make it simple to retrieve all the name
+values for a particular C<Path> row:
+
+  __PACKAGE__->has_many('names', 'Breadcrumbs::Schema::Name', 'PathID');
+
+Read as: This class has many C<names> in C<Breadcrumbs::Schema::Name>
+linked via the C<PathID> column.
+
+Creates us an accessor C<names> which can give us a
+L<DBIx::Class::ResultSet> (of which more later), or an array of
+C<Name> objects.
+
+  ## find all names for current path entry
+  foreach my $name ($path->names)
+  {
+     print $name->name;
+  }
+
+Add a new name for the current path, assuming we have a language
+object as well:
+
+  $path->create_related('names', 
+                        { name => 'Products',
+                          lang => $lang }
+                       );
+
+
+
+=head1 GETTING DATA
+
+Whether fetching complete rows, searching for rows, or fetching data
+from multiple tables, the methods are much the same, all return
+L<DBIx::Class::Row> objects eventually.
+
+=head2 find (single row by unique key)
+
+To fetch a full row using it's Primary Key (they all have PKs,
+right?), we can retrieve a Row object directly from a ResultSet
+representing the table:
+
+  ## Just PK:
+  my $name1 = $schema->resultset('Name')->find(1);
+
+  ## More meaningful:
+  my $name1 = $schema->resultset('Name')->find({ id => 1 });
+
+The Row object contains all the values of all the fields defined in
+the ResultSource. Not necessarily in the table. Each column has an
+accessor which is by default the name of the column lower-cased (When
+using Loader).
+
+  my $namename = $name1->name;   ## Japan
+  my $langid   = $name1->langid; ## 1
+
+=head2 search (multiple objects, less coluns, conditions)
+
+To fetch a particular Name row and it's Path at the
+same time, using only one database query:
+
+  my $name_rs = $schema->resultset('Name')->search(
+    { 'me.id' => 1 },                                ## WHERE
+    { prefetch => [ 'path' ] }                       ## JOIN AND SELECT. NB: Rel name!
+
+This creates a L<DBIx::Class::ResultSet>, to retrieve the actual Row object:
+
+  my $namerow = $name_rs->next;
+
+The following SQL is executed:
+
+  SELECT me.ID, me.Name, me.LangID, me.PathID, path.ID, path.Path, path.Parent, path.Position, path.MenuID FROM Name me  JOIN Path path ON ( path.ID = me.PathID ) WHERE ( me.id = ? ): '1'
+
+
+As with the find, the data is retrieved using the column-name
+accessors. To retrieve a Row object representing the path:
+
+  my $pathrow = $namerow->path;
+
+  my $actualpath = $pathrow->path;   ## companyinfo/careers/jp
+  my $pathparent = $pathrow->parent; ## 36
+
+To fetch just a few columns:
+
+  my $name_rs = $schema->resultset('Name')->search(
+    { 'me.id' => 1 },                                ## WHERE
+    { 
+      select   => [ qw/id name/ ],                   ## SELECT
+      as       => [ qw/id name/ ],
+    }
+
+This will only select the ID and Name columns. The C<as> attribute names the columns.
+
+To add more complex conditions:
+
+  ## All names where the patch matches '/support%'
+  my $name_search = $schema->resultset('Name')->search(
+    {
+      'path.path' => { 'like' => '/support/%' },  ## WHERE path.path LIKE '/support/%'
+    },
+    { 
+      'join' => [ 'path' ],                       ## JOIN
+    }
+
+=head1 INSERTING DATA
+
+To insert new rows, call C<create> on a ResultSet object. This will
+first instantiate a new Row object, then call C<insert> on it. This
+can be done individually if needed.
+
+  ## INSERT INTO .. 
+  my $newname = $schema->resultset('Name')->create(
+  {
+     name   => 'Support',
+     pathid => $pathid,
+     langid => $langid,
+  });
+  print $newname->in_storage();  ## 1 (TRUE)
+
+  my $newpath = $schema->resultset('Path')->new(
+  {
+     path => 'support',
+  });
+  print $newpath->in_storage();  ## 0 (FALSE)
+  $newpath->insert();
+  print $newpath->in_storage();  ## 1 (TRUE)
+
+=head1 CHANGING DATA
+
+=head2 Updating one row
+
+The column-name accessors used to fetch data from a row can also be
+used to set new values, eg:
+
+  ## Nonsensically change the language of a given Name row
+  my $namerow = $schema->resultset('Name')->find({ name => 'Japan' });
+  $namerow->langid(2);
+  $namerow->update;    ## UPDATE 
+
+=head2 Updating many rows with a resultset
+
+Create a resultset containing the condition to select all the rows to
+update. Calling C<update> on the resultset will run the C<UPDATE>
+command using the condition in the resultset.
+
+  ## All name rows with value 'Evaluation'
+  my $name_rs = $schema->resultset('Name')->search(
+  {
+    'me.name' => 'Evaluation',
+  });
+  $name_rs->update({ name => 'Free Trial' });  ## UPDATE .. WHERE
+  
+=head3 Deleting a row
+
+Just call C<delete> on a C<Row> object.
+
+  ## No more products/es !
+  my $pathrow = $schema->resultset('Path')->find({ path => 'products/es' });
+  $pathrow->delete;
+
+This will also delete related rows that would otherwise be
+inconsistent. It will remove them *after* the main row. This cascading
+can be turned off on a relationship if necessary.
+
+=head3 Delete multiple rows
+
+Call C<delete> on a ResultSet object instead. This will run a
+C<DELETE> statement with a C<WHERE> clause, and will not cascade the
+deletes.
+
+  my $path_rs = $schema->resultset('Path')->search(
+  {
+    'me.path' => 'products/es',
+  });
+  $path_rs->delete;     ## DELETE .. WHERE 
+
+To delete multiple rows with cascading, call C<delete_all> on the
+ResultSet, which will delete each row and it's related rows
+individually.
+
+  $path_rs->delete_all;    ## many DELETE statements
+
+=head1 TODO
+
+Add some sorta table descriptions to this doc. 
+
+Patches and suggestions welcome.
+
+=head1 AUTHOR
+
+Jess Robinson <castaway@desert-island.me.uk>
+

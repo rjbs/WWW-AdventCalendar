@@ -1,0 +1,238 @@
+=head1 Progressive Authentication with Catalyst (Using OpenID)
+
+I<Note: > This article has an accompanying example application that can be
+downloaded and run. Please see the L</"Try it and see"> section for more
+information.
+
+=head2 A brief overview of authentication
+
+Often times, as applications (especially any application with social aspects)
+grow and evolve, there becomes a necessity for "other" forms of authentication.
+Most typically, this is in the form of a temporary password that is emailed
+to a user.  Many applications actually change the user's password to some
+generated password, making the previous password invalid.  Other
+applications just email the forgotten password in plain text.  
+
+Both of these solutions are wrong.  (Now I'm just going to leave it at that.)
+
+This situation directly inspired the development of the Progressive Realm
+(L<http://search.cpan.org/~jayk/Catalyst-Plugin-Authentication-0.100091/lib/Catalyst/Authentication/Realm/Progressive.pm>).
+We won't cover proper handling of temporary passwords, since that is a 
+more involved topic and much larger article (to be discussed at a later date,
+but I provide a brief note at the bottom of this article).
+
+Instead, I will cover how to query multiple realms to do authentications in a 
+very simple setting.
+
+=head2 OpenID and Local Authentication
+
+The simple example is centered around handling OpenID.  OpenID, by itself, is
+very simple.  However there are some nits that eventually result in ugly and
+unmaintainable code, unless you have the foresight to handle it.  This
+foresight usually comes from writing the above mentioned ugly code.  The
+subsequent solution that isn't ugly tends to look very similar to the
+Progressive realm, hence its creation.
+
+First off, to handle OpenID and local authentication is an almost
+trivial matter. To get it running, it requires nothing more than the
+Authentication plugin, the OpenID credential, and a session plugin.  The
+main issue to overcome with OpenID is that while you can associate the
+authenticating URL to an account, sometimes users also have a password
+on the site.  It can be difficult to handle the authentication for both,
+and often times the login controller becomes ugly.  There is far too
+much logic there, and it doesn't really do much other than determine
+which realm the user is in.  The Progressive realm is the ready-made
+solution!
+
+(As an aside, a very cool usage for this is to have an application that
+progressively reveals features to users based on their authenticating realm.)
+
+To configure the realms, you first have to load the authentication plugin.
+Also, you need a session store, because what good is authenticating users if
+their authentication only lasts for one request?  To do this, we just add the
+following plugins to MyApp.pm:
+
+ use Catalyst qw/ 
+     ConfigLoader Static::Simple 
+     Authentication Session Session::Store::FastMmap Session::State::Cookie
+ /;
+
+=head2 The Simple Case: Local Authentication
+
+Now, the Authentication and Session plugins are loaded and it is time to
+configure Authentication.  Most Authentication configurations just use the
+Password credential, and the configuration looks something like this:
+
+    __PACKAGE__->config(
+        name => 'MyApp',
+        'Plugin::Authentication' => {
+            default_realm => 'local',
+            realms => {
+                'local' => {
+                    credential => {
+                        class => 'Password',
+                        password_field => 'password',
+                        password_type => 'clear'
+                    },
+                    # A more typical store is the DBIC store
+                    store => {
+                        class => 'Minimal',
+                        users => { ... }
+                    }
+                },
+            }
+        }
+    );
+
+Now, a simple call to authenticate in your controller will check the password
+against the store and either succeed or fail.  The code here is very 
+simple:
+
+    if ( $c->authenticate({ username => $username, password => $password }) ) {
+        $c->log->info("We did it!");
+    } else {
+        $c->log->info("User failed it!");
+    }
+
+We don't specify a realm, because the default realm is C<local> and that's it.
+
+=head2 Adding OpenID
+
+Up next is adding in OpenID.  It's a simple adjustment to the configuration to
+add the credential in:
+
+    __PACKAGE__->config(
+        name => 'MyApp',
+        'Plugin::Authentication' => {
+            default_realm => 'local',
+            realms => {
+                'openid' => {
+                    credential => {
+                        class => 'OpenID'
+                    },
+                    store => {
+                        class => 'Null',
+                    }
+                },
+                'local' => {
+                    credential => {
+                        class => 'Password',
+                        password_field => 'password',
+                        password_type => 'clear'
+                    },
+                    store => {
+                        class => 'Minimal',
+                        users => { ... } 
+                    }
+                },
+            }
+        }
+    );
+
+Now, we can change the authentication method a bit.  Before the progressive
+realm, the code starts to look like this:
+
+    my $data  = {};
+    my $realm;
+
+    if ( $c->req->params->{openid_identifier} ) {
+        $data->{openid_identifier} = $c->req->params->{openid_identifier};
+    } else {
+        $data->{username} = $c->req->params->{username};
+        $data->{password} = $c->req->params->{password};
+    }
+    if ( $c->authenticate( $data, $realm ) ) {
+        $c->log->info("We did it!");
+    } else {
+        $c->log->info("User failed it!");
+    }
+
+That's not bad code, but it's a lot more than just using a single realm.  The
+problem is when you continue to add realms and other mechanisms for users to
+authenticate (web services, temporary passwords) it grows and becomes more
+unmaintainable.  Eventually, it ends up on The Daily WTF and people refer to
+it with hand waves and resignations.
+
+=head2 Now, with Progressive Realms
+
+The first step is to simply configure a default realm that uses the
+Progressive realm class, and then list what realms are legitimate to try.
+
+    __PACKAGE__->config(
+        name => 'MyApp',
+        'Plugin::Authentication' => {
+            default_realm => 'progressive',
+            realms => {
+                progressive => {
+                    class  => 'Progressive',
+                    realms => [ 'openid', 'local' ],
+                },
+                'openid' => {
+                    credential => {
+                        class => 'OpenID'
+                    },
+                    store => {
+                        class => 'Null',
+                    }
+                },
+                'local' => {
+                    credential => {
+                        class => 'Password',
+                        password_field => 'password',
+                        password_type => 'clear'
+                    },
+                    store => {
+                        class => 'Minimal',
+                        users => { ... } 
+                    }
+                },
+            }
+        }
+    );
+
+With the configuration finished, it's time to modify the authenticate call to
+remove the specific realm (or, if C<progressive> isn't your default realm, to 
+set that explicitly).
+
+Also, it is a good idea to filter exactly what you are putting into the
+authenticate call.  Then it is a simple "whitelist" check and you pass in the
+entire stash.  The code for authenticating now looks like this:
+
+    my %data = map { $_ => $c->req->params->{$_} }
+               # Filter out parameters not defined
+               grep { defined $c->req->params->{$_} }
+               # List of parameters potentially used:
+               qw/openid_identifier username password/;
+    if ( $c->authenticate({ %data }) ) {
+        $c->log->info("We did it!");
+    } else {
+        $c->log->info("User failed it!");
+    }
+
+When new realms are added, simply add the parameter keys to the list of
+parameters and things should work transparently.  The order of C<realms> in
+the Progressive configuration determines the order the subordinate realms are
+called, and whichever one matches first returns.
+
+=head2 Try it and see
+
+This Advent entry is accompanied by a fully working example application that
+demonstrates the principles.  It is available as a standalone tarball at
+L<http://www.coldhardcode.com/examples/catalyst/ProgressiveAuth-0.01.tar.gz>
+or if you prefer an svn checkout:
+
+    svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/ProgressiveAuth/
+
+=head1 Author
+
+Jay Shirley, the IT Director at L<http://www.nasaproracing.com> and Co-Founder
+of L<http://www.coldhardcode.com>.  He is a die-hard Catalyst user, evangelist 
+and Perl hacker.
+
+=head2 Appendix A: A note on temporary passwords
+
+As a follow-up, the proper solution for temporary passwords is to have
+multiple realms for authentication: one for temporary passwords and one for
+legitimate passwords. If the user authenticates in the temporary realm then
+you force a password change. If the user authenticates via the normal realm,
+nothing changes.

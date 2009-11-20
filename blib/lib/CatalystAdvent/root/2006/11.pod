@@ -1,0 +1,390 @@
+=head1 Day 11 - Using Catalyst with Log4perl
+
+Using Catalyst with Log4perl
+
+=head2 Introduction
+
+Log4perl is a Perl-based port of the popular Log4j library.  It provides 
+a powerful and flexible addition to the built-in logging features that 
+come with Catalyst.
+
+
+=head2 Installation
+
+If you don't already have
+L<Catalyst::Log::Log4perl>
+and its dependencies installed, do so now with:
+
+    perl -MCPAN -e 'install Catalyst::Log::Log4perl'
+
+Answer C<y> to any prompts about dependencies.
+
+
+=head2 Create a Very Simple Application
+
+Use the Catalyst helper to quickly throw up an application where
+we can try out Log4perl:
+
+    $ catalyst.pl MyApp
+    created "MyApp"
+    created "MyApp/script"
+    created "MyApp/lib"
+    created "MyApp/root"
+    ...
+    created "MyApp/script/myapp_create.pl"
+    $ cd MyApp
+
+Then create a basic controller called C<Test>:
+
+    $ script/myapp_create.pl controller Test
+
+You should now be able to launch the application in the development 
+server:
+
+    $ script/myapp_server.pl
+
+Now point your web browser to L<http://127.0.0.1:3000> (substitute the
+correct IP address if your development server is running on a 
+different box than your web browser) and you should receive the standard 
+Catalyst "welcome page."  If you surf to L<http://127.0.0.1:3000/test> 
+you should receive a message similar to the following (the specific 
+message could vary across versions of Catalyst):
+
+    Matched MyApp::Controller::Test in Test.
+
+
+=head2 Enable Log4perl
+
+Open C<lib/MyApp.pm> and edit it to match:
+
+    package MyApp;
+    
+    use strict;
+    use warnings;
+    
+    use Catalyst::Runtime '5.70';
+    
+    # Use the Log4perl Catalyst component
+    use Catalyst::Log::Log4perl;
+    
+    use Catalyst qw/-Debug ConfigLoader Static::Simple/;
+    
+    our $VERSION = '0.01';
+    
+    
+    __PACKAGE__->config( name => 'MyApp' );
+    
+    
+    # Create a Log4perl object
+    __PACKAGE__->log( Catalyst::Log::Log4perl->new() );
+    
+    
+    # Start the application
+    __PACKAGE__->setup;
+    
+    1;
+
+Two lines have been added above -- both are marked with comments about
+Log4perl.  One includes the Catalyst Log4perl component and the other 
+creates a new logging object.
+
+Now restart the development server and reload the test page in your 
+browser (you might need to Shift-Reload).  You should see start-up and 
+page access log messages in your development server window.  However, 
+note that the format of the messages is slightly different than what we 
+observed earlier.  The current messages are generated with the default 
+formatting for Log4perl (we will see how to modify the formatting in the 
+next section).
+
+
+=head2 Customizing Log4perl
+
+First, let's create a Log4perl configuration file.  Use your editor to 
+open a file called C<Log4perl.conf> in the base directory of your project
+(the same directory where the C<myapp.yml> was created by the 
+C<catalyst.pl> helper).  Enter the following text:
+
+    # Define a logger that sends everything of DEBUG priority
+    # or higher to the LOGFILE appender
+    log4perl.rootLogger=DEBUG, LOGFILE
+    # Appenders send log output to different locations
+    # Here we send it to a file
+    log4perl.appender.LOGFILE=Log::Log4perl::Appender::File
+    # Specify the file to log to
+    log4perl.appender.LOGFILE.filename=test.log
+    # 'append' is the default mode, but see docs for more options
+    log4perl.appender.LOGFILE.mode=append
+    # Use a PatternLayout to format the output
+    log4perl.appender.LOGFILE.layout=PatternLayout
+    log4perl.appender.LOGFILE.layout.ConversionPattern=[%d] [myapp] [%p] %m%n
+
+We are using the L<Log::Log4perl::Appender::File>
+appender to send the log output to a file.  See the documentation on 
+L<Log::Log4perl::Appender::File> for a 
+full list of the options available for this appender.
+
+A C<PatternLayout> can be used to format the output of your logging 
+messages (the C<PatternLayout> formatting is common across all 
+appenders).  Here is a quick list of the formatting options supported by 
+C<PatternLayout> (see 
+L<Log::Log4perl::Layout::PatternLayout> 
+for more detail):
+
+    %c Category of the logging event.
+    %C Fully qualified package (or class) name of the caller
+    %d Current date in yyyy/MM/dd hh:mm:ss format
+    %F File where the logging event occurred
+    %H Hostname (if Sys::Hostname is available)
+    %l Fully qualified name of the calling method followed by the
+       callers source the file name and line number between 
+       parentheses.
+    %L Line number within the file where the log statement was issued
+    %m The message to be logged
+    %M Method or function where the logging request was issued
+    %n Newline (OS-independent)
+    %p Priority of the logging event
+    %P pid of the current process 
+    %r Number of milliseconds elapsed from program start to logging 
+       event   
+    %T A stack trace of functions called
+    %% A literal percent (%) sign
+
+Note that C<%F>, C<%l>, C<%L>, C<%M>, and C<%T> are relative to 
+Catalyst.pm versus your code, and are therefore less useful in Catalyst 
+applications.
+
+Then tell the Log4perl constructor to read the configuration from the 
+file created above by opening C<lib/MyApp.pm> and changing this line:
+
+    __PACKAGE__->log( Catalyst::Log::Log4perl->new() );
+
+to match:
+
+    __PACKAGE__->log( Catalyst::Log::Log4perl->new(
+        __PACKAGE__->path_to('Log4perl.conf')->stringify ) );
+
+Now restart the development server as before and reload your browser.
+Notice that you only receive the "You can connect..." line of output
+from the development server.  If you then look at the contents of the
+<test.log> file specified in the configuration file, you will see
+output similar to that with the default Log4perl formatting.  
+However, because we specified "[myapp]" in the C<ConversionPattern>,
+you should notice that this has replaced the "[catalyst]" message from
+the previous output.
+
+
+=head2 Add Some Log Messages
+
+Open C<lib/MyApp/Controller/Test.pm> in your editor and add the following
+lines to C<index> method:
+
+    sub index : Private {
+        my ( $self, $c ) = @_;
+    
+        $c->log->debug("Starting method index");
+        $c->log->info("Before body set");
+        $c->response->body('Matched MyApp::Controller::Test in Test.');
+        $c->log->warn("After body set");
+        $c->log->error("A fake error");
+        $c->log->fatal("A fake fatal error");
+    }
+
+Delete the C<test.log>, restart the development, and then reload your 
+browser while at the L<http://127.0.0.1:3000/test> URL.  You should see 
+lines similar to the following (the time/date fields have been shortened 
+to "[...]" to avoid word wrapping):
+
+    ...
+    [...] [myapp] [INFO] MyApp powered by Catalyst 5.7006
+    [...] [myapp] [INFO] *** Request 1 (0.200/s) [3503] [...] ***
+    [...] [myapp] [DEBUG] "GET" request for "test" from "127.0.0.1"
+    [...] [myapp] [DEBUG] Path is "test"
+    [...] [myapp] [DEBUG] Starting method index
+    [...] [myapp] [INFO] Before body set
+    [...] [myapp] [WARN] After body set
+    [...] [myapp] [ERROR] A fake error
+    [...] [myapp] [FATAL] A fake fatal error
+    [...] [myapp] [INFO] Request took 0.091537s (10.925/s)
+    ...
+
+
+=head2 Changing the Logging Level
+
+Change the first non-comment line of the C<Log4perl.conf> file from:
+
+    log4perl.rootLogger=DEBUG, LOGFILE
+
+to:
+
+    log4perl.rootLogger=WARN, LOGFILE
+
+If you restart your server and reload the L<http://127.0.0.1:3000/test> 
+URL in your browser, you should notice that the DEBUG and INFO-level 
+messages have been suppressed from the output.  This is obviously a very 
+useful feature when moving an application into production.  (Note that 
+the development server dispatch and timing information is also 
+suppressed when the level is set to WARN... they will return if you try 
+the INFO level in your C<Log4perl.conf> file).
+
+
+=head2 Sending Email on Log Events
+
+One extremely useful features of Log4perl is that it can generate an 
+email when things go really wrong with your application (or other events 
+of interest occur).  In order to try this out, let's first install the 
+C<Log::Dispatch::Email::MailSend> appender:
+
+    perl -MCPAN -e 'install Log::Dispatch::Email::MailSend'
+
+Then open the C<Log4perl.conf> file and edit it to match:
+
+    # Define a logger that sends everything of WARN priority
+    # or higher to the LOGFILE *AND* EMAIL appenders
+    log4perl.rootLogger=WARN, LOGFILE, EMAIL
+    # Appenders send log output to different locations
+    # Here we send it to a file
+    log4perl.appender.LOGFILE=Log::Log4perl::Appender::File
+    # Specify the file to log to
+    log4perl.appender.LOGFILE.filename=test.log
+    # 'append' is the default mode, but see docs for more options
+    log4perl.appender.LOGFILE.mode=append
+    # Use a PatternLayout to format the output
+    log4perl.appender.LOGFILE.layout=PatternLayout
+    log4perl.appender.LOGFILE.layout.ConversionPattern=[%d] [myapp] [%p] %m%n
+    
+    # Define the behavior of the EMAIL appender    
+    log4perl.appender.EMAIL=Log::Dispatch::Email::MailSend
+    # Set the the from and to email addresses here
+    log4perl.appender.EMAIL.from=myapp@mydomain.com
+    log4perl.appender.EMAIL.to=you@yourdomain.com
+    # Customize the subject of the email
+    log4perl.appender.EMAIL.subject=MyApp Error
+    # Use a different set of formatting options to PatternLayout
+    log4perl.appender.EMAIL.layout=PatternLayout
+    log4perl.appender.EMAIL.layout.ConversionPattern=%d %F %L %c - %m%n
+    # Although the rootLogger has a level of WARN, we further
+    # filter this appender with the Threshold option because
+    # we only want emails to be sent for very severe issues
+    log4perl.appender.EMAIL.Threshold=FATAL
+    # This is important if you want the emails to be sent right away
+    # vs. log4perl wait for multiple messages to send in a single email
+    log4perl.appender.EMAIL.buffered=0
+
+Use your email address in place of C<you@yourdomain.com> and place
+something reasonable in C<myapp@mydomain.com>.  
+
+Now when you restart the development server and reload your browser
+you should receive an email for the C<FATAL> log message (assuming
+email is enabled for your machine -- if not, take a look at your
+mail logs for evidence of the attempt to send an email).
+
+
+=head2 Sending Logging Output To the Screen
+
+Use can use 
+L<Log::Log4perl::Appender::Screen> 
+to also send the log messages to STDERR or STDOUT of the window running 
+the development server. To do this, edit the C<Log4perl.conf> file and 
+modify it to match the following (only the top and bottom few lines have 
+changed):
+
+    # Define a logger that sends everything of DEBUG priority
+    # or higher to the LOGFILE, EMAIL *AND* SCREEN appenders
+    log4perl.rootLogger=DEBUG, LOGFILE, EMAIL, SCREEN
+    # Appenders send log output to different locations
+    # Here we send it to a file
+    log4perl.appender.LOGFILE=Log::Log4perl::Appender::File
+    # Specify the file to log to
+    log4perl.appender.LOGFILE.filename=test.log
+    # 'append' is the default mode, but see docs for more options
+    log4perl.appender.LOGFILE.mode=append
+    # Use a PatternLayout to format the output
+    log4perl.appender.LOGFILE.layout=PatternLayout
+    log4perl.appender.LOGFILE.layout.ConversionPattern=[%d] [myapp] [%p] %m%n
+    
+    # Define the behavior of the EMAIL appender    
+    log4perl.appender.EMAIL=Log::Dispatch::Email::MailSend
+    # Set the the from and to email addresses here
+    log4perl.appender.EMAIL.from=myapp@mydomain.com
+    log4perl.appender.EMAIL.to=you@yourdomain.com
+    # Customize the subject of the email
+    log4perl.appender.EMAIL.subject=MyApp Error
+    # Use a different set of formatting options to PatternLayout
+    log4perl.appender.EMAIL.layout=PatternLayout
+    log4perl.appender.EMAIL.layout.ConversionPattern=%d %F %L %c - %m%n
+    # Although the rootLogger has a level of WARN, we further
+    # filter this appender with the Threshold option because
+    # we only want emails to be sent for very severe issues
+    log4perl.appender.EMAIL.Threshold=FATAL
+    # This is important if you want the emails to be sent right away
+    # vs. log4perl wait for multiple messages to send in a single email
+    log4perl.appender.EMAIL.buffered=0
+    
+    # Default the SCREEN appender to output to STDERR
+    log4perl.appender.SCREEN=Log::Log4perl::Appender::Screen
+    # Use the SimpleLayout
+    log4perl.appender.SCREEN.layout=Log::Log4perl::Layout::SimpleLayout
+
+Logging to STDERR is now added to the output previously seen on the 
+LOGFILE and EMAIL appenders.
+
+
+=head2 Logging Perl's Warnings
+
+You can also have Catalyst send warnings in other parts of the code
+to your logs.  To enable this, edit C<lib/MyApp.pm> and add the
+following lines:
+
+    # Handle warnings from Perl as fatal log messages
+    $SIG{__WARN__} = sub { __PACKAGE__->log->fatal(@_); };
+
+Then add the following somewhere inside the C<index> method of
+C<lib/MyApp/Controller/Test.pm>:
+
+    warn "Test warning";
+
+If you then restart the development server and reload your browser you 
+should see a FATAL log message that corresponds to the testing warnings 
+added above.  (Thanks to Dan Dascalescu for suggesting this tip.)
+
+
+=head2 More Information
+
+Log4perl is a very flexible logging framework; to learn more, check out
+the following links:
+
+=over 4
+
+=item *
+
+The Log4perl home page:
+L<http://log4perl.sourceforge.net/>
+
+=item *
+
+A nice tutorial on Log4perl (not specific to Catalyst):
+L<http://www.perl.com/pub/a/2002/09/11/log4perl.html>
+
+=item *
+
+FAQ:
+L<http://log4perl.sourceforge.net/releases/Log-Log4perl/docs/html/Log/Log4perl/FAQ.html>
+
+=item *
+
+Examples:
+L<http://lena.franken.de/perl_hier/log4perl.html>
+
+=back
+
+
+=head3 AUTHOR
+
+Kennedy Clark <hkclark@gmail.com>
+
+=head3 COPYRIGHT.
+
+Copyright 2006 Kennedy Clark.  This document can be freely
+redistributed and can be modified and re-distributed under the same
+conditions as Perl itself.
+

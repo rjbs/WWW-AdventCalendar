@@ -1,0 +1,205 @@
+=head1 HTML::FormFu - Handles forms, so you don't have to 
+
+Today you'll get to play with HTML forms, without the usual nausea. 
+
+L<HTML::FormFu> handles form rendering, validation,  filtering and other 
+common form tasks, but keeps your controller code clean by using external 
+config files for everything.
+
+=head2 Getting started
+
+First thing you need are the actual modules, so get them off CPAN :
+
+=over
+
+=item * L<HTML::FormFu>  >= 0.02002
+
+=item * L<Catalyst::Controller::HTML::FormFu> >= 0.02000
+
+=back
+
+You'll also need a Catalyst app to play with. You can get a pretty standard
+one here: 
+
+ svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/Advent07FormFu/start/Fu
+
+Fu handles a simple person database, you should check how a person is defined in C<Fu::Schema::Result::Person>. 
+Click around L<http://localhost:3000> once you start C<script/fu_server.pl>. 
+
+Next step: implementing C</person/add> and C</person/edit>, of course.
+
+=head3 Your first form
+
+A FormFu object can be created from a config file that can be parsed by L<Config::Any> (we'll just use L<YAML>). 
+L<Catalyst::Controller::HTML::FormFu> is a bit of glue that handles this, using config files from C<Fu/root/forms> .
+In order to use it, just replace the base class for your Person controller:
+
+ use base 'Catalyst::Controller::HTML::FormFu';
+
+By adding the FormConfig label to an action, you'll get a FormFu object in your stash, 
+using C<root/forms/mycontroller/myaction.yml> as a config file. 
+
+Here's the code for adding persons:
+
+ sub add : Local FormConfig {
+   my ($self, $c) = @_;
+ 
+   my $form = $c->stash->{form};
+   if ($form->submitted_and_valid) {
+     my $person = $c->model('DB::Person')->new_result({});
+     $form->save_to_model($person);
+     $c->response->redirect($c->uri_for('/')); $c->detach;
+   }
+ }
+ 
+ 
+As you can see, FormFu can perform some L<DBIx::Class> magick, you should 
+read more about in L<HTML::FormFu::Model::DBIC>
+
+When printed, a FormFu object renders the HTML, so the template is just:
+
+ <h1> Add someone </h1>
+ <p><a href="[% c.uri_for('/') %]">Back to your buddies</a> </p>
+ [% form %]
+
+
+And the config file, C<root/forms/person/add.yml> :
+
+ ---
+ indicator: submit
+ auto_fieldset: { legend : 'Person information' }
+ elements:
+ 
+   - type: Text
+     name: name
+     label: Name
+     constraints:
+       - Required
+
+   - type: Text
+     name: email
+     label: Email
+     constraints:
+       - Required
+       - Email
+
+   - type: Text
+     name: phone
+     label: Phone
+     constraints:
+       - Required
+
+   - type: Radiogroup
+     label: Boy or girl? :)
+     name: gender
+     auto_id: "%n_%c"
+     options:
+       - [ 'm', 'M' ]
+       - [ 'f', 'F' ]
+     constraints:
+       - Required
+
+   - type: Submit
+     name: submit
+     value: OK
+
+ constraints:
+   - SingleValue
+
+The config options are all described in L<HTML::FormFu>'s fine manual . You should also read
+about the constraints in L<HTML::FormFu::Constraint> .
+
+=head3 A touch of style
+
+Here's some basic CSS in C<static/styles.css> to make your forms less ugly. Fortunately the 
+generated HTML code gives you a lot of selectors to play with:
+
+ form {
+   width: 30em;
+ }
+ 
+ .submit {
+   display: block;
+ }
+ 
+ .error {
+   color: #C00;
+   display: block;
+   background-color: #FFE;
+   padding: 5px;
+   margin: 2px 0px;
+   border: 1px dotted #F00;
+ }
+ 
+ label {
+   display: block;
+ }
+ 
+ .radiogroup span {
+   display: block
+ }
+ 
+ .radiogroup label {
+   display: inline;
+ }
+
+=head3 Finish the app 
+
+The edit form is not much different, so we should just use the same config:
+ 
+ sub edit : Local FormConfig('person/add.yml') {
+   my ($self, $c, $id) = @_;
+ 
+   $id =~ /\d+/ or die 'invalid id';
+   my $person = $c->stash->{person} = $c->model('DB::Person')->find($id) or die "person $id not found";
+ 
+   my $form = $c->stash->{form};
+
+   if ($form->submitted_and_valid) {
+     $form->save_to_model($person);
+     $c->response->redirect($c->uri_for('/')); $c->detach;
+   } elsif (! $form->submitted ) {
+     $form->defaults_from_model($person);
+   }
+ 
+ }
+  
+Just add C< [% form %] > to your template and you're done.
+
+You can also checkout the finished application, to compare notes:
+
+ svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/Advent07FormFu/final/Fu
+
+=head2 Bonus tips 
+
+=head3 Filters 
+
+You can add filters to your form. For instance, if you want to  allow your users
+to write the phone number as they feel like (with dashes and slashes and brackets) , but
+want to store it in a standard way in your database, you could use L<HTML::FormFu::Filter::NonNumeric> 
+to strip the extra chars. Read more about adding filters in L<HTML::FormFu::Filter>
+
+=head3 More DBIx::Class Magick
+
+L<HTML::FormFu> knows a bit more than just populating a form and saving to a Row object. It can also 
+automatically handle DBIx::Class relationships for you, like adding/editing/removing child objects or
+creating many-to-many associations. Read more about this in L<HTML::FormFu::Model::DBIC>
+
+=head3 Handling Image Uploads
+
+L<HTML::FormFu::Imager> will resize and validate uploaded images, and inflate the uploaded files into L<Imager> objects.
+
+
+=head2 What now?
+
+Most importantly, you should read the actual L<HTML::FormFu> documentation, but also don't forget to subscribe to the 
+friendly mailing list at L<http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/html-formfu>.
+
+You'll also find a lot of examples and solutions in  L<HTML::FormFu::Manual::Cookbook>.
+
+=head1 AUTHOR
+
+Bogdan Lucaciu <bogdan@sns.ro>
+
+System & Network Solutions
+

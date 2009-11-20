@@ -1,0 +1,560 @@
+=head1 Making Catalyst Sites Shine with Varnish
+
+If you have ever deployed a web application, you know the holding-your-breath
+feeling you get as you first route live traffic to your app. You also know
+that moment just before, where your finger hovers over the enter key ever so
+slightly as you wonder if the way you built it is going to hold up under real
+life traffic.
+
+There are many things you can do to prepare your app for traffic. There are
+likewise many approaches you can take toward optimizing your application.
+Unfortunately, the one method that has the potential to make the most impact
+is often the last thing considered, if it's considered at all.
+
+What is this method? It is B<Front-end caching>. When wisely applied,
+front-end caching can turn a site that crumbles under load into a site that
+sails through traffic spikes with nary a whimper. L<Last
+year|http://www.catalystframework.org/calendar/2007/11>, I covered a method
+for integrating cache control into your application. This year, I'm going to
+introduce you to my choice for actually handling the caching,
+L<Varnish|http://varnish-cache.org>.
+
+In this article, I will show you how to configure and use Varnish on your
+site. I will also provide and walk you through a basic varnish config that you
+can use out of the box on your site.
+
+=head2 What is Varnish?
+
+For many years the old standby for caching was
+L<Squid|http://www.squid-cache.org/>, a caching proxy server that with the
+right magic could be turned into a fairly functional http accelerator. While
+Squid performed quite well for those willing to do the work to configure it
+properly, at its heart it's still a forward proxy and it could be somewhat
+difficult to get it to do exactly what you wanted it to.
+
+=head3 Enter Varnish
+
+Varnish is a relative newcomer to the caching scene, having its 1.0 release
+in 2006. Unlike Squid, Varnish is designed from the ground up to be an http
+accelerator, a caching reverse proxy. It is designed specifically to solve the
+problem we face as web-application developers, namely how to improve
+performance on a site or application that has many moving parts and
+performance dependencies (databases, etc.).
+
+There are many benefits to using Varnish, and while I don't want to start a
+laundry list, I will cover the two that I find to be most interesting. First,
+it has an I<extremely> flexible config language that makes it possible to
+control nearly every aspect of how web requests are processed and how your app
+is cached. Second, it supports ESI, or Edge Side Includes, a small XML-based
+markup language for dynamically assembling web content.
+
+Edge side includes allow you to break your pages into smaller pieces, and
+cache those pieces independently. ESI is a complicated topic, which I will
+cover in another article. Today, we are going to focus on getting Varnish up
+and running.
+
+=head3 Getting Varnish up and running
+
+As of this writing, the current Varnish release is 2.0.2. While there are
+Varnish binary packages available for many *nix distributions, before
+installing them, please ensure that they provide the 2.0.2 release. If they do
+not, I suggest strongly that you compile your own. The 2.0.2 release includes
+several improvements and fixes that you want to have. This article (and the
+next) assumes you are using the 2.0.2 version.
+
+I will not cover the download and installation process, as that is very well
+covered on the L<Varnish
+Wiki|http://varnish.projects.linpro.no/wiki/Installation>. We will begin at
+the most important part, configuring varnish. Go ahead and get Varnish
+installed... I'll wait.
+
+=head2 Configuring Varnish
+
+Welcome back. Let's get to configuring Varnish. As I mentioned before, Varnish
+is specifically designed to solve the problem we have, and as such, comes with
+a default configuration built in that can be used out of the box to get http
+acceleration running. To use Varnish in its basic config, you simply have to
+start it up (don't do this just yet):
+
+ varnishd -a :80 -b localhost:8080 -T localhost:6082
+
+This will start varnish listening on port 80, and forwarding traffic to a web
+server listening on localhost port 8080. It also turns on the management
+interface on port 6082.
+
+I can hear you thinking 'Ok... If it's that easy, why don't we just use the
+default configuration?' The answer is somewhat complicated, but the short
+version is that the Varnish developers know the problem we are dealing with
+and know what the correct behavior is in the majority of cases. In the
+majority of cases, though, the application Varnish is talking to is not
+designed to work with a cache, and believes it is talking to a web browser. As
+such, Varnish rightly behaves very conservatively about what it can cache and
+what it can't.
+
+Since our application understands that it's talking to a cache, we can let
+Varnish do a bit more for us. You I<did> read L<last year's
+article|http://www.catalystframework.org/calendar/2007/11>, right? If not, you
+should. Even if you haven't, though, you are OK. Our configuration is
+going to be a I<little> more lax than Varnish's default, but not too much.
+
+=head3 The Varnish Configuration Language
+
+As you already saw, Varnish can receive its most critical information as
+command line arguments. However, if you want to really harness the power of
+Varnish, you need to provide it a more advanced configuration in the form of a
+VCL file.
+
+A VCL file tells Varnish exactly how to handle each phase of request
+processing. VCL is very powerful and allows for evaluation and modification of
+nearly every aspect of an HTTP request and response. It allows you to examine
+headers, do regular expresion comparisons and substitutions, and generally
+muck with incoming web requests on the fly. It provides a robust programming
+language that will be somewhat familiar to anyone who has programmed in Perl
+or C.
+
+While the Varnish Configuration Language is quite robust, it does have its
+limitations. If you happen to find yourself in the quite rare situation where
+you are running into those limitations, VCL allows you to do something almost
+unheard of... It lets you drop into C to perform your task. While we won't
+use this functionality in this article, it does give you a hint about just how
+powerful the Varnish cache really is.
+
+=head3 How VCL works
+
+Your VCL file is more than just a config file. Your Varnish config is in fact
+a mini program, a program that is actually compiled and linked in to Varnish
+at runtime. There are several steps to how Varnish handles each request and in
+your VCL file you have the option to customize the behavior of each one.
+
+There are actually 8 subroutines that control how Varnish behaves, and that
+you can change in your Varnish config. They are:
+
+=over
+
+=item vcl_recv()
+
+Called after a request is received from the browser, but before it is
+processed.
+
+=item vcl_pipe()
+
+Called when a request must be forwarded directly to the backend with minimal
+handling by Varnish (think HTTP CONNECT)
+
+=item vcl_hash()
+
+Called to determine the hash key used to look up a request in the cache.
+
+=item vcl_hit()
+
+Called after a cache lookup when the object requested has been found in the
+cache.
+
+=item vcl_miss()
+
+Called after a cache lookup when the object requested was not found in the
+cache.
+
+=item vcl_pass()
+
+Called when the request is to be passed to the backend without looking it up
+in the cache.
+
+=item vcl_fetch()
+
+Called when the request has been sent to the backend and a response has been
+received from the backend.
+
+=item vcl_deliver()
+
+Called before a response object (from the cache or the web server) is
+sent to the requesting client.
+
+
+=back
+
+That seems like a lot, but as I mentioned before Varnish has pretty reasonable
+defaults, so you only need to override a few of these.
+
+Strictly speaking, Varnish doesn't actually let you replace its defaults.
+Your definitions of the above routines simply run I<before> the builtin
+versions of those same routines. Fortunately, we can prevent Varnish from
+proceeding on to the builtin versions if we wish by returning the appropriate
+value within our version of the routine. If that seems confusing, don't worry.
+It will become clear when we start looking at our config.
+
+The routines we are most interested in are B<vcl_recv>, which handles the
+incoming request from the browser, and B<vcl_fetch>, which is where we will
+decide whether the object just retrieved should go into the cache.
+
+=head2 Our configuration
+
+As I mentioned earlier, Varnish has some pretty sensible defaults, but it
+assumes that your app is unaware of the cache. Since we are in control of our
+application, we can make some assumptions varnish can't by default. By
+default, for example, Varnish will not cache any page when the request that
+started it included a cookie. While this makes sense if the web app is
+unknown, if the web app is known, it makes much more sense to let the web app
+decide what is the appropriate cache response.
+
+So, since we know the system we are working with, we will adjust the config
+somewhat. When using our config file, Varnish will behave as follows. Varnish
+will cache all static content (within a particular directory). Varnish will
+not cache anything else I<unless> the web app provides a max-age or s-max-age
+Cache-Control header. It I<will> cache content if the above rules are met,
+even if a cookie is present. The assumption is that your web app is smart
+enough to know if the content can be cached whether a cookie is
+present or not. Again, see last years
+L<article|http://www.catalystframework.org/calendar/2007/11> to see how to set
+this up on the app side.
+
+=head3 The VCL file
+
+Our VCL file in its entirety is available
+L<here|http://www.catalystframework.org/calendar/static/2008/txt/catalyst_vcl.txt>.
+The file itself is well commented and is relatively easy to understand. If you
+are the kind of person who just jumps right in, you should have no trouble
+grabbing that config and hitting the ground running. If, however, you would
+like a more in-depth exploration of that config, please continue reading.
+
+In order to create the config we described earlier, we only need to create two
+custom vcl subroutines, vcl_recv and vcl_fetch.
+
+=head4 Set a backend
+
+The first thing we need to do in our Varnish config is set up the web server
+that Varnish will be talking to. Varnish actually has some sophisticated
+backend selection, allowing you to use a Varnish server as both a cache and a
+load balancer, serving traffic to multiple backend servers. This capability
+includes niceties such as web-server health checking and Varnish's flexible
+VCL language allows you to use complex logic to decide how traffic is routed.
+
+An entire article could be written describing your options when using the
+backend selection and load balancing capabilities of Varnish. For today, we
+will describe a simple single-server backend running on the same server we are
+running varnish on.
+
+ backend catalystsite {
+     .host = "localhost";
+     .port = "81";
+ }
+
+That's about as simple as it gets. This tells Varnish that there is a web
+server called 'catalystsite' which is listening on port 81 on localhost. This
+does NOT tell Varnish to use it, however, that happens later.
+
+=head4 The inbound request: vcl_recv
+
+The vcl_recv subroutine handles the incoming request from the client. This is
+where you set basic config options and do any request setup and tweaking
+before varnish looks up the item or passes the request on to the backend. You
+can see the complete routine in the
+L<config
+file|http://www.catalystframework.org/calendar/static/2008/txt/catalyst_vcl.txt>.
+Here, we will break it down and explore each piece of functionality one at a
+time.
+
+The incoming request is available within vcl_recv as 'req', you can review the
+Varnish docs to see all the properties that are available. We'll cover the
+ones we use as we encounter them.
+
+ set req.http.host = "mycatalystsite.com";
+
+The req.http variable contains the headers supplied with the request. This
+sets the host header to pass on to the backend. This is not strictly necessary
+and can cause trouble if you are fronting several sites with a single varnish
+installation. However, without this header, requests to I<mycatalystsite.com>
+and I<www.mycatalystsite.com> would be treated as completely separate by
+Varnish, potentially doubling every entry in your cache. If you are fronting
+only a single site, normalizing the hostname is a good idea.
+
+ set req.backend = catalystsite;
+
+As you can probably guess, this simply tells Varnish which backend should
+process this request. If you had multiple backends, this is where you would do
+your backend selection.
+
+ if (req.http.Cache-Control ~ "no-cache") {
+     purge_url(req.url);
+ }
+
+What this block does is tell Varnish to purge the cache for a particular URL
+when the no-cache cache-control header is sent from the client. That header is
+provided whenever you hold shift while pressing reload in the Firefox browser.
+In other words, this forces Varnish to refresh the cache for the page you are
+looking at when you hit shift-reload. Note that this will
+happen if I<anyone> does a shift-reload, so you may not want this in a
+production environment, but it is definitely useful in debugging your initial
+deployment.
+
+ if (req.request == "GET" && req.url ~ "^/static/") {
+     unset req.http.cookie;
+     unset req.http.Authorization
+     lookup;
+ }
+
+This tells Varnish if the request is for anything that starts with /static
+that it should remove any cookie header or authorization information, and then
+look up the request in the cache. The B<lookup> line is important. This tells
+Varnish that it should stop executing the vcl_recv routine and look up the
+item in the cache. This is an example of a I<keyword>.
+
+Keywords in Varnish can be though of as a 'return' for the subroutine combined
+with the value it is returning. If you do not use a keyword somewhere to
+terminate your subroutine, control will fall through to the default Varnish
+subs. There is a knack to figuring out when to return and when to fall
+through, and you will get the hang of it after working with Varnish for a
+short while. In the meantime, you can rely on the fact that the config
+presented here does the right thing. You can read up on the default behavior
+in the Varnish docs and wiki also. For now, let's move on to the next part of
+our vcl file.
+
+ if (req.request == 'POST') {
+     pass;
+ }
+
+This tells Varnish that if the request method is POST, that it should NOT look
+it up in the cache and should instead pass it directly to the backend. This is
+most likely what you want, as POST data is generally form submission and the
+result will vary from user to user and request to request.
+
+This snippit also introduces our next keyword, I<pass>. Pass tells Varnish
+that it should pass the request through to the backend I<without looking it up
+in the cache>. This is a subtle but critical detail because even if you put
+something into the cache in vcl_fetch, if you I<pass> when receiving a request
+for that item, it will never actually be I<served> from the cache. 
+
+ if (req.request != "GET" && req.request != "HEAD" &&
+     req.request != "PUT" && req.request != "POST" &&
+     req.request != "TRACE" && req.request != "OPTIONS" &&
+     req.request != "DELETE") {
+     
+     # Non-RFC2616 or CONNECT which is weird. #
+     pass;
+ }
+
+Again we have an exclusion rule. This says that if the request method isn't
+one of the 'normal' web site and web service methods, Varnish should
+send it right through to the backend.
+
+ if (req.http.Authorization) {
+     # Not cacheable by default #
+     pass;
+ }
+
+And our last check. If the client is providing an Authorization header that
+indicates some sort of access control is in place and we want to pass it
+directly through to the backend. Chances are, if an Authorization header is
+being provided, the data coming back is going to be tailored to the user in
+question, so we don't bother looking it up.
+
+Finally... our last line of vcl_recv:
+
+ lookup;
+
+If we haven't explicitly handled it already somewhere along the way, we look
+it up in the cache. Note that since our vcl_recv ends with a keyword,
+Varnish's builtin vcl_recv never gets a chance to execute. That's OK in this
+case, because we have handled the different scenarios that we are interested
+in.
+
+=head4 Handling the web-server response: vcl_fetch
+
+When Varnish enters the vcl_fetch subroutine, it has already requested data
+from the backend web server and has received a response. It has not, however,
+inserted anything into the cache yet. In fact, most of what you are likely to
+be doing in vcl_fetch is determining whether the response I<should> be cached
+or not.
+
+In many ways the rules you place in vcl_fetch will directly correlate to the
+rules you placed in vcl_recv earlier. The difference is that in vcl_recv you
+were deciding whether to look up the item in the cache, whereas in vcl_fetch
+you are deciding whether you should insert the response into the cache in the
+first place.
+
+The difference between the lookup check and the insert check is a subtle one,
+as cache control can really be done in either place. It is, however, important
+to use vcl_fetch effectively, because limiting what goes into the cache is the
+only I<real> control you have over the the size of your cache. It's also all
+too easy to accidentally let a request pass into lookup that you didn't want
+to. The best way to avoid serving up invalid cached data is to make sure it's
+never placed in the cache in the first place. Ultimately, it's best to use
+vcl_recv and vcl_fetch in tandem to make sure that what goes into and comes
+out of the cache is exactly what you want.
+
+All that said, let's begin exploring our vcl_fetch routine.
+
+ if (req.request == "GET" && req.url ~ "^/static" ) {
+
+     unset obj.http.Set-Cookie;
+     set obj.ttl = 30m;
+     deliver;
+ }
+
+We start out with a very important piece of our cache control. This block
+tells Varnish that if the request is GETing something from /static/* it should
+be placed in the cache. The line that begins with I<unset> ensures that if,
+for some reason, a cookie is being set by the server, the cookie header is
+removed before it is placed in the cache. We also set obj.ttl to 30 minutes,
+forcing static content to expire in 30 minutes regardless of what we get from
+the server. This makes sense as we may not have direct control over the cache
+control headers on static files.
+
+Notice that we are working with two objects now, the req object, which is the
+original request, and the 'obj' object, which is the response received from
+the backend server. We also encounter our first vcl_fetch keyword here,
+I<deliver>. When I<deliver> is encountered it tells Varnish that the object it
+currently is working with should be inserted into the cache.
+
+ if (obj.status >= 300) {
+     pass;
+ }
+
+This is another important piece of cache control. This tells Varnish that if
+the object it got from the web server has a status that is not in the 200s,
+that it should not cache it. This is important because if you have an error or
+other exceptional condition on the server, you do not want to be serving that
+error over and over to your site visitors. Sometimes 30x responses, such as
+redirects, could be cached in order to relieve the backend server of work, but
+in this case, we play it safe and assume that if it's not an 'OK' response
+it's not cacheable. Notice we have re-encountered the 'pass' keyword. In
+vcl_fetch, pass tells Varnish to send the response to the client, but don't
+save the response in the cache.
+
+ if (!obj.cacheable) {
+     pass;
+ }
+
+Glancing at this block it's pretty obvious what is going on. The cacheable
+property on the response is set by Varnish, and it is basically Varnish's
+opinion as to whether the object could be cached or not. Varnish is pretty
+smart about this, so if it thinks the object is not cacheable, we should trust
+its judgement and avoid placing it in the cache. Note that we don't
+automatically assume that if Varnish thinks it I<is> cacheable that we should
+cache it. We make that decision ourselves.
+
+ if (obj.http.Set-Cookie) {
+     pass;
+ }
+
+By now you are probably getting the hang of it. If the response is setting a
+cookie, it's a safe bet that that cookie is intended for someone in
+particular. We should return the request to the client, but don't cache it.
+
+ if(obj.http.Pragma ~ "no-cache" ||
+    obj.http.Cache-Control ~ "no-cache" ||
+    obj.http.Cache-Control ~ "private") {
+         pass;
+ }
+
+Now we are getting into the meat of our cache control. This is the first point
+where what happens on the server directly controls what happens within
+Varnish. This block says that if any of the cache-control headers are set to
+'no cache', obey them. This allows you, within your web app, to directly tell
+Varnish B<Do NOT cache this>. Without this block Varnish would attempt to
+guess whether the response was cacheable, and it would likely be wrong as
+Varnish does not obey no-cache instructions in its default configuration.
+
+ if (obj.http.Cache-Control ~ "max-age") {
+     unset obj.http.Set-Cookie;
+     deliver;
+ }
+ pass;
+
+And here is perhaps the most important rule in our cache control policy and
+where we depart significantly from Varnish's default behavior. This looks at
+the Cache-Control header in the response object to see whether the string
+'max-age' appears within it. If it does, then it clears out any cookie related
+headers and places the response object in the cache. If it doesn't, we tell
+Varnish not to cache it, no matter what it thinks about the response's
+cacheability.
+
+As we touched on before, anything containing any cookie related headers is
+immediately deemed uncacheable by Varnish by default. Varnish's behavior is
+exactly right in most cases. What we are doing with this block is explicitly
+saying 'Trust the backend server, if it says it's cacheable, cache it.' Since
+we are running the backend server and in an app like Catalyst we have complete
+and reliable control over the headers provided, this is relatively safe to do.
+
+By default, Varnish also interprets the Expires header to determine
+cacheability. We eschew Varnish's logic here and say 'if we didn't set max-age
+on the web-server, then you are not to cache it.' This gives us one clear
+method for controlling the cacheability of data in our application... and
+ensures that if we don't explicitly set the 'max-age' property in our app, the
+item will not be cached. 
+
+=head4 A quick side note: Is it a hit?
+
+When you are first working with the cache in place, you will at some point
+want to know if a piece of content you are looking at came from the cache or
+from the backend server. Yes, you could go to the backend server, make the
+request and watch the access logs, but there is an easier way.
+
+If you look at the headers returned on the item in question, you will see a
+header called 'X-Varnish.' That header will contain either one or two numbers
+(separated by a space.) If the 'X-Varnish' header contains two numbers, the
+data came from the cache. If it contains only one, it did not come out of the
+cache. Knowing this piece of information can make your debugging much simpler.
+
+Basically what we have done with this configuration is require an explicit
+cache 'allow' and what it means is that nothing in our application will be
+cached until we say it should be cached. This is, in my opinion, the only safe
+way to operate a cache in front of a web application.
+
+In anything but the smallest web apps, there are always pieces that you don't
+think of or that interact in a way you don't recognize until you are presented
+with a trouble ticket. The best thing to do in my experience is to turn
+caching on as you work through specific paths in your web app. The
+configuration presented here allows you to do that and be sure that only those
+pieces you have explored are cached.
+
+=head3 Starting Varnish 
+
+Now that we have configured Varnish with a sensible set of rules, we need to
+turn it on. We've seen once how simple it is to start Varnish, but we have
+also seen that Varnish's defaults are not always what we want.
+
+Varnish is a modern application, engineered to 21st century standards and it
+figures out a lot on its own. This is a very good thing. However, there is
+one detail that often is at a odds with how I wind up deploying caching.
+
+Varnish in its default configuration basically expects it has run of the
+server it is running on and can use as much virtual memory as it wants. This
+is exactly what you want if you have a dedicated cache server. Unfortunately
+for me, I have often found it a hard sell, at least initially, to get a
+dedicated cache machine. So most of the time my caching runs on the same
+server that is doing the web serving.
+
+In this situation, you need to manually limit the memory that Varnish can
+grab. It sounds difficult, but it is quite simple. To start Varnish with the
+config we just reviewed, and a cache limited to 512 megabytes, you would use
+the following command line:
+
+ varnishd -a :80 -T localhost:6082 -f catalyst.vcl -s file,/var/cache/varnish.cache,512M
+
+Note that there are startup scripts included with the Varnish packages on most
+distributions, and often they provide a lot of other OS specific tweaks to the
+startup environment. It's a good idea to use the startup scripts provided, if
+available for your OS of choice, and simply customize the options as
+appropriate.
+
+=head2 Summary
+
+Congratulations, you have completed a pretty in-depth look into the Varnish
+caching software and how to deploy it with your web application. Though we
+have covered a lot of ground, we have only scratched the surface of what
+Varnish can do.
+
+Don't let that fool you, though. Even the straightforward configuration
+described here can make a B<HUGE> difference in the performance of your site
+or application. I have seen sites that could barely handle their traffic
+become speed demons using caching configurations nearly identical to the one
+we explored today.
+
+But don't take my word for it. This configuration is specifically designed to
+be non-intrusive. Take it, install it, try it yourself. You won't be
+disappointed.
+
+=head1 AUTHOR
+
+jayk - Jay Kuri <jayk@cpan.org>

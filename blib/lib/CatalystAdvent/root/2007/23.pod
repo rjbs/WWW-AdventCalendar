@@ -1,0 +1,371 @@
+=head1 Pluggable Modules and Deployable Instances
+
+=head2 Discussed Concepts :
+
+This article discusses  about two catalyst concepts .
+
+1. How chaining can be used to create applications that have a central engine that process core logic and allow independent modules be built on top.(The Application)
+
+2. Par and creating spawns of the application that can span again and integrate to the master site . The individual spawn can be carried around as a separate application.(Instantiating)
+
+=head2 The Built Application :
+
+The tutorial is accompanied by a functional and well commented code base which can be checkout using svn  from 
+http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/Quiz
+
+
+For demonstrating the above mentioned concepts a quiz application has been taken as example.
+
+The final application must be able to 
+
+I). Create quizzes that can be taken on the site or deployed to a trainer's laptop , which the trainer can carry to colleges.The application must make sure that the deployed quiz contains only the required questions in the database as the questions can be proprietary and the trainer must be able to take only what is necessary. It must also allow a deployed quiz to act as master and create smaller quizzes from it . Ideal when a trainer takes 500 questions and has to train 10 batches with different question set  in the same college.
+
+II). When creating a quiz it must be possible to choose the modules  and the number of questions from each module .Example of questioning modules can be "choose the correct answer" ,"Fill in the blanks " etc.
+
+III). It must be  possible to build new modules that can work along with the application and yet can be developed independently without any constraints on its internal logic , look and feel.
+This tutorial will take you step by step on building such an application . 
+
+=head2 (The Application) :
+
+This tutorial will take you step by step on building such an application . 
+
+=head3 Step 1 : The model .
+
+What is needed is a quiz engine that can create quiz containing questions from more than one module .
+And be able to track who took the quiz and what they scored.
+
+The sql and the schema to create the required tables and models can be seen from the code.
+Basically there are 4 tables.
+
+QuizMaster::Quizzes stores the generated quizzes.
+QuizMaster::Modules stores the list of available modules.
+QuizMaster::QuizModules stores the modules selected for a quiz , 
+			and the randomly assigned question numbers from each module.
+QuizMaster::participants stores who took what quiz and how much they scored.
+
+=head3 Step 2 : Creating controller methods for creating the quiz.
+
+Controller methods (index and create )  are written in quiz controller  the general way to display the created quiz and to allow to create a new quiz.
+
+=head3 Step 3 : Implementing the concept of independent modules.
+
+What is expected is that the application act as a quiz engine that controls modules 
+to ask questions .The modules are designed to ask questions and get answers in whatever manner is best suited for that module and pass back only the result to the engine so that the engine can track the score and the flow.
+
+For example : A quiz might consist of two module "Choose the correct answer " , "Fill in the blanks".
+
+Both the modules may have completely different UI , a module may select more than one value as an answer.
+A quiz can contain questions (1,2,8) from module 1 and (4,6) from module 2.
+
+The application has to be designed in such a way that the flow , i.e the transition from question 1 to question 2 when in module 1 and the transition from question 8 in module 1 to question 4 in module 2 is handled by the engine.The engine must also handle the score manipulation.
+
+Even when doing the above , the application must still keep it easy to create new modules.
+
+This is possible by combining sessions and chaining in the following way . 
+
+We define 3 methods  in the quiz controller to do the above.
+
+(start, process  and finish)
+
+
+
+Each of which are explained  below .
+
+=head4 start : 
+
+
+  This function does two things 
+
+  1.Initializes the quiz by loading the details of the modules used and their 
+    respective question numbers into the session.
+  2.Determines the first module and the first question that have to be asked and 
+    its corresponding url.
+  
+
+sub start : Local
+  {
+
+  my ($self,$c,$quizid) = @_;
+
+  #Displays a form and gets the participants name.
+
+  if ($c->request->param('name')) {
+
+     #Loads the modules and the questions selected randomly from each module 
+     #during create and stores it in session      
+    my $quiz = $c->model('QuizMaster::Quizzes')->search({id=>$quizid})->first;
+    my $modules = [$quiz->search_related('quizmodules',{quiz=>$quizid})->all];
+    $c->session->{quiz}={participant=>$c->request->param('name'),name=>$quiz->name};
+    my $moduledata;
+     
+    foreach my $module (@{$modules}) {
+
+      
+      push @{$moduledata} , { id => $module->id , 
+                              name=>$module->module->name,
+                               questions => [split ' ',$module->questions] };
+       
+    }
+
+    
+    $c->session->{quiz}->{modquestions}=$moduledata;
+
+    #set up counter for the questions and modules
+    $c->session->{quiz}->{modindex}=0;
+    $c->session->{quiz}->{qindex}=0;
+
+    #set score and total score as 0
+    $c->session->{quiz}->{score} = 0;
+    $c->session->{quiz}->{tscore} = 0;
+
+
+    #Sets up the url for the first question of the first module.
+    $c->stash->{newurl} = "/quiz/process/$quizid/$moduledata->[0]->{name}/$moduledata->[0]->{questions}->[0]";
+    $c->stash->{template} = 'quiz/begin.tt2';
+    
+  }
+  
+
+}
+
+=head4 Process :
+
+This method plays the key role of maintaining the flow and scoring 
+
+ This controller does two things .
+ 1.It does scoring for the previously answered question
+ 2.Set the action path(url) for the next question  that can be used by the module 
+   displaying the current question 
+
+
+sub process : PathPart('quiz/process') Chained('/')  CaptureArgs(1) {
+    
+  my ($self,$c,$quizid) = @_;
+
+
+  #Scoring 
+  $c->log->debug($c->request->method);
+  
+  if ($c->request->method =~ /POST/) {
+    $c->log->debug('Entered here');
+    
+    # To make sure we don't evaluate a non existing previous answer when displaying the first question
+    if ($c->session->{quiz}->{answer}) {
+      my $flag= 1;
+	
+      # The questioning module has to store the answer for the question in the application's session 
+      # Using a hash here allows to have questions with multiple answers
+
+      foreach (keys %{$c->session->{quiz}->{answer}}) {
+	if ($c->session->{quiz}->{answer}->{$_} != $c->request->param($_) ) {
+	  $flag = 0;
+	    
+	}
+      }
+	
+      # The score per question is taken as 10 here . 
+      #It can also be set to take a value from the sessions in which case the 
+      #questioning modules can assign different marks to each question
+      my $spq = 10;
+	
+      $c->session->{quiz}->{score} += ($flag * $spq);
+      $c->session->{quiz}->{tscore} += $spq;
+      $c->log->debug($c->session->{quiz}->{score});
+      
+
+    }
+      
+  }
+
+
+  #Determine the action path(url for next question)
+
+
+  my $modindex = $c->session->{quiz}->{modindex};
+  my $qindex = $c->session->{quiz}->{qindex};
+    
+  #check that the current question is not the last question of the module
+  if ( $qindex != $#{$c->session->{quiz}->{modquestions}->[$modindex]->{questions}}) {
+      
+    
+    $c->session->{quiz}->{qindex} += 1;
+    $qindex ++;
+      
+    # generate /quiz/process/quizid/modulename/questionid
+    my $modulename = $c->session->{quiz}->{modquestions}->[$modindex]->{name};
+    my $questionid = int($c->session->{quiz}->{modquestions}->[$modindex]->{questions}->[$qindex]);
+
+    $c->stash->{postaction}="/quiz/process/$quizid/$modulename/$questionid";
+
+  } else {
+    #if it is the last question , check that the current module is not the last module
+    if ($modindex != $#{$c->session->{quiz}->{modquestions}}) {
+      $qindex = $c->session->{quiz}->{qindex} = 0;
+      $c->session->{quiz}->{modindex} += 1;
+      $modindex ++;
+      my $modulename = $c->session->{quiz}->{modquestions}->[$modindex]->{name};
+      my $questionid = int($c->session->{quiz}->{modquestions}->[$modindex]->{questions}->[$qindex]);
+
+      $c->stash->{postaction}="/quiz/process/$quizid/$modulename/$questionid";
+
+	 
+
+    }
+      
+    #if the current question is the last question of the last module set action path 
+     to the quiz finish controller
+    else {
+      $c->stash->{postaction}="/quiz/finish/$quizid";
+	
+    }
+  }
+    
+    
+}
+
+=head4 finish : 
+
+This method does two things 
+
+1. Manipulate the score for the last answer.
+2. Save the quiz results to the database.
+
+(Actually this can be re-factored to chain that process method and hence pop point 1 from its responsibility .It will be necessary to do so when complex scoring algorithms are used in the quiz . Say for example each module has a different scoring patter for questions and a that module allows multiple answers and different scores for each answer.In such a case the scoring algorithm will be complex and it will not be a good design to repeat that portion in the controller below for the last question alone) 
+
+
+
+sub finish : Local {
+
+  my ($self,$c,$quizid) = @_;
+  my  $name = $c->session->{quiz}->{participant};
+  # Same as in the previous controller , manipulate the score for the last question.  
+  my $flag= 1;
+	
+      foreach (keys %{$c->session->{quiz}->{answer}}) {
+	if ($c->session->{quiz}->{answer}->{$_} != $c->request->param($_) ) {
+	  $flag = 0;
+	    
+	}
+      }
+	
+  my $spq = 10;
+	
+      $c->session->{quiz}->{score} += ($flag * $spq);
+      $c->session->{quiz}->{tscore} += $spq;
+
+
+  my $score = $c->session->{quiz}->{score};
+  my $tscore = $c->session->{quiz}->{tscore};
+
+# Save the Quiz results
+  
+ my $participant = $c->model('QuizMaster::Participants')->create({
+                 name => $name,
+		 quiz => $quizid,
+		 score => $score,
+                 totalscore => $tscore
+								  
+									 						 });
+  $c->stash->{score} = "$score / $tscore";
+  
+          
+}
+
+=head3 Step 4: Create a sample module :
+
+Having designed the engine above.
+There are few things  to be kept in mind to create a questioning module .
+
+=head4 Model : 
+
+1. The module model must have the questions in the namespace modelname::modelname_questions
+   (This can be avoided if the Quiz::Modules table can have the count of the total number of questions available for each module or maybe a field that contains the name of the model that the module uses for storing its questions ).
+
+=head4 Controller :
+
+
+1.There must be a controller with the same name as the module 
+2.The questionid of the question that is to be challenged will be given to the module's method that is chained with the quiz controller's process method and has PathPart same as the module's name.
+3.The form action  value(url for the next question) will have to be retrieved from the session.
+4.The answer(s) to the current question must be stored in the session as a key/value pair.
+
+
+When the above points are followed , 
+
+The three methods in the quiz  controller (start , process and finish)  handle  scoring , moving over the questions and moving over to the next module .
+
+
+With that in mind, the complete controller code for a simple choose the correct answer module is 
+
+
+sub index : PathPart('Ctca') Chained('/quiz/process')  Args(1)  {
+    my ( $self, $c , $questionid ) = @_;
+
+    my $question = $c->model('Ctca::CtcaQuestions')->search({id=>$questionid})->first;
+
+    $c->stash->{question} = $question;
+    
+    $c->stash->{options}= [$question->search_related('options',question=>$questionid)->all];
+    # The only extra line by the module that is needed to let the engine handle the flow and scoring 
+    $c->session->{quiz}->{answer} = {choice => $question->correct};
+    $c->stash->{template} = 'Ctca/index.tt2';
+    
+}
+
+=head3 Conclusion : 
+
+
+The above architecture reduces the work involved in designing a new module . When creating a new module one will have to only worry about 
+
+ * How the question is displayed and answer taken (drag and drop , jigsaw , draw lines :))
+ * Determine the correct answer from the database and store it in the session
+
+Everything else is taken care by the quiz controller . 
+
+This makes it easier to develop new modules .
+
+
+=head2 (Instantiating) :
+
+
+This part of the tutorial outlines the step required in creating spawns of the application that can span again and integrate to the master site . The individual spawn can be carried around as a separate application.
+
+The application is so build from above that 
+
+1.If we were to copy the entire folder to a new folder .
+2.Delete all the records in the QuizMasterL::Quizzes table except the one selected for deployment.
+3.Delete all the records in each quiz module other than the ones used by the quiz
+4.Create par and use pp to make a binary with the perl compiler.
+
+We will have a complete spawn of the existing site with a limited number of questions.
+Hence a trainer can create sub quizzes from the limited number of quizzes and that runs easily with a single click.
+
+
+We will use a method called deploy in the quiz controller which does the above 4 points.
+Since it is easier to handle steps (1,4) in a script run locally .
+The controller script will first do steps (2,3) and save the created databases to a temporary location.
+Then the  system command can be used to invoke a shell script that will do the copy and packaging.
+
+=head3 To do step (2,3) [slice an existing db]:
+
+That is to create a slice of the existing database the following procedure is followed.
+
+1.Use deploy() to create the database for the QuizMaster::Quizzes . 
+2.Insert a record with the quiz id and the name to that database.
+3.use deploy() to create the database for each of the module.
+4.Read the assigned questions for each module from the QuizMaster::QuizMoules tables and insert those record into the newly created database.
+
+
+After doing which the control can be passed to the shell script that will do the copy and packaging.
+
+Since we had stated that using the above said convention for the questions table is the only constraint for the  module's Model.It is only possible to slice the questions table .It is not possible to know the logic used by the questioning module to store the answers.So we cant slice them. Anyways that is alright as though the questions can make sense without the answers and need to be protected when proprietary , the answers without the questions are just junk and will not make much meaning.
+
+
+
+=head3 Acknowledgement
+
+Special thanks to Ma Foi Academy for allowing me to expose part of the code developed for the organization in this article.
+
+=head1 AUTHOR
+
+Antano Solar John

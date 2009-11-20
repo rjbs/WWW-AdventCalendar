@@ -1,0 +1,160 @@
+=head1 Catalyst Advent Day 14 - Job Queue
+
+Running a job queue
+
+=head2 What's a job queue?
+
+A Job Queue enables you to run code at a fixed time interval (like
+C<cron> does on Unix, C<launchd> on Mac OS X and "Scheduled Tasks" on
+Windows). The job in this example runs as a HTTP request, so
+you can reuse your Catalyst application code.
+
+=head2 Get Started
+
+Export the L<Catalyst::Engine::JobQueue::POE> source into a working
+directory:
+
+  $ svn export http://dev.catalyst.perl.org/repos/Catalyst/trunk/Catalyst-Engine-JobQueue-POE
+
+We use C< svn export > instead of C< svn checkout > so that you don't
+clutter up a working copy with the files created in the module build
+process.
+
+Build and install the engine:
+
+  $ cd Catalyst-Engine-JobQueue-POE
+  $ perl Makefile.PL
+  $ make test 
+  $ sudo make install
+
+You can now use the job queue in your application.
+
+=head2 Setup and Configure a JobQueue
+
+Generate a new Catalyst application in another directory:
+
+  $ catalyst.pl JobQueueApp
+  <...lots of "created" messages>
+  $ cd JobQueueApp
+  $ script/jobqueueapp_create.pl JobQueue::POE
+  <... a few "created" messages>
+  
+Now you have all you need to run the job queue, let's configure
+it. Add the following configuration values to the F<jobqueueapp.yml>
+configuration file:
+
+  Catalyst::Engine::JobQueue::POE:
+    schedule_file: crontab
+    render: 
+      to: [log]
+
+This will make the job queue render the job responses to the application log.
+
+=head2 Create your first job
+
+It's time to create a job. Edit the F<crontab> file in the application
+root and uncomment the last line (the one with the many "*"). Each
+uncommented line represents a job. The first 6 elements will determine
+how often the job will be run (it's in crontab syntax,
+L<http://www.adminschoice.com/docs/crontab.htm#Crontab file>). The
+next one is unused for now, so you can ignore it. The last one
+represents the request that the job will send to the application:
+It's the path part of a URL. The job looks like this:
+
+  *   *   *   *   *   *   root   /test/job
+
+This means that every minute, the job queue will make a request for
+C</test/job>
+
+=head2 Run the JobQueue
+
+You can now run the job queue with:
+  
+  $ perl script/jobqueueapp_jobqueue.pl
+
+You should see the typical Catalyst debug output. If you now wait for
+60 seconds, you will see some more debug info (indicating that a
+request is being processed) along with the HTML source of the default
+Catalyst welcome page. It's the same output that your browser would
+receive if you'd start the Catalyst web server and point it at the
+server and the C</test/job> URL.
+
+=head2 Getting mail
+
+It's time to get some results by email. In the F<jobqueueapp.yml>
+configuration file, change C<log> to C<email> and add these lines
+underneath:
+
+    email:
+      from: catalyst@myserver.com
+      to: user@myserver.com
+
+Pay attention to the YAML alignment (C<email> should be vertically
+aligned with C<to: [log]>).  Put your email address on the C<to> line
+and the address that you want to see the mail report coming from on
+the C<from> line. I<IMPORTANT> For this feature, the development
+machine should be able to send emails by direct SMTP, if not add a
+line like this to the config: smtp: mail.myserver.com
+
+Again C<smtp> should be vertically aligned with C<to:
+user@myserver.com>. Put your SMTP server on this line.
+
+Re-run the job queue. This time, you should receive an email with the
+default Catalyst page shortly after the full minute). Don't forget to
+stop the job queue or else your inbox will fill up pretty quickly.
+
+=head2 Write a useful job 
+
+Now let's actually do something useful with the job. We'll setup a
+controller which will tell us the system load. The URL for this info
+will be C</system/load>.
+
+First create the controller:
+
+  $ script/jobqueueapp_create.pl controller System
+  <... some "created"/"exists" messages>
+
+Then edit F<lib/JobQueueApp/Controller/System.pm> and add this code:
+
+  sub load : Local {
+    my ( $self, $c ) = @_;
+    my @output = `w`;
+    $c->response->body("Load: $output[0]");
+  }
+
+I<IMPORTANT> This will only work if you have access to the C<w>
+command line application. Under Windows or in restricted environment
+you might not get any information.
+
+Now edit the F<crontab> file so that the line you uncommented earlier
+looks like this:
+
+  */5   *   *   *   *   *   root   /system/load
+
+and in the application configuration file change the C<to: [email]>
+line to C<to: [log, email]>.
+
+Now start the job queue and every 5 minutes the uptime, user count and
+load averages will be logged as well as sent to you by mail.
+
+=head2 Summary
+
+As you have seen you can setup the job queue to run any action from
+the controllers and have the results logged and/or mailed to you.
+
+Keep in mind though that the engine is not yet production quality and
+not recommended for running critical jobs.  However expect a CPAN
+release for the job queue engine soon.
+
+=head3 AUTHOR
+
+Gruen Christian-Rolf (kixx) <kiki@bsdro.org> (author of this article and the
+engine)
+
+=head3 COPYRIGHT.
+
+Copyright 2006 Grün Christian-Rolf.  This document can be freely
+redistributed and can be modified and re-distributed under the same
+conditions as Perl itself.
+
+=cut 

@@ -1,0 +1,176 @@
+=head1 Day 24 - The Catalyst Community
+
+A round up of what's where in the Catalyst community.
+
+=head2 Community
+
+Any active open source project is as much about the community
+surrounding the software as the software itself.  A useful and
+wonderful piece of software is of much less use with an unresponsive
+community.  This short article outlines what is where and who in the
+Catalyst community.
+
+=head2 The subversion repository.
+
+You can get everything catalyst from the project subversion
+repository: L<http://dev.catalyst.perl.org/repos/Catalyst>.  At
+present there are about 115 people with write access to the
+repository, and about 15 of whom have write access to B<everything
+there>.  The repository is fairly sizable (a little under 350MB at the
+moment), with the standard tags branches trunk sections.  Because it
+can lead to breakage later on if you don't it's generally a good idea
+to check out the whole repository from the top first.  i.e.
+
+ $ svn co http://dev.catalyst.perl.org/repos/Catalyst
+
+or with svk (checking out the whole repository initially is of
+particular importance for svk):
+
+ $ svk mirror http://dev.catalyst.perl.org/repos/Catalyst //mirror/Catalyst
+ $ svk sync -r HEAD //mirror/Catalyst
+ $ svk co //mirror/Catalyst
+
+=head2 Mailing lists
+
+There are two Catalyst mailing lists, L<Catalyst
+Users|http://lists.rawmode.org/mailman/listinfo/catalyst> and
+L<Catalyst-Dev|http://lists.rawmode.org/mailman/listinfo/catalyst-dev>
+for development issues.  The first list is a general support and
+discussion list, while the second is for patches and discussion of
+features.
+
+To search the mailing lists, you have a few choices:
+
+=over
+
+=item * A google search on site:http://lists.scsys.co.uk/pipermail (to
+search catalyst and catalyst-dev)
+
+=item * L<http://www.mail-archive.com/catalyst@lists.rawmode.org/info.html>
+(Catalyst list only)
+
+=item * L<http://news.gmane.org/gmane.comp.web.catalyst.general/> (Again
+Catalyst list only).
+
+=back
+
+The Catalyst mailing list is active, and a good place to generate
+discussion for material where there might be a bit of complexity, or
+where you don't need an immediate response.  If you submit patches,
+please submit them to Catalyst-dev rather than the main users mailing
+list.  These lists are fairly high traffic (-dev less so), so if you
+do submit any patches, chase them up.  At the least, you should get a
+notice that the patch was applied (and hopefully the revision number
+they were applied as), or some reasons why your patch was rejected.
+
+If you do submit a patch and you don't hear anything, the best place
+to go to follow up is to irc.
+
+=head2 IRC
+
+Catalyst has two channels, and is associated with a number of
+subsidiary channels, all on the irc network C< irc.perl.org >.
+Reflecting the mailing list there is the channel C< #catalyst > for
+general questions and discussion about Catalyst, or C< #catalyst-dev >
+for development related questions.  In fact most of this advent
+calendar was coordinated through the #catalyst-dev irc channel.  A few
+other channels of note on this network are L< #dbix-class > for
+discussion of L<DBIx::Class>, C< #tt > for L<Template
+Toolkit|Template> related discussion, and C< #reaction > for
+discussion of the L<Reaction> Component User Interface layer currently
+being built on top of Catalyst.  There is also C< #perl > which is not
+a help channel and should be handled with caution.  For general perl
+questions go to  C< #perl > on C< irc.freenode.net > instead.
+
+IRC is an extremely valuable resource.  Most of the activity on the
+C< #catalyst > channels happens either late at night (UTC) or early in
+the working day (same time zone), or around tea time (early
+evening). C< /msg purl clock > will tell you what time it is where.
+Because IRC has all the advantages of immediate feedback (like in a
+conversation) but none of the visual or audio feedback you get in a
+face-to-face or telephone interaction the capability to be
+misunderstood is high.  This means that you have to take extra care to
+express yourself clearly and to B<listen> to what other people are
+trying to tell you.  It also means that you should be prepared to be
+misunderstood and not to take things too personally.
+
+=head2 http://rt.cpan.org
+
+You can also report bugs to L<http://rt.cpan.org>.  Not all authors
+use this service, although they should, so if you don't get a response
+fairly quickly, try the author's email in the module.  If you have a
+real problem that you need to resolve and a totally unresponsive
+author, email modules@cpan.org to ask about what to do. 
+
+=head2 What you can contribute.
+
+Patches for bug fixes, or test cases to demonstrate bugs are popular.
+A test case that requires an example application should be B<minimal>.
+That is, no extra plugins, use C<< $c->res->body >> for output where
+practical and so on.
+
+Documenting how to use features is also important.  Where it is
+possible to provide a simple proof of concept reference implementation
+for a tutorial this is particularly encouraged.  These reference
+implementations exist for all of the L<Catalyst::Tutorial>
+applications, the Cheer application from day 1 of this year's advent
+calendar, the Chained example from day 10, CatTube from day 8 and
+Geocat from yesterday.  Look in
+L<http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples> to see a
+wide variety of examples.  In fact, the source for the advent calendar
+application is there under CatalystAdvent.
+
+In some way newbies write the best documentation, so we always ask
+people new to Catalyst to keep notes, in case they have the time to
+convert them into useful documentation early in the game.
+
+=head2  CPAN
+
+There are a large number of plugins in the L<Catalyst::Plugin>
+namespace on L<CPAN>.  There are also a few modules in the
+L<Catalyst::Controller> name space, as well ast the
+L<Catalyst::Model>, L<Catalyst::View> and L<Catalyst::Engine>
+name spaces.  If you want to write your own L<Catalyst> extensions for
+L<CPAN> please check via the mailing list and irc (yes, preferably
+both) if possible, to sanity check your approach and make a general
+request for comments.
+
+=head2 Scaffolding
+
+At the moment the easiest scaffolding for L<Catalyst> to get up and
+running with is L<Catalyst::Example::InstantCRUD>.  It uses
+L<DBIx::Class> and L<HTML::Widget> to provide a rapid database
+scaffolding module.  The L<HTML::Widget> entry (day 19) shows some
+techniques you can use to extend this.  However, remember that while
+scaffolding can provide you with an attractive looking kick-start to a
+project (depending on its complexity), working around the
+assumptions of the scaffolding later on may cost you more time than
+creating your application by hand in the first place would have taken.
+Scaffolding does have its uses, just less often than people
+would like to think.  Having said that,
+L<Catalyst::Example::InstantCRUD> is a very good example of a
+programmer-centric scaffolding abstraction, extremely useful and easy
+to extend.
+
+=head2 Thanks
+
+The 2006 advent calendar was a community effort with 13 authors on 4
+continents.  Documentation is usually a weak point in distributed
+in-kind funded open source projects like L<Catalyst>.  Being able to
+produce 23 high quality, practical pieces of documentation in just
+under a month is a testament to the strength of the Catalyst
+community.  Thanks to all the authors, and all the readers.
+
+That's it for this year.  Have a happy holiday season, and we'll see
+you after the break!
+
+=head3 AUTHOR
+
+Kieren Diment <diment@gmail.com>
+
+=head3 COPYRIGHT
+
+Copyright 2006 Kieren Diment.  This document can be freely
+redistributed and can be modified and re-distributed under the same
+conditions as Perl itself.
+

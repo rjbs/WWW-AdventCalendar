@@ -1,0 +1,146 @@
+=head1 Day 5 - Taming legacy websites with Catalyst and wget
+
+Taming legacy websites with Catalyst and wget.
+
+=head2 The problem
+
+I was asked to update a rather old website which has traditionally
+been maintained with Dreamweaver, and uses nested tables to provide
+the layout.  I needed to draw from a variety of sources - my own and
+outside databases, and data gathered from screen scrapers, RSS feeds,
+and so on.  So my models were a mess, my employer was completely
+inflexible about the tools used to do the job, and in any case the
+same tools are due to be replaced with a new (expensive) content
+management system in a couple of months' time.  To ease maintenance
+headaches, and to be able to leverage Catalyst's ability to use any
+model you like, I took the following approach:
+
+=over 4
+
+=item *
+
+Create a catalyst appliation for running with the built in server.
+
+=item *
+
+Make a static mirror of the application with C<wget>.
+
+=back
+
+=head2 Stage 1 - Deciphering the templating system.
+
+AKA the nightmare of 17 nested tables.
+
+With no flexibility about how to lay the site out, and with the graphics
+and styles already prescribed, I sat down and worked out the structure
+of the web site.  It turned out that there were 17 nested tables, and
+all I was interested in modifying were the content pane and the menu
+pane. Everything else was fixed.
+
+With my architecture, this meant that the application template would be
+pretty much the same for every request, so in
+C<MyApp::Controller::Root-E<gt>auto> I set my Template Toolkit template:
+
+  $c->stash->{template} = 'index.tt';
+
+which I serve out of C<MyApp/root/base> in this case.
+
+For the menus and the content page for each controller that's accessed I
+do the following to set the dynamic content of the page:
+
+ $c->stash->{maincontent} = 'path_to/template.tt';
+
+and somewhere in C<index.tt>, or in the horrible mess of INCLUDEs I put
+together to make sense of the 17 nested tables, I have this:
+
+ [% INCLUDE $c.stash.maincontent %]
+
+The principle is basically the same for any other parts of the template
+that I want to have dynamic as well. You can make calls to a model to
+populate data structures or whatever else you want to do here.
+
+=head2 Authentication
+
+I quite like being able to edit some pages in the browser for purposes
+of instant gratification and rapid sanity checking.  Because this
+application is for internal use and is only publicly deployed as a
+static site, authentication is particularly simple.  In
+C<MyApp::Controller::Root> I have the following:
+
+  $c->stash->{edit} = 1 if $ENV{'EDIT'};
+
+and in the template, anywhere I have a link to an edit screen I have
+the following:
+
+ [% IF c.stash.edit %]
+   <a href="[% c.uri_for(thing) %]">Edit</a>
+ [% END %]
+
+so when I run the server like this:
+
+  $ script/myapp_server.pl
+
+There are no edit pages available through the application.  However
+when I run it like this:
+
+  $ EDIT=1 script/myapp_server.pl
+
+I can edit away, and it's still possible to delegate editing to a small
+trusted team on the network without having to worry too much about
+security.
+
+=head2 Deployment
+
+There are two parts to this process:
+
+=over 4
+
+=item *
+
+In C<MyApp::Controller::Root-E<gt>auto>
+
+ if ($c->req->path && $c->req->path !~ /\/$/ && ! $c->req->param) {
+     $c->res->redirect('/' . $c->req->path . '/', 301);
+         return 0;
+     }
+
+This forces requests without a trailing slash and with no POST or GET
+parameters to redirect to a url with a trailing slash.  This makes
+C<wget> behave in the expected manner.
+
+=item *
+
+Run C<wget> to make a static mirror
+
+ $ wget -r -k http://localhost:3000
+
+And C<wget> creates a subdirectory called C<localhost:3000> which
+contains your entire site with relative links (but be warned: if any of
+your links return a C<404 not found> status, C<wget> will not rewrite
+them, and you will have the C<-k> flag passed so wget will not rewrite
+that link as relative).  After this it's a simple matter of copying
+these files to the desired location on your web server.  In some cases
+after this you may want to change some things to suit your environment,
+in which case the below should be a very powerful tool (after
+appropriate and careful testing):
+
+ $ find . -name '*html' | xargs perl -p -i -e 's/something/somethang/g'
+
+=back
+
+=head2 Wrap up
+
+And that's it: using Catalyst to make sense of a set of static web pages
+when you want to draw data for them from a range of sources.  I'd
+particularly like to hear about extensions of this technique as I think
+it's an underrated approach to web application programming.
+
+=head3 AUTHOR
+
+Kieren Diment <diment@gmail.com>
+
+=head3 COPYRIGHT.
+
+Copyright 2006 Kieren Diment.  This document can be freely
+redistributed and can be modified and re-distributed under the same
+conditions as Perl itself.

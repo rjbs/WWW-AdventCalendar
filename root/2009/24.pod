@@ -1,0 +1,616 @@
+=head1 Catalyst AJAX With MochiKit
+
+In this Advent entry I want to show how MochiKit
+(L<http://www.mochikit.com>) can be used to add AJAX (or my favorite
+under-used buzzword "Web 2.0") functionality to the Catalyst Tutorial
+on CPAN.
+
+=head1 What You Need
+
+You need the Tutorial example app Part 4 (Basic CRUD), which can be
+downloaded from
+L<http://www.catalystframework.org/calendar/static/2008/mochikit/MyApp_Part4.tgz>. Important: during the course of writing this article, the examples in the tutorial changed, so this download is of the older version than the one currently online.
+
+You need the MochiKit JavaScript Library which can be downloaded from
+L<http://www.mochikit.com/dist/MochiKit-1.4.2.zip>. This zip file
+contains some other files and documentation as well.
+
+=head1 Why MochiKit?
+
+Without going into JavaScript library wars, MochiKit has some great
+features which should make it a candidate for any project that is
+going to need a lot of JavaScript development. It will save you from
+writing without controlling you. Some of the main reasons I think it
+should be considered are:
+
+=over
+
+=item *
+
+Lightweight; the various functional libraries can be cut out if not
+needed
+
+=item *
+
+Does not alter JavaScript to the point where its not JavaScript
+anymore, like some libraries. I find it has the Perl mentality of
+letting you do things any way you want, and can be used with other UI
+libraries
+
+=item *
+
+Saves a ton of JavaScript coding without giving away control
+
+=item *
+
+It integrates well with prebuilt applications as we will see in this
+example. You don't need to re-write the whole UI, as in some other
+libraries' widgets, to get good functionality out of it
+
+=item *
+
+Comes with a non-browser-dependent JavaScript debugging console in
+case you're not using something like FireBug
+(L<http://getfirebug.com/>) (which is highly recommended in any case)
+
+=back
+
+=head1 Now Let's Begin
+
+The first thing is to download the Tutorial Part 4 and extract it
+where you want it; in my case, it's on my Desktop.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/01_extract_myapp.jpg"/></p>
+
+=end pod::xhtml
+
+Now, let's start the server and make sure it's working.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/02_start_myapp.jpg"/></p>
+
+=end pod::xhtml
+
+Now, let's browse to our books controller's list action at
+L<http://localhost:3000/books/list>, and you should see the default data
+from the downloaded example like the image below.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/03_books_list.jpg"/></p>
+
+=end pod::xhtml
+
+This is where we will be adding the AJAX functionality. I think it
+would be sooooo Web 2.0-ish if we could create, delete, and modify the
+books and have the UI updated without a page refresh. However, I will only be
+showing creates.
+
+Let's load the MochiKit library into our templates so it's loaded on all
+pages. To do that, first create a js directory inside of
+root/static/ to hold our JaveScript files. Then let's copy the packed (white
+space removed) MochiKit file, which includes all the libraries in one
+file for the sake of simplicity. In a production environment you will
+probably only want to load the necessary libraries.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/04_copy_mochikit.jpg"/></p>
+
+=end pod::xhtml
+
+Now let's modify the current MyApp/root/lib/site/html file to include
+the MochiKit library on all pages. Just add the following line after
+the css section in the file.
+
+    <script type="text/javascript" src="[% Catalyst.uri_for('/static/js/MochiKit.js') %]"></script>
+
+Now make sure that when you restart your server and reload the
+L<http://localhost:3000/books/list> page, the MochiKit library file is
+being loaded on the page. You can do this by browsing to
+L<http://localhost:3000/static/js/MochiKit.js>
+
+=head1 So Here Is The Plan
+
+Let's add the ability to create as many books as we want without
+needing to refresh. Just for fun, let's also do some simple input
+validation. The basic idea is we will have some input taken from the user,
+then posted to Catalyst by JavaScript. Catalyst will process and give
+us a standarized response, and our JavaScript will process the response
+and update the page as needed. 
+
+First thing is first: let's create the needed UI elements in the
+template. I think all we would need is an empty Title, Rating, and
+Author ID text field. Change the top of the table in the template
+MyApp/root/src/books/list.tt2 to include a C<thead>, C<tbody>, and an
+C<id> for the C<tbody>. MochiKit has some DOM Coercion rules and requires
+C<tbody> in tables if we want to manipulate them. Add the following to the
+bottom of MyApp/root/src/books/list.tt2:
+
+    <table>
+    <thead>
+    <tr><td>Title</td><td>Rating</td><td>Author(s)</td><td>Links</td></tr>
+    </thead>
+    <tbody id="list_body">
+
+Modify the bottom of MyApp/root/src/books/list.tt2 to look like this.
+
+    </tbody>
+    </table>
+    <table>
+      <tr><td>Title:</td><td><input type="text" name="title" id="title"></td></tr>
+      <tr><td>Rating:</td><td><input type="text" name="rating" id="rating"></td></tr>
+      <tr><td>Author ID:</td><td><input type="text" name="author_id" id="author_id"></td></tr>
+    </table>
+    <input type="button" name="add" value="add" id="add_book">
+    <script type="text/javascript" src="[% Catalyst.uri_for('/static/js/list.js') %]"></script>
+
+We also want to edit the C<MyApp/root/lib/site/layout> file and add an
+id that we can reference for both span elements, so that we can update
+them live. We will also remove the stash references so that it only gets
+updated via JavaScript, and not through the template processing.
+
+    <span class="message" id="message"></span>
+    <span class="error" id="error"></span>
+
+Now we are ready to start writing the JavaScript for the page. Let's
+create a file C<MyApp/root/static/js/list.js>. For this example, the
+first thing we want to do is create variables that will be references to
+things we know we need.
+
+    //Creates MochiKit logging pane. Remove "true" if you want it popped out in its own window
+    createLoggingPane(true);
+
+    var message = getElement('message');
+    var error = getElement('error');
+    var list_body = getElement('list_body');
+    var title = getElement('title');
+    var rating = getElement('rating');
+    var author_id = getElement('author_id');
+    var add_book = getElement('add_book');
+
+If you are already pretty familiar with JavaScript, you probably
+noticed I am using a getElement() instead of getElementById() which is
+the standard JavaScript function for getting a handle on an
+element. This getElement() function is a MochiKit helper function
+which saves you 4 keystrokes!!! Seriously, it's really useful because
+it does some checks on input and is more flexible than the standard
+getElementById(). Remember that the MochiKit logging console I was talking
+about earlier? The C<createLoggingPane(true)> call creates this
+window at the bottom of the page; if you want it as a popup window,just
+call C<createLoggingPane()> without the "true".
+
+The next thing we want to do is to read the input and submit it when the
+Add button is clicked.
+
+But I want to explain a few things first. With MochiKit you can use the
+typical event handlers like onClick, onMouseUp, etc. However MochiKit
+has a better cross-browser event handling system they call Signals
+(L<http://www.mochikit.com/doc/html/MochiKit/Signal.html>) which does
+not leak memory. However you can't have both. And there is a price to
+pay: load events are not supported at the same time Signals are. The
+only real side affect of that is you can't create a JavaScript function
+that gets called by C<<body onload="my_javascript_function()">> which
+means you will need to have that called at the bottom of the page or
+after you know things are loaded. Trust me, it's worth going with the
+signals.
+
+So, add the following lines to your list.js file:
+
+    connect
+    (
+        add_book,
+        'onclick',
+        function ()
+        {
+            log("I have been clicked");
+            log("Title: ", title.value);
+            log("Rating: ", rating.value);
+            log("Author_ID: ", author_id.value);
+        }
+    );
+
+Restart the server and refresh the page and you should see the logging
+window at the bottom, and when you click on the add button you should
+see the C<"I have been clicked"> text and whatever values are in the
+input text fields. Now tell me that's not cool!
+
+Now to explain some more MochiKit before we add our AJAX
+stuff. MochiKit uses an Async
+(L<http://www.mochikit.com/doc/html/MochiKit/Async.html>) framework
+which has deferred objects for asynchronous calls. Defererred objects
+basically have callbacks and other associated properties. You can add
+Async functionality to almost anything with MochiKit but in this
+case it will be for our XMLHttpRequests. Deferred objects are cool and
+very powerful if you want to add a lot of flexibility to your
+application. You can cancel deferred objects, set errors, have error
+callback functions, etc. Add the following lines of code to your
+list.js under the log() calls.
+
+    //Creating our params object to hold our arguments that we will be posting
+    var params =
+    {
+        title: title.value,
+        rating: rating.value,
+        author_id: author_id.value
+    };
+
+    //Calling MochiKit's doXHR which makes XMLHttpRequests painless
+    var d = doXHR
+    (
+        '/books/create_do',
+        {
+            'method': 'POST',
+            'sendContent': queryString(params),
+            'headers': {'Content-Type':'application/x-www-form-urlencoded'}
+        }
+    );
+
+We created an object named C<params> to hold our arguments that we post
+to our Catalyst app. Then we call the MochiKit function C<doXHR>
+(L<http://www.mochikit.com/doc/html/MochiKit/Async.html#fn-doxhr>),
+which creates a deferred object and returns that deferred object which
+we call 'd'. Then the params object is converted to a query string
+that is URL encoded using the MochiKit function C<queryString()>. Another
+thing you might notice is the URL the post is happening to is
+C</books/create_do> which means we need to create that action. Before we
+can create that action, however, we need to do a few things, like setup a
+Catalyst view for JSON and configure that. We will be using
+L<Catalyst::View::JSON> so make sure it's installed before you
+continue.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/05_create_json_view.jpg"/></p>
+
+=end pod::xhtml
+
+Once we created our view, let's configure it. It's good practice to set
+a default view once a Catalyst app has more than one view. In our case
+we want the default to be TT. We also want to set the json_driver to
+L<JSON::XS> and we want to only expose the named 'json' hash in the
+stash. This is how I modified my config call in MyApp/lib/MyApp.pm.
+
+    __PACKAGE__->config
+    (
+        name => 'MyApp',
+        'View::JSON' =>
+        {
+            expose_stash => 'json',
+            json_driver => 'JSON::XS'
+        },
+        default_view => 'TT'
+    );
+
+Finally, here is my C</books/create_do> action.
+
+    sub create_do : Local {
+        my ($self, $c) = @_;
+        
+        # creating default values in object that will be serialized
+        my $ret =
+        {
+            status => 'Unsuccessful',
+            error => {Unknown => ''},
+            data => {}
+        };
+    
+        # Retrieve the values from the form
+        my $title     = $c->request->params->{title};
+        my $rating    = $c->request->params->{rating};
+        my $author_id = $c->request->params->{author_id};
+        
+        $c->log->info("title: $title");
+        $c->log->info("rating: $rating");
+        $c->log->info("author_id: $author_id");
+        
+        # Validate input first
+        if(!defined($title) || $title =~ m/[^a-zA-Z0-9 \-\.\/\,]/)
+        {
+            $c->log->info("title not defined or matches invalid characters rejecting");
+            delete($ret->{error}->{'Unknown'}) if defined($ret->{error}->{'Unknown'});
+            $ret->{error}->{"Invalid Characters"} = 'Title contains unsupported characters or is not defined';
+        }
+        elsif(!defined($rating) || $rating =~ m/[^1-5]/)
+        {
+            $c->log->info("rating not defined or matches invalid characters rejecting");
+            delete($ret->{error}->{'Unknown'}) if defined($ret->{error}->{'Unknown'});
+            $ret->{error}->{"Invalid Characters"} = 'Rating contains unsupported characters must be value of 1-5 or is not defined';
+        }
+        elsif(!defined($author_id) || $author_id =~ m/[^0-9]/ || $author_id == 0)
+        {
+            $c->log->info("author_id not defined or matches invalid characters rejecting");
+            delete($ret->{error}->{'Unknown'}) if defined($ret->{error}->{'Unknown'});
+            $ret->{error}->{"Invalid Characters"} = 'Author_ID contains unsupported characters must be valid id or is not defined';
+        }
+        else
+        {
+            $c->log->info("No invalid characters or undefined values in the input");
+            
+            # Create the book
+            my $book = $c->model('DB::Books')->create({
+                    title   => $title,
+                    rating  => $rating,
+                });
+            
+            # Handle relationship with author
+            $book->add_to_book_authors({author_id => $author_id});
+            
+            $c->log->info("Created book_id: ",$book->id);
+            
+            my $authors = [];
+            foreach my $author ($book->authors)
+            {
+                $c->log->info("last name: ", $author->last_name);
+                push(@$authors, $author->last_name);
+            }
+            
+            delete($ret->{error}->{'Unknown'}) if defined($ret->{error}->{'Unknown'});
+            $ret->{status} = 'Successful';
+            
+            $ret->{data} =
+            {
+                book_id => $book->id,
+                title => $book->title,
+                rating => $book->rating,
+                authors => $authors
+            };
+        }
+        
+        # Putting our return data into the json stash to get serialized into json
+        $c->stash->{json} = $ret;
+        
+        $c->forward('MyApp::View::JSON');
+    }
+
+I am not going to go into details here about what every line of code
+does but I am going to point out the specific things I am doing for an
+AJAX-y JSON response. Notice that I define my C<$ret> variable with some
+default values. This is important because on the JavaScript side we
+need to add code that will handle this response and we need to have
+some clear indications if things worked. So having standard values are
+good practices; just trusting that the XMLHttpRequest returned a 200 is
+not very good in cases where you are processing data.
+
+Now we just need to update our JavaScript code to handle the response
+and manipulate the DOM. In our case our JavaScript code does what our
+TT templates do: read from a defined data structure and
+render our page. Below is the complete JavaScript file. Notice after
+our C<doXHR()> call we add a callback to that deferred object. Without
+creating this callback, once the XMLHttpRequest is complete nothing
+will happen, but in our case we need to process that returned data so
+we create an anonymous function to handle that data. We call
+MochiKit's C<evalJSONRequest()> and that takes care of creating our
+JavaScript object. The advantage here is that you don't need to do
+anything hard or annoying like parsing values out or stripping
+characters: you're working with a Object with a structure you can access
+in very easy and defined ways. Doing things this way makes JavaScript
+painless and to me feels very Perlish. You can see in the code I
+check to make sure status is Successful, and if it is I start creating
+DOM Elements and storing them into variables that I can reference
+later. I usually wouldn't store them, I would probably just create that
+whole structure annonomously, but I purposely did different things so
+that you could see some different examples. You can see with MochiKit
+creating and manipulating the DOM on the fly is a piece of cake. All
+those MochiKit calls like A(), TD(), TR(), etc are Partials which I
+will explain below.
+
+    //Creates MochiKit logging pane. Remove "true" if you want it popped out in its own window
+    createLoggingPane(true);
+    
+    var message = getElement('message');
+    var error = getElement('error');
+    var list_body = getElement('list_body');
+    var title = getElement('title');
+    var rating = getElement('rating');
+    var author_id = getElement('author_id');
+    var add_book = getElement('add_book');
+    
+    //function to update error or message spans
+    var update_user = function (type, txt)
+    {
+        var p_txt;
+        
+        if(type == 'message')
+        {
+            p_txt = P({'style':'display:none'},'Status: '+txt);
+            replaceChildNodes(message, [p_txt]);
+        }
+        else if (type == 'error')
+        {
+            p_txt = P({'style':'display:none'},'Error: '+txt);
+            replaceChildNodes(error, [p_txt]);
+        }
+        
+        appear(p_txt,{'speed':0.1});
+    }
+    
+    //Creating a partial for updating the message and error spans for example purposes
+    var u_message = partial(update_user,'message');
+    var u_error = partial(update_user,'error');
+    
+    connect
+    (
+        add_book,
+        'onclick',
+        function ()
+        {
+            log("I have been clicked");
+            log("Title: ", title.value);
+            log("Rating: ", rating.value);
+            log("Author_ID: ", author_id.value);
+            
+            //Creating our params object to hold our arguments that we will be posting
+            var params =
+            {
+                title: title.value,
+                rating: rating.value,
+                author_id: author_id.value
+            };
+            
+            //Calling MochiKits doXHR which makes XMLHttpRequests painless
+            var d = doXHR
+            (
+                '/books/create_do',
+                {
+                    'method': 'POST',
+                    'sendContent': queryString(params),
+                    'headers': {'Content-Type':'application/x-www-form-urlencoded'}
+                }
+            );
+            
+            //Creating a callback on success to process our json response
+            d.addCallback
+            (
+                function (req)
+                {
+                    //eval'ing and assigning our returned json data to resp variable
+                    var resp = evalJSONRequest(req);
+                    
+                    //logging to firebug as an example comment out if not installed
+                    console.log(resp);
+                    
+                    //Checking to see we have a successful response in our returned data
+                    if(resp.status == 'Successful')
+                    {
+                        log('Response has status of successful');
+                        
+                        //calling our partial function
+                        u_message(resp.status);
+                        
+                        //creating dom elements. first arg pass is named args for attributes
+                        //second arg passed is data inside element. can be string or array of more
+                        //elements consult mochikit docs for full details
+                        var td_title = TD(null, resp.data.title);
+                        var td_rating = TD(null, resp.data.rating);
+                        var td_authors = TD(null, '(' + resp.data.authors.length + ') ' + resp.data.authors.join(', '));
+                        var a_link = A({'href':resp.data.link}, ['Delete']);
+                        var td_links = TD(null, [a_link]);
+                        
+                        //creating our tr which holds all of our previously created elements
+                        var tr_book = TR
+                        (
+                            null,
+                            [
+                                td_title,
+                                td_rating,
+                                td_authors,
+                                td_links
+                            ]
+                        );
+                        
+                        //you can log this to FireBug and actually inspect the dom
+                        //its like a hackish Data::Dump::dump() for JavaScript
+                        console.log(tr_book);
+                        
+                        //Calling MochiKit's appendChildNodes() to only the fly update the DOM
+                        appendChildNodes(list_body, [tr_book]);
+                    }
+                    else
+                    {
+                        log('Response has status of NON successful');
+                        
+                        //calling our partial function
+                        u_message(resp.status);
+                        
+                        //getting error reason and txt and updating user
+                        for (i in resp.error)
+                        {
+                            log('Error is:',i);
+                            log('Reason is:',resp.error[i]);
+                            u_error(i+': '+resp.error.i);
+                        }
+                    }
+                }
+            )
+        }
+    );
+
+Partials
+(L<http://www.mochikit.com/doc/html/MochiKit/Base.html#fn-partial>) are
+really cool and are one of the reasons why MochiKit can save a lot of
+coding. Partials are basically wrappers of partially applied
+functions. This is really useful for creating re-usable functions that
+could be wrapping several functions. You might argue, "Why
+wouldn't I just call functions with parameters?" Well you can if you
+want, but a Partial is meant to wrap that for you. In the example above I
+created a simple function for updating the messages to the user. Now
+each time I call that function I could do
+update_user("message",resp.status); or I can create a partially applied
+function for both "message" and "error" so that I can call them and just
+pass in one argument like C<u_message(resp.status)>. Another good use for
+Partials is if you're creating a lot of UI components. For example, if you
+want to create a UI component, you will always re-use that wraps a
+C<E<lt>aE<gt>E<lt>E<sol>aE<gt>> inside of a DIV with certain style
+attributes set a Partial would be perfect candidate to save you a lot of
+typing each time you created that.
+
+Before I finish I would just like to show off a few benefits of FireBug
+for this type of AJAX development. Below I show screenshots of FireBug
+console window after I click the Add button. FireBug logs
+XMLHttpRequests in the console window by default. It shows the HTTP
+Method (POST, GET), the URL, parameters passed, and the response from
+the server. This is really useful while you are in the development
+process because you can see the parameters passed to the server from the
+client's point of view. Its also very useful to see the raw response from
+the server to see if the data structure you're expecting is really being
+returned or not. Of course if needed you can also see the request and
+response headers.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/06_firebug_post.jpg"/></p>
+
+=end pod::xhtml
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/07_firebug_response.jpg"/></p>
+
+=end pod::xhtml
+
+Another FireBug feature I wanted to show is the easy ability to log DOM
+elements to the console window so you can inspect them further. With
+FireBug enabled, you can right-click any element and select "Inspect
+Element" and view the element with its HTML, CSS, and DOM
+properties. What's even cooler is that you can further modify any of
+those aforementioned properties on the fly and see the result live! In
+the screenshot above you can see C<Object status=Successful error=Object
+data=Object> in the console window. This is because in my list.js I have
+console.log(resp) being called in my callback for my deferred
+object. When you call console.log() and pass in an object you can
+inspect that object in the DOM. This is very useful if you want to
+inspect what type of data structure an object is and what values it
+contains. You can do this for any DOM element or variable. The
+screenshot below shows the result of our "resp" object:
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/08_firebug_dom.jpg"/></p>
+
+=end pod::xhtml
+
+The final FireBug cool feature I wanted to show is the JavaScript
+console. This console allows full interaction with your page on the
+fly. All your functions and libraries that are loaded on the page are
+accessible via FireBug's console. I usually start prototyping my
+JavaScript code in FireBug's console window before I put it into my JS
+file because it's faster and doesn't need to have the page refreshed to
+load the updated JS file. Below you see a screenshot of calling our
+partial C<u_message()> function from the console.
+
+=begin pod::xhtml
+
+<p><img src="http://www.catalystframework.org/calendar/static/2008/mochikit/09_firebug_console.jpg"/></p>
+
+=end pod::xhtml
+
+The full finished app can be downloaded here L<http://http://www.catalystframework.org/calendar/static/2008/mochikit/MyApp_MochiKit.tar.gz>. Hopefully this article helps anyone who wants to start doing AJAX with Catalyst.
+
+=head1 Author
+
+Ali Mesdaq (amesdaq@websense.com), is a Senior Security Researcher with
+Websense Security Labs (L<http://securitylabs.websense.com/>).

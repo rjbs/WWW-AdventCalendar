@@ -1,0 +1,361 @@
+=head1 Day 14 - Using Catalyst Models Externally and Multiple Configuration Files
+
+Today we look at how to solve a common problem: accessing a Catalyst 
+model from a batch script outside Catalyst while sharing some configuration
+settings such as the database connection string.
+
+B<UPDATE>: As of 2008, there is a new module which avoids the "kludgy" solution
+mentioned below: L<Config::JFDI>.
+
+=head2 Sample Application
+
+This article uses an enhanced version of the ExtJS sample application
+written for the Catalyst Advent Calendar 2007 day 1 article
+and you may wish to read the code along with this article.
+
+The app is accessible at 
+L<http://www.dragonstaff.co.uk/extjs/home>
+
+The code can be viewed online at
+L<http://dev.catalystframework.org/repos/Catalyst/trunk/examples/ExtJS>.
+
+You can check out the code under Linux with
+
+ $ svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/ExtJS
+
+Under Windows use TortoiseSVN L<http://tortoisesvn.tigris.org/> to 
+check it out from the same URL.
+
+Sort out dependencies
+
+ $ perl Makefile.PL
+ $ make
+
+To run the app locally
+
+ $ perl script/extjs_server.pl
+
+=head2 The problem
+
+If you write a simple Catalyst application, you can put the database
+connection right in the model class. E.g. in the sample ExtJS application
+in C< lib/ExtJS/Model/ExtJSModel.pm > you might have:
+
+ package ExtJS::Model::ExtJSModel;
+
+ use strict;
+ use base 'Catalyst::Model::DBIC::Schema';
+
+ __PACKAGE__->config(
+     schema_class => 'ExtJS::Schema',
+     connect_info => [
+         'dbi:SQLite:extjs.db',
+         'myusername', 'mypassword',
+         { AutoCommit => 1 },
+     ],
+ );
+
+That just works.
+
+However, say you are using live and test environments and
+they have different paths to the database, or different SQL usernames and
+passwords. Now you would rather hold the database connection information 
+in a separate configuration file that you can change depending whether 
+it's the live or test area.
+
+Also, as well as a master application 
+configuration file like C< conf/extjs.pl > you may want a local site file
+like C< conf/extjs_local.pl > that lets you override settings in your
+development area. Commonly you might want to turn on extra debug or 
+turn off flags to stop your application doing things like sending 
+emails. It's annoying debugging web user registration and receiving 100 emails a day
+from yourself.
+
+
+=head2 The Solution
+
+Change the main Catalyst configuration and the Model configuration 
+to run from several separate configuration files. Split out the
+model database connection parameters.
+
+
+=head2 Catalyst Configuration
+
+To handle multiple configuration files we need to replace ConfigLoader with ConfigLoader::Multi
+in our main Catalyst perl module and let it do the hard work for us.
+
+In I<lib/ExtJS.pm>
+
+ use Catalyst qw/ -Debug 
+   ConfigLoader::Multi
+   ...
+   /;
+
+ use Config::Any::Perl;
+
+ our $VERSION = '0.01';
+
+ __PACKAGE__->config( name => 'ExtJS' );
+ __PACKAGE__->config( file => __PACKAGE__->path_to('conf') );
+
+ __PACKAGE__->setup;
+
+This looks for files below your application root directory in the C< conf > sub-directory
+named after the lower case version of your application name, in this case 'extjs',
+with an optional '_local' after it, followed by a suffix from any of the known configuration
+file extensions / formats:
+
+=over 2
+
+=item * .yml or .yaml / YAML
+
+=item * .pl or .perl / Perl
+
+=item * .xml / XML
+
+=item * .json or .jsn / JSON
+
+=item * .ini / INI
+
+=item * .cnf or .conf / Config::General
+
+=back
+
+The equivalent regex pattern for this application is something like 
+C< conf/extjs(_local)?\.{yml,yaml,pl,perl,xml,json,jsn,ini,cnf,conf} >
+
+You need to remember to load a reader for the file format you are using.
+In this application I've used .pl Perl configuration files. I write my code in 
+Perl and like to have my configuration in Perl files too.
+It's nice to write config like:
+
+  session => {
+     expires => (60*60*24 * 1), # 1 day in seconds
+  },
+
+Yeah, baby!
+
+Here the line C< use Config::Any::Perl; > adds .pl file reading support.
+Note that the order of loading would be C< extjs.pl > followed by 
+C< extjs_local.pl >, so the 
+local configuration file settings override the default ones in extjs.pl.
+
+You can read more details about ConfigLoader::Multi here
+L<http://search.cpan.org/author/TOMYHERO/Catalyst-Plugin-ConfigLoader-Multi-0.03/lib/Catalyst/Plugin/ConfigLoader/Multi.pm>.
+It's a nice piece of work.
+Also see L< http://search.cpan.org/~bricas/Catalyst-Plugin-ConfigLoader-0.19/lib/Catalyst/Plugin/ConfigLoader/Manual.pod >.
+
+
+=head2 Set Up Configuration Files
+
+We've set up our Catalyst application to expect multiple configuration files, so
+we'd better create them:
+
+I<conf/extjs.pl>
+
+ # extjs.pl
+ {
+   name => 'ExtJS',
+   default_view => 'TT',
+   static => {
+     include_path => [ '__path_to(root/static)__' ],
+   },
+   overrideme => 'first value',
+ }
+
+Note that Catalyst replaces __path_to() with the
+application root directory as a prefix.
+
+I<conf/exjs_local.pl>
+
+ # extjs_local.pl
+ {
+   dummy => 'someval',
+   overrideme => 'second value',
+ }
+
+That 'overrideme' value should override the one in extjs.pl.
+We'll check later that it has.
+
+
+I<conf/extjs_model.pl>
+
+ # extjs_model.pl
+ {
+   # model DBI connection data
+   'Model::ExtJSModel' => {
+     schema_class => 'ExtJS::Schema',
+     connect_info => [ 'dbi:SQLite:extjs.db', '', '', { AutoCommit => 1 } ],
+    #connect_info => [ 'DBI:mysql:database=extjs;host=localhost', 'username', 'password', {} ], # mysql connection string sample
+   },
+ }
+
+Here's our model connection data separated out. Note that we could have more 
+than one model in here. For example, you may have an authentication database
+holding user and session, and a separate application database holding the
+other tables.
+
+=head2 Add Debugging
+
+In C< lib/ExtJS.pm > add near the top
+
+ use Data::Dump qw(dump);
+
+and then add a debug line after the setup call like this:
+
+ __PACKAGE__->setup;
+ $ENV{CATALYST_CONF_DEBUG} && print STDERR 'cat config looks like: '. dump(__PACKAGE__->config) . "\n";# . dump(%INC)."\n";
+
+Now if you run your application like this (Linux)
+
+ $ CATALYST_CONF_DEBUG=1 perl script/extjs_test.pl /
+
+or (Windows)
+
+ C:\mydir> SET CATALYST_CONF_DEBUG=1
+ C:\mydir> perl script\extjs_test.pl /
+
+you will see the contents of your loaded configuration prettily dumped to the output.
+
+This makes it easy to spot configuration errors.
+You can spend a long time re-running an application wondering why it doesn't work
+only to find out some vital configuration setting is not being loaded,
+so don't forget to check.
+
+At this point you may want to try running the ExtJS sample app 
+with this debug flag to verify that the configuration key 'overrideme'
+is indeed set to 'second value'.
+
+
+=head2 Model Configuration Loader
+
+The final step is to make our Model class(es) work with the separate model
+configuration file we created. The following is a rather kludgy manual
+solution that could do with a more elegant solution tied to 
+ConfigLoader::Multi but it works with Catalyst today (2007/12/12).
+
+I<lib/ExtJS/Model/ExtJSModel.pm>
+
+ use Catalyst qw/ ConfigLoader /; # gives us __PACKAGE__->config->{'home'}
+ use Config::Any::Perl;
+ use Path::Class;
+
+ my $cfg;
+ eval { $cfg = ExtJS->config; }; # this succeeds if running inside Catalyst
+ if ($@) # otherwise if called from outside Catalyst try manual load of model configuration
+ {
+   my $cfgpath1 = Path::Class::File->new( __PACKAGE__->config->{'home'},
+     'conf', 'extjs_model_local.pl' )->stringify;
+   my $cfgpath2 = Path::Class::File->new( __PACKAGE__->config->{'home'},
+     'conf', 'extjs_model.pl' )->stringify;
+   my $cfgpath = -r $cfgpath1 ? $cfgpath1 
+               : -r $cfgpath2 ? $cfgpath2
+               : die "cannot read $cfgpath1 or $cfgpath2";
+   delete $INC{$cfgpath}; # workaround so older Config::Any::Perl will work when reloading config file
+   $cfg = Config::Any::Perl->load( $cfgpath );
+ }
+
+ # test we have got our model config in
+ defined $cfg->{'Model::ExtJSModel'} || die "Catalyst config not found";
+
+ # put model parameters into main configuration
+ __PACKAGE__->config( $cfg->{'Model::ExtJSModel'} );
+
+As the comments suggest, if you're running inside the Catalyst framework
+the configuration just works.
+However, if you're running from an external batch
+progam then you have to read the config the hard way and you don't get 
+niceties like the '__path_to(root/static)__' we mentioned before in the
+'Set Up Configuration Files' section.
+
+Here I've allowed for reading either a C< conf/extjs_model_local.pl >
+or C< conf/extjs_model.pl > config file to define the database connection
+string. Then in your development area 
+you can use an C< extjs_model_local.pl > to override and
+point to a different database.
+
+You can change the way this code works if you prefer to merge local and 
+master config files
+(like ConfigLoader::Multi) or if you want to handle them in a more 
+generalised way using a regex file glob().
+
+The reload workaround is not necessary with the latest version of 
+Config::Any::Perl but I mention it because it fixes an issue when using 
+multiple models in earlier versions.
+
+
+=head2 External Batch Script
+
+Finally we get to our external batch script, the reason we went through 
+all the above. In the example app look at C< t/10_schema.t > and
+C< script/dump_bookings.pl >. These demonstrate how to write an
+external test script and batch program that access a Catalyst model class.
+
+To run the test do
+
+ $ prove -Ilib t/10_schema.t
+
+or
+
+ $ perl -Ilib t/10_schema.t
+
+Looking at the batch script
+
+I<script/dump_bookings.pl>
+
+ #!/usr/bin/perl
+ # script/dump_bookings.pl
+ # a really simple example of accessing a Catalyst application's Model
+ # from an external script
+ # it lists all the booking records in the database
+
+ use strict;
+ use warnings;
+
+ # allow for running from root directory or from script directory
+ use lib qw / lib ../lib /;
+
+ use ExtJS::Model::ExtJSModel;
+ use ExtJS::Schema;
+
+ # demonstrate picking up database connection info
+ my $connect_info = ExtJS::Model::ExtJSModel->config->{connect_info};
+ print "connecting schema to ".$connect_info->[0]."\n";
+
+ # connect to the Catalyst schema
+ my $schema = ExtJS::Schema->connect( @$connect_info );
+
+ # show the model classes available
+ my @sources = $schema->sources();
+ print 'found schema model sources :-  ' . join(", ",@sources) . "\n";
+
+ # list all bookings
+ print "listing all bookings ordered by po_ref\n";
+ my $rs = $schema->resultset('Booking')->search({}, { order_by => 'po_ref' });
+ for my $row ( $rs->all )
+ {
+   print "\nBooking ". $row->id ." - PO Ref " . $row->po_ref . "\n";
+   for my $col ( sort $row->columns )
+   {
+     next if $col eq 'id' || $col eq 'po_ref';
+     printf "  %-20s: %-50s\n", $col, $row->get_column($col);
+   }
+ }
+
+Try running it
+
+ $ perl script/dump_bookings.pl
+
+The model connection information is automatically read by the model class 
+from C< conf/extjs_model.pl >. All we have to do is use the Booking
+schema class to read all the bookings.
+
+That's all for now. I hope this gives you a clearer idea how to play with
+Catalyst configuration files and model classes.
+
+
+=head1 AUTHOR
+
+peterdragon - Peter Edwards <peter@dragonstaff.co.uk>
+
+L<http://perl.dragonstaff.co.uk/>

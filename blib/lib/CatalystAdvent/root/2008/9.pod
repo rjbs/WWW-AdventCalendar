@@ -1,0 +1,195 @@
+=head1 Creating PDFs (and more!) with Catalyst::View::Graphics::Primitive
+
+=begin pod::xhtml
+
+<p>
+Graphics::Primitive is a collection of objects that allow you build a 2d "scene".
+The building block of these scenes is a
+<a href="http://search.cpan.org/perldoc?Graphics::Primitive::Component">Component</a>.
+It has a width and height, colors (fore and back), borders, insets, and padding.
+A <a href="http://search.cpan.org/perldoc?Graphics::Primitive::Container">Container</a>
+builds on Component and yields a component that can contain other components.  To allow
+for more than plain ol' boxes, Graphics::Primitive provides
+<a href="http://search.cpan.org/perldoc?Graphics::Primitive::TextBox">TextBox</a>,
+<a href="http://search.cpan.org/perldoc?Graphics::Primitive::Canvas">Canvas</a> and
+<a href="http://search.cpan.org/perldoc?Graphics::Primitive::Image">Image</a>.  While
+these entities are all pretty simple, but you can create complex results by nesting them.
+</p>
+
+<h2>Right, Catalyst?</h2>
+<p>
+Yeah, I'm coming back to that.  Catalyst's views provide a wonderful mechanism for sending
+data from our model and controllers off to the client.  We can build a representation of
+our document in the Controller then let the view handle creating the actual implementation!
+</p>
+
+<h2>Getting Started</h2>
+<p>
+The first step is to install the <a href="http://search.cpan.org/perldoc?Graphics::Primitive">Graphics::Primitive</a>
+and <a href="http://search.cpan.org/perldoc?Catalyst::View::Graphics::Primitive">Catalyst::View::Graphics::Primitive</a>
+modules.  You'll also want to install the <a href="http://search.cpan.org/perldoc?Graphics::Primitive::Driver::Cairo">Cairo driver</a>.
+There's an experimental <a href="http://search.cpan.org/perldoc?Graphics::Primitive::Driver::CairoPango">Cairo + Pango</a>
+driver available but it requires Gtk2 for now.  For this tutorial we'll also use
+<a href="http://search.cpan.org/perldoc?Paper::Specs">Paper::Specs</a> for our page sizes.
+</p>
+<p>
+With that out of the way, we can now add the Graphics::Primitive view to our application:
+</p>
+
+=end pod::xhtml
+
+ script/yourapp_create.pl view GP Graphics::Primitive
+
+=begin pod::xhtml
+
+<p>
+This creates a <tt>GP </tt> view.  You'll need to decide on a suitable way to forward
+to the appropriate view in your application.  Since this view expects to find
+a Graphics::Primitive object in the <tt>graphics_primitive</tt> key of the
+stash, you might forward to the <tt>GP </tt> view when that key is set.
+</p>
+
+<p>
+The first step in our document's life is to instantiate a new Graphics::Primitive object and
+set its width and height.  We'll use Paper::Specs to find the size for our desired output paper.
+</p>
+
+=end pod::xhtml
+
+ use Graphics::Color::RGB;
+ use Graphics::Primitive;
+ use Layout::Manager;
+ use Paper::Specs;
+
+ ...
+
+ sub namedoc : Local {
+    my ($self, $c, $name) = @_;
+
+    my $paper = Paper::Specs->find(brand => 'standard', code => 'letter');
+    my @size = $paper->sheet_size;
+    my $doc = Graphics::Primitive::Container->new(
+        width => $size[0], height => $size[1],
+        layout_manager => Layout::Manager::Compass->new
+    );
+
+    $c->stash->{graphics_primitive_driver_args} = { format => 'png' };
+    $c->stash->{graphics_primitive_content_type} = 'image/png';
+    $c->stash->{graphics_primitive} = $cc;
+}
+
+=begin pod::xhtml
+
+<p>
+If you run this as-is, you'll get back an empty PDF.  Paper::Specs gives
+us our width and height.  We'll cover <tt>layout_manager</tt> later.
+</p>
+
+<h2>Gussying Things Up</h2>
+
+<p>
+Graphics::Primitive is a color-agnostic library.  You might've noticed
+the <tt>use</tt> line above that included <a href="http://search.cpan.org/perldoc?Graphics::Color">Graphics::Color</a>,
+specifically, the RGB library.  To make the PDF interesting, we can
+add a <a href="http://search.cpan.org/perldoc?Graphics::Primitive::TextBox">TextBox</a> component.
+</p>
+
+=end pod::xhtml
+
+  my $tb = Graphics::Primitive::TextBox->new(
+    width => $size[0],
+    text => "Hello $name!",
+    color => Graphics::Color::RGB->new(red => 0, green => 0, blue => 0, alpha => 1),
+    font => Graphics::Primitive::Font->new(
+      size => 45,
+      face => 'Helvetica'
+    ),
+    horizontal_alignment => 'center',
+  );
+
+  $container->add_component($tb, 'n');
+
+=begin pod::xhtml
+
+<p>
+This TextBox declaration sets up a textbox whose width is the same as
+the document we are creating.  We don't specify the height because we
+are not working with fixed fonts.  The Graphics::Primitive driver will
+handle that for us, based on the font's <a href="http://en.wikipedia.org/wiki/Variable_width_font#Font_metrics">metrics</a>.
+</p>
+<p>
+We've set this TextBox to the Helvetica font family with a size of 45 points and
+a color of black.  We set the text to say hello to whatever name is passed in
+as the first argument.  The horizontal alignment is set to "center", since headers look
+pretty that way.
+</p>
+<p>
+Finally, we add the TextBox to the container.  Our previously glossed over
+<tt>layout_manager</tt> does the work now.  I chose to use the
+<a href="http://search.cpan.org/perldoc?Layout::Manager::Compass">Compass layout manager</a>.
+The <tt>add_component</tt> method takes a second argument that is
+passed on to the layout manager when the component is laid out.  We
+passed it "n" so that the TextBox will be positioned North.  You can
+create incredibly complex scenes by making containers within containers,
+each using different layout managers.
+</p>
+<p>
+If you visit your action now and pass it a name as an argument, you'll get
+a PDF that says "Hello $name!"
+</p>
+<h2>Adding A Body</h2>
+<p>
+We can add as many components into our scene as space allows.  Graphics::Primitive
+doesn't stop you from adding too much, but it will do its best to squeeze
+everything in.  In this case we'll add another textbox to thank our visitor.
+</p>
+
+=end pod::xhtml
+
+  my $tb2 = Graphics::Primitive::TextBox->new(
+    width => $size[0],
+    text => "Thanks for reading this Advent entry!",
+    color => Graphics::Color::RGB->new(red => 0, green => 0, blue => 0, alpha => 1),
+    font => Graphics::Primitive::Font->new(
+      size => 12,
+      face => 'Helvetica'
+    ),
+    horizontal_alignment => 'left',
+  );
+
+  $tb2->padding->top(10);
+
+  $container->add_component($tb2, 'n');
+
+  $container->padding(5);
+
+=begin pod::xhtml
+
+<p>
+We create a new TextBox that is almost identical to the existing one, but we
+set the font size to something more reasonable.  We also set the horizontal
+alignment to "left".  A careful look will reveal some some padding changes to
+the new TextBox as well as the container.  A bit of padding is added to the top
+of the TextBox to separate it from the header.  Then 5 units of padding
+are added to the entire container so that our text isn't right up against the
+edge of the page.  Adding the component is the same as before.  Since the new
+TextBox was added second, it's drawn below the first.
+</p>
+
+<h2>Final Comments</h2>
+
+<p>
+This has been an extremely brief introduction to Graphics::Primitive and how
+you can create sophisticated, dynamic documents using Catalyst.  You can do much
+more, such as creating SVG, PostScript, or PNG output.
+</p>
+<p>
+If you are interested in learning more check out my <a href="http://www.oneforthehustle.com/gp/ppw08.pdf">talk from PPW 2008</a>
+(created using Graphics::Primitive) or join us in #graphics-primitive on irc.perl.org.
+</p>
+
+<h2>Author</h2>
+
+Cory 'gphat' Watson <tt>&lt;cwatson at coldhardcode.com&gt;</tt>
+
+=end pod::xhtml

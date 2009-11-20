@@ -1,0 +1,217 @@
+=head1 Two great catalyst time savers.
+
+Today we're going to go through some L<CPAN> modules that are great
+time savers.  First up, we'll look at L<CatalystX::Starter> which
+provides a sane helper for you to write other L<Catalyst> extensions,
+then secondly we'll show you the easiest way to integrate a robust
+L<Captcha|http://en.wikipedia.org/wiki/Captcha> into your application
+with L<Catalyst::Controller::ReCAPTCHA> in order to protect public
+parts of your application from scripts.
+
+=head2 CatalystX::Starter
+
+When you're writing a catalyst application, or just trying to scope
+out how a part of an app that you're working on, it's useful to be
+able to write a minimal application for testing.  While you can use
+L<Module::Starter> or L<h2xs> for this, L<CatalystX::Starter> provides
+a convenient and minimal scheme for getting your work up and running.
+
+First up you need to install CatalystX::Starter from cpan:
+
+ $ sudo cpan
+ cpan[1]> install CatalystX::Starter
+ # output snipped
+    /usr/bin/make install  -- OK
+ cpan[9]> exit
+
+
+L<CatalystX::Starter> is pretty light on dependencies, so shouldn't
+ prove troublesome to install.
+
+CatalystX::Stater provides the script C< catalystx-starter > with
+which you can bootstrap the extension that you're writing, as follows:
+
+ $ catalystx-starter 'Catalyst::Controller::reCAPTCHA'
+ Created files in Catalyst-Controller-reCAPTCHA
+ $ cd Catalyst-Controller-reCAPTCHA
+ $ ls
+ Changes       MANIFEST.SKIP Makefile.PL   README        gitignore     lib           t
+
+Unless you're using git as your version control system you can delete
+the gitignore file.  Everything else here provides you with the means
+to get your extension/minimal app up and running in no time.  For this
+example, in the C< lib > directory we have the directory structure C<
+Catalyst/Controller/ > with the file C< reCAPTCHA > at the bottom of
+this tree.
+
+in the C< t/ > directory we have the complete test harness with a
+minimal Catalyst application with which to test our work:
+
+ $ cd t
+ $ ls
+ 00-load.t   author      lib         live-test.t
+
+The C< lib > directory underneath this is where our example
+application lives:
+
+ $ cd lib
+ $ ls
+
+Rather than the "kitchen sink" approach taken by the C< catalyst.pl >
+script the example app that's here doesn't provide us with C< Model >
+or C< View > directories, but purely with a C< Controller > directory
+and the root controller ( C< Root.pm > ) directly underneath this.
+The application is called "TestApp".  For
+L<Catalyst::Controller::reCAPTCHA> our test application only requires
+a little bit of configuration in the file C< TestApp.pm >:
+
+ package TestApp;
+ use strict;
+ use warnings;
+ use Catalyst;
+ __PACKAGE__->config->{recaptcha}->{pub_key} = '6LcsbAAAAAAAAPDSlBaVGXjMo1kJHwUiHzO2TDze';
+ __PACKAGE__->config->{recaptcha}->{priv_key} = '6LcsbAAAAAAAANQQGqwsnkrTd7QTGRBKQQZwBH-L';
+ __PACKAGE__->setup;
+ 1;
+
+which is essential configuration needed for the base controller to
+work.  We can then provide test subs for everything in the root
+controller C< TestApp/Controller/Root.pm >:
+
+ package TestApp::Controller::Root;
+ use strict;
+ use warnings;
+ __PACKAGE__->config(namespace => q{});
+ use base 'Catalyst::Controller::reCAPTCHA';
+ sub index :Private {
+     my ($self, $c) = @_;
+     $c->forward('captcha_get');
+     my $body ='<html>  <body> <p> recaptcha error: '. $c->stash->{recaptcha_ok} 
+. " " . $c->stash->{recaptcha_error} . '</p><form name="recaptcha" action="'. $c
+->uri_for('/check') . '" method="post">'. $c->stash->{recaptcha}.' <br/> <input 
+type="submit" value="submit" /> </form>';
+     $c->res->body($body);
+ }
+
+ sub check : Local {
+     my ($self, $c) = @_;
+     $c->forward('captcha_check');
+     $c->detach('index');
+ }
+1;
+
+Unfortunately automated testing for this extension is not completely
+straightforward, and isn't available yet, as the reCAPTCHA service
+requires a javascript enabled browser, which WWW::Mechanize is not, so
+in this instance the test app provides for manual testing only (we
+could work around this with Selenium but haven't got around to this
+yet).
+
+If you can use automated tests for your application, the following
+will work to test your application.  Issue this command form the C<
+TestApp> directory:
+
+ $ perl -Ilib t/live-test.t
+
+In some situations the comment C< prove -l t/live-test.t > may also
+work, but not in the following situation.
+
+You can also run your test server to test interactively with the
+following command (also from the application root directory):
+
+ $ perl -Ilib  t/lib/script/testapp_server.pl
+ You can connect to your server at http://localhost:3000
+
+Of course you have to write the code in your extension library as
+well!  Next up I'll demonstrate what I did to get
+L<Catalyst::Controller::reCAPTCHA> in a state suitable for L<CPAN>.
+
+=head2 L<Catalyst::Controller::reCAPTCHA>
+
+=head2 What is reCAPTCHA
+
+From the perldoc for the module L<Captcha::reCAPTCHA> which does all
+the heavy lifting for the Catalyst base controller:
+
+"reCAPTCHA is a hybrid mechanical turk and captcha that allows
+visitors who complete the captcha to assist in the digitization of
+books."
+
+It's a service provided by Carnegie-Melon University in order to
+provide human assistance with digitisation of books in their library,
+and is currently the recommended Captcha implementation of the
+original Captcha developers.
+
+=head2 Preparation
+
+If your site is only going to run at C< localhost > then you can use
+the default public and private keys provided by the
+L<Catalyst::Controller::reCAPTCHA> distribution on L<CPAN>.  Otherwise
+you'll need to go to L<http://recaptcha.net/> and sign up for a key
+for your own site.  This is provided in the catalyst configuration as
+follows (in .conf format):
+
+ <recaptcha>
+    pub_key "public key string"
+    priv_key "private key string"
+ </recaptcha>
+
+where the "key string" is the one provided by the service for your
+site.
+
+=head2 Implementation
+
+This is extremely simple.  In any controller that you want to use
+reCAPTCHA, instead of the line:
+
+ use base 'Catalyst::Controller';
+
+you do:
+
+ use base 'Catalyst::Controller::reCAPTCHA';
+
+and this provides the following methods to your controller:
+
+ sub captcha_get : Private {}
+
+which sets the C< $c->stash->{recaptcha} > item with your recaptcha
+form provided by the reCAPTCHA servers, so all you need to do in an
+action that needs a reCAPTCHA challenge is issue the following code:
+
+ $c->forward('capcha_get');
+
+And that's it.
+
+Once you have an action that needs to validate the reCAPTCHA all you
+do is issue the command:
+
+ $c->forward('captcha_check');
+
+which sets the stash with a data structure that tells you whether the
+captcha is ok or not which sets the stash item
+$c->stash->{recaptcha_error} with as undefined unless there's an error
+in which case you get a useful data structure back describing the
+error. 
+
+=head2 That's it
+
+Pretty simple stuff.  Thanks to Bill Mosely and Nothingmuch for fixing
+my original somewhat amatuerish code for this.
+
+=head2 Wrap up
+
+That's all there is to this entry.  Firstly a handy timesaver for
+making your own Catalyst extensions with L<CatalystX::Starter> and
+secondly easy provision of the recommended implementation of reCAPTCHA
+with the recommend Captcha implemetnation all wrapped up in a catalyst
+base controller.  And yes, I did use L<CatalystX::Starter> to write
+L<Catalyst::Controller::reCAPTCHA>!
+
+=head3 Author and Copyright
+
+Copyright  Kieren Diment <zarquon@cpan.org> 2007.  This article may be
+copied and redistributed under the same terms as perl itself.
+
+
+
+

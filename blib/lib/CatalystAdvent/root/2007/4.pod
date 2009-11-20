@@ -1,0 +1,235 @@
+
+=head1 Catalyst + Open Flash Chart: Fancy graphs with minimal fuss
+
+=head2 About Open Flash Chart
+
+Open Flash Chart is a flash application that produces some very nice-looking,
+interactive (and in some cases animated) charts and graphs for your web
+application.  It's also completely free and open source, released under the
+GNU General Public License.
+
+For examples of the kinds of graphs you can produce, visit the home page
+at L<http://teethgrinder.co.uk/open-flash-chart/>.
+
+=head2 Getting Started
+
+This tutorial assumes you already have some Catalyst experience, so we won't
+go into too much detail with the basics of creating an application...
+
+  % catalyst.pl AdventOFC
+  ...
+  % cd AdventOFC
+  ...
+  % script/adventofc_create.pl view TT TTSite
+  ...
+
+=head2 Installing Chart::OFC
+
+The Open Flash Chart application uses a difficult to work with format for it's
+data structure.  Fortunately the perl community has guys like Dave Rolsky, who
+recently made a nice perl library called L<Chart::OFC> that makes it easier to
+work with.  We're going to install L<Chart::OFC> first, because it includes the
+pieces you need from Open Flash Chart, so you only need to download once...
+
+Assuming you are using L<CPANPLUS>, you can install it like this...
+
+  % cpanp
+  ...
+  CPAN Terminal> i Chart::OFC
+  
+  Installing Chart::OFC (0.02)
+  ...
+  Module 'Chart::OFC' installed successfully
+  No errors installing all modules
+  
+  CPAN Terminal> q
+
+Once you have it installed, you need to get the .swf file and copy it into
+your application root directory.  If you installed from L<CPANPLUS>, something
+like the following will work.
+
+  % cd root/static
+  % unzip ~/.cpanplus/*/build/Chart-OFC-*/ofc/*.zip open-flash-chart.swf
+
+If you don't have the L<Chart::OFC> source directory any more, you can
+download the .swf from the Open Flash Chart web site at
+L<http://teethgrinder.co.uk/open-flash-chart/download.php>.
+
+Whether you use the copy from the L<Chart::OFC> source directory, or download
+it from the web site, you will get a .zip file that includes the source as
+well as adapter libraries for various langages.  You only need the .swf file
+from the archive though, you won't need any of the other files.
+
+=head2 Adding Open Flash Chart support to your application
+
+Now that you have a basic application, we'll add some charting capabilities
+with OpenFlashChart.  The HTML code required to embed a chart is long and
+repetitive, so I like to make a component template to do the boring work
+for me.  Create a file in root/lib called 'ofc_swf_object' with the
+following contents:
+
+  [%
+    DEFAULT
+        width    = '500'
+        height   = '300'
+        id       = 'ofc_chart'
+        bgcolor  = '#FFFFFF'
+        name     = 'ofc_chart';
+
+    SET swf_url = Catalyst.uri_for( 
+        '/static/open-flash-chart.swf',
+        {
+            width  = width
+            height = height
+            data   = data
+        }
+    );
+
+    # This is just to keep the html below from being
+    # too wide for the sake of the demo, you could always
+    # just put this inline if you wanted
+    SET cab_download = [
+        'http://fpdownload.macromedia.com'
+        '/pub/shockwave/cabs/flash/swflash.cab'
+        '#version=8,0,0,0'
+    ];
+  %]
+  [% FILTER collapse %]
+  <object
+    classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000"
+    codebase="[% cab_download.join( '' ) %]"
+    width="[% width %]" height="[% height %]"
+    id="[% id %]" align="middle">
+      <param name="allowScriptAccess" value="sameDomain" />
+      <param name="movie" value="[% swf_url %]" />
+      <param name="quality" value="high" />
+      <param name="bgcolor" value="[% bgcolor %]" />
+      <embed
+        src="[% swf_url %]" quality="high"
+        bgcolor="[% bgcolor %]" width="[% width %]"
+        height="[% height %]" name="[% name %]"
+        align="middle" allowScriptAccess="sameDomain"
+        type="application/x-shockwave-flash"
+        pluginspage="http://www.macromedia.com/go/getflashplayer"
+      />
+  </object>
+  [% END %]
+
+You might notice that there are two copies of basically every configuration
+parameter in this block of code.  Like many other things on the web, this is
+because Internet Explorer does it one way (the object part) and everything
+else does it differently (with embed.)
+
+=head2 Using your new Open Flash Chart tools
+
+Now that you have the support pieces you need, it's time to put them to use.
+For the purposes of the demo we're just going to add charts to the home page
+of the application, so we'll be editing the Root controller.  To get started,
+add a method to the root controller for the index page...
+
+  =head2 index
+  
+  The index page for our charts.
+  
+  =cut
+  
+  sub index : Private {
+      my ( $self, $c ) = @_;
+  
+      $c->stash->{ 'template' } = 'index.tt2';
+  }
+
+Next we need to create a template to go along with the index.  Since we took
+the time to setup a helper template, this one will be rather small.  Put this
+code into your root/src/index.tt2.
+
+  [% INCLUDE ofc_swf_object data = Catalyst.uri_for( '/graph' ) %]
+
+If you run script/adventofc_server.pl at this point, you should get a nice
+graph display, although it won't contain any data.  In order to get nice
+charts, we need to move onto the next step, the data!
+
+=head2 Generating appropriate data
+
+Next we need to create a controller to produce the appropriate graph
+information.  Edit the root controller again, add a new method for the
+graph data (make sure you add C<use Chart::OFC> to the top of your
+controller as well.)
+
+  =head2 graph
+  
+  Data provider for Open Flash Chart graphs.
+  
+  =cut
+  
+  sub graph : Local {
+    my ( $self, $c ) = @_;
+
+Open Flash Chart can display pie charts, lines and/or bars on a grid, and
+area charts on a grid.  You can determine which types of graphs to use by
+which L<Chart::OFC::Dataset> subclasses you provide your data to.  For
+the purposes of this demo, we'll create a chart with lines, but first we
+need some sample data.
+
+    my %data = (
+        Date    => [ map { "11/$_" } 1 .. 14 ],
+        Ninja   => [ map { int( rand( 10 ) ) } 1 .. 14 ],
+        Pirate  => [ map { int( rand( 10 ) ) } 1 .. 14 ],
+    );
+
+For each data point you want to graph, you create an object that is an
+instance of one of the L<Chart::OFC::Dataset> subclasses.
+
+    my $ninjas = Chart::OFC::Dataset::LineWithDots->new(
+        color       => 'black',
+        label       => 'Ninjas',
+        solid_dots  => 0,
+        values      => $data{ 'Ninja' },
+    );
+    my $pirates = Chart::OFC::Dataset::LineWithDots->new(
+        color       => 'red',
+        label       => 'Pirates',
+        solid_dots  => 1,
+        values      => $data{ 'Pirate' },
+    );
+
+Once you have your datasets, you need to create X and Y axis objects that
+provide the information necessary to label the graph.
+
+    my $x_axis = Chart::OFC::XAxis->new(
+        axis_label  => 'Date',
+        labels      => $data{ 'Date' },
+    );
+    my $y_axis = Chart::OFC::YAxis->new(
+        axis_label  => 'Sightings',
+        max         => 11,
+        label_steps => 1,
+    );
+
+Now that all the pieces are assembled, we can use them to build a graph.
+
+    my $grid = Chart::OFC::Grid->new(
+        title       => 'Observer Reports',
+        datasets    => [ $ninjas, $pirates ],
+        x_axis      => $x_axis,
+        y_axis      => $y_axis,
+    );
+
+Then all that is left is to send this data to the browser.
+
+    $c->response->body( $grid->as_ofc_data );
+  }
+
+=head2 Done!
+
+Now just run C<script/adventofc_server.pl>, point your browser at
+L<http://localhost:3000/>, and celebrate your fancy graphs!
+
+=head3 AUTHOR
+
+Jason Kohles, E<lt>email@jasonkohles.comE<gt>
+
+L<http://www.jasonkohles.com/>
+
+=cut
+

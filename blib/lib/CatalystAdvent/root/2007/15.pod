@@ -1,0 +1,163 @@
+=head1 Catalyst Configuration: A to Z
+
+A common question, and in some cases turns to bad assumptions, is how to
+properly setup configuration in various Catalyst components.  This article
+should hopefully shed some light.
+
+=head2 First things first: What's a component
+
+In Catalyst every Model, View and Controller class is a component.  It's just
+the basic default object that the big 3 inherit from (quite literally, as they
+come from L<Catalyst::Component>.)
+
+When Catalyst starts up, the point in time where initialization of each of the
+application components is called "component time".  It's the step after compile
+time, and the time before Catalyst is dispatching and serving requests.  When
+debugging is enabled, Catalyst gives you a listing of components that are
+loaded at this time:
+
+ [debug] Loaded components:
+ .-----------------------------------------------------------------+----------.
+ | Class                                                           | Type     |
+ +-----------------------------------------------------------------+----------+
+ | ConfigEg::Controller::Root                                      | instance |
+ | ConfigEg::Model::Bar                                            | instance |
+ | ConfigEg::Model::Foo                                            | instance |
+ '-----------------------------------------------------------------+----------'
+
+As you can see, this is the controller and models that are loaded in the
+application.  They don't necessarily have to exist on disk, as
+L<Catalyst::Model::DBIC::Schema> creates classes dynamically based on the
+classes loaded from L<DBIx::Class>.
+
+Each of these components listed runs the C<sub COMPONENT> method, and at this
+point the configuration is usable.
+
+=head2 Configuration: App versus Component
+
+The breakdown of the application level configuration and component level
+configuration is the best way to differentiate configuration spaces.
+
+Catalyst gives you a very nice convention to isolate configuration to a 
+specific component at the app level, by merely naming that configuration key.
+
+Above, we listed a C<ConfigEg::Model::Foo> so if we want to configure it in
+the ConfigEg.pm file, or in configeg.yml, all we have to do is write out
+the prefix:
+
+ ---
+ name: ConfigEg
+ "Model::Foo":
+    config: "Specific just to ConfigEg::Model::Foo!"
+
+(Note: You do not include your application prefix!  Everything after MyApp::)
+
+To check this, inside the C<ConfigEg/Model/Foo.pm> file, you can overload
+the C<sub COMPONENT> method with something like this:
+
+ sub COMPONENT {
+     my $self = shift->next::method(@_);
+     print dump( $self );
+     return $self;
+ }
+
+This will dump out:
+
+ bless({ config => "Specific just to ConfigEg::Model::Foo" }, "ConfigEg::Model::Foo")
+
+Piece of cake!
+
+=head2 Component Configuration
+
+Now, inside of the C<ConfigEg/Model/Foo.pm> file if you want to specify default
+configuration, you don't need to prefix the configuration keys.  You just
+start out with:
+
+ __PACKAGE__->config(
+    config => 'This will be overridden, but is a nice default'
+ );
+
+Now, if you were to remove the entries in configeg.yml for Model::Foo, this
+config would take precedence.
+
+=head2 ConfigLoader: The Aptly Named Configuration Loader
+
+The great thing that L<Catalyst::Plugin::ConfigLoader> does for you is merging
+the various external configurations.  Rather than simply overwrite the entirety
+of a components configuration, it will merge external files and give them
+precedence.  The higher the "human editability" of the configuration, the
+higher the precedence.
+
+=head2 Configuration Merging
+
+Catalyst will automatically merge all the various sections of configuration into
+one easy to use structure.  ConfigLoader handles taking the external files, and
+Catalyst will take that information and merge it with the internal configuration
+of the components.
+
+To illustrate this, here is a brief example.  The lowest in configuration
+precedence is the component package itself (C<ConfigEg/Model/Foo.pm>), up next
+is C<ConfigEg.pm> and the highest is the individual configuration files loaded
+by ConfigLoader, which pulls in the external files.  By default this would be
+configeg.yml and configeg_local.yml.
+
+By merging, what happens is if you have the following (completely and totally
+fabricated) structure in the component package C<ConfigEg/Model/Foo.pm>:
+
+ __PACKAGE__->config(
+    paper_bag => {
+        pickles  => 10,
+        sandwich => 1,
+        relish   => 5,
+    } 
+ );
+
+And then inside of C<ConfigEg.pm> you have:
+
+    __PACKAGE__->config(
+        name => 'ConfigEg',
+        'Model::Foo' => {
+            paper_bag => { pickles => 0 }
+        }
+    );
+
+And finally in configeg.yml you have:
+    ---
+    name: ConfigEg
+    "Model::Foo":
+        paper_bag:
+            pickles: 1
+            cheese: 5
+
+The final merged structure would be:
+    paper_bag => {
+        cheese => 5,
+        pickles => 1, 
+        relish => 5, 
+        sandwich => 1
+     }
+
+As you can see, the configeg.yml has the highest precedence by setting 'pickles'
+to 1 (rather than 0 which is specified in C<ConfigEg.pm> or 10 specified in
+C<ConfigEg/Model/Foo.pm>) and it introduces an entirely new key 'cheese'.
+
+=head2 Real World Usage
+
+If you don't like lunch items, just think of ways a component base class can
+specify default configuration to be overriden by a specific MyApp:: instance of
+that class and then finally overridden by the configuration files.
+
+If there is a base component model that is highly generic, it may have a set
+of configuration options present that just describe the basic required config.
+
+When it is created in an application (say, from a Catalyst::Helper package) then
+it may create or duplicate those same configuration settings (like the way
+C<Catalyst::View::TT> bootstraps itself).  It then expects final configuration
+to be done in the application config (myapp.yml, or whatever your config choice
+may be)
+ 
+=head1 Author
+
+J. Shirley <jshirley@cpan.org>
+
+=cut

@@ -1,0 +1,209 @@
+=head1 Catalyst Advent - Day 22 - Action Types
+
+=head2 Introduction
+
+A Catalyst application is driven by one or more Controller modules. There are
+a number of ways that Catalyst can decide which of the methods in your
+controller modules it should call. Controller methods are also called actions,
+because they determine how your catalyst application should (re-)act to any
+given URL. When the application is started up, catalyst looks at all your
+actions, and decides which URLs they map to.
+
+=head2 Type attributes
+
+Each action is a normal method in your controller, except that it has an
+L<attribute|http://search.cpan.org/~nwclark/perl-5.8.7/lib/attributes.pm>
+attached. These can be one of several types.
+
+Assume our Controller module starts with the following package declaration:
+
+ package MyApp::Controller::Buckets;
+
+and we are running our application on localhost, port 3000 (the test server default).
+
+=over 4
+
+=item Path
+
+A Path attribute also takes an argument, this can be either a relative or an
+absolute path. A relative path will be relative to the controller namespace,
+an absolute path will represent an exact matching URL.
+
+ sub my_handles : Path('handles') { .. }
+
+becomes
+
+ http://localhost:3000/buckets/handles
+
+and
+
+ sub my_handles : Path('/handles') { .. }
+
+becomes 
+
+ http://localhost:3000/handles
+
+=item Local
+
+When using a Local attribute, no parameters are needed, instead, the name of
+the action is matched in the URL. The namespaces created by the name of the
+controller package is always part of the URL.
+
+ sub my_handles : Local { .. }
+
+becomes
+
+ http://localhost:3000/buckets/my_handles
+
+=item Global
+
+A Global attribute is similar to a Local attribute, except that the namespace
+of the controller is ignored, and matching starts at root.
+
+ sub my_handles : Global { .. }
+
+becomes
+
+ http://localhost:3000/my_handles
+
+=item Regex
+
+By now you should have figured that a Regex attribute is just what it sounds
+like. This one takes a regular expression, and matches starting from
+root. These differ from the rest as they can match multiple URLs.
+
+ sub my_handles : Regex('^handles') { .. }
+
+matches
+
+ http://localhost:3000/handles
+
+and 
+
+ http://localhost:3000/handles_and_other_parts
+
+etc.
+
+=item LocalRegex
+
+A LocalRegex is similar to a Regex, except it only matches below the current
+controller namespace.
+
+ sub my_handles : LocalRegex(^handles') { .. }
+
+matches
+
+ http://localhost:3000/buckets/handles
+
+and
+
+ http://localhost:3000/buckets/handles_and_other_parts
+
+etc.
+
+=item Private
+
+Last but not least, there is the Private attribute, which allows you to create
+your own internal actions, which can be forwarded to, but won't be matched as
+URLs.
+
+ sub my_handles : Private { .. }
+
+becomes nothing at all..
+
+Catalyst also predefines some special Private actions, which you can override,
+these are:
+
+=over 4
+
+=item default
+
+The default action will be called, if no other matching action is found. If
+you don't have one of these in your namespace, or any sub part of your
+namespace, you'll get an error page instead. If you want to find out where it
+was the user was trying to go, you can look in the request object using 
+C<< $c->req->path >>.
+
+ sub default : Private { .. }
+
+works for all unknown URLs, in this controller namespace, or every one if put
+directly into MyApp.pm.
+
+=item index 
+
+The index action is called when someone tries to visit the exact namespace of
+your controller. If index, default and matching Path actions are defined, then
+index will be used instead of default and Path.
+
+ sub index : Private { .. }
+
+becomes
+
+ http://localhost:3000/buckets
+
+=item begin
+
+The begin action is called at the beginning of every request involving this
+namespace directly, before other matching actions are called. It can be used
+to set up variables/data for this particular part of your app. A single begin
+action is called, its always the one most relevant to the current namespace.
+
+ sub begin : Private { .. }
+
+is called once when 
+
+ http://localhost:3000/bucket/(anything)?
+
+is visited.
+
+=item end
+
+Like begin, this action is always called for the namespace it is in, after
+every other action has finished. It is commonly used to forward processing to
+the View component. A single end action is called, its always the one most
+relevant to the current namespace. 
+
+
+ sub end : Private { .. }
+
+is called once after any actions when
+
+ http://localhost:3000/bucket/(anything)?
+
+is visited.
+
+=item auto
+
+Lastly, the auto action is magic in that B<every> auto action in
+the chain of paths up to and including the ending namespace, will be
+called. (In contrast, only one of the begin/end/default actions will be
+called, the relevant one).
+
+ package MyApp.pm;
+ sub auto : Private { .. }
+
+and 
+
+ sub auto : Private { .. }
+
+will both be called when visiting 
+
+ http://localhost:3000/bucket/(anything)?
+
+=back
+
+=back
+
+=head2 A word of warning
+
+Due to possible namespace conflicts with Plugins, it is advised to only put the
+pre-defined Private actions in your main MyApp.pm file, all others should go
+in a Controller module.
+
+=head2 More Information
+
+L<http://search.cpan.org/author/SRI/Catalyst-5.61/lib/Catalyst/Manual/Intro.pod>
+
+L<http://dev.catalyst.perl.org/wiki/FlowChart>
+
+  --castaway

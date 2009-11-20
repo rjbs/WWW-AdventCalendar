@@ -1,0 +1,116 @@
+=head1 Day 6 - Catalyst::Controller::BindLex
+
+Tidying up controllers with BindLex
+
+=head2 The Problem
+
+If you've done any development with Catalyst, you are almost guaranteed
+to need to put data in the stash (Catalyst's name for a hash used to
+pass data within a request cycle). This isn't a problem as such, but it
+can make the code appear...unwieldy. The more heavily you use the stash,
+the messier things will be - if you are using chained actions, you'll
+probably be constantly moving things into and out of the stash as you
+move through your chain.
+
+Let's say that you want to store the results of a multi-page process
+(for example a quiz) in the session. You might do something like this:
+
+ package MyApp::C::MyQuiz;
+ 
+ use base 'Catalyst::Controller';
+
+ sub take : Local {
+   my ($self, $c) = @_;
+
+   # Get existing state
+   my $state = $c->session->{quiz_state};
+
+   # Merge current state with new params - in a real app you'd do 
+   # something more substantial here
+   $state = { %$state, %{$c->req->params} };
+   $state->{q_id}++;
+
+   # Put question in stash for display
+   $c->stash->{question} = 
+     $c->model('DBIC::Quiz')->find( $state->{q_id} );
+
+   # And save the updated state back in the session
+   $c->session->{quiz_state} = $state;
+ }
+ 
+The above code snippet illustrates the problem - all the instances of 
+C<< $c->stash->{ >> and C<< $c->session->{ >> make the code messier
+than it needs to be.
+
+=head2 The Solution
+
+Luckily L<Catalyst::Controller::BindLex|BindLex> comes to the rescue! 
+It enables us do the following:
+
+ package MyApp::C::MyQuiz;
+ 
+ # NOTE: new base class;
+ use base 'Catalyst::Controller::BindLex';
+
+ sub take : Local {
+   my ($self, $c) = @_;
+
+   # Get existing state
+   my %quiz_state : Session;
+
+   # Merge current state with new params - in a real app you'd do 
+   # something more substantial here
+   %quiz_state = ( %quiz_state, %{$c->req->params} );
+   $quiz_state{q_id}++;
+
+   # Put question in stash for display
+   my $question : Stashed 
+     = $c->model('DBIC::Quiz')->find( $quiz_state{q_id} );
+ }
+
+Looks a bit tidier this way, doesn't it? When you give an attribute of
+C<Session> to a lexical variable ( C<my %quiz_state> in the above
+example), it is connected to C<< $c->session->{quiz_state} >>, so that
+it will have the same value as in the session, and when you change
+something in the hash it will also be updated in the session. In fact as
+far as Perl is concerned, they are the same.
+
+BindLex provides C<Session>, C<Sessioned>, C<Stash>, C<Stashed>,
+C<Flash>, and C<Flashed> attributes to connect lexicals to C<<
+$c->session >>, C<< $c->stash >> or C<< $c->flash >>
+respectively. BindLex also has the ability to use your own custom
+attributes - see the docs for details of how to do this.
+
+It should be noted that some people view this module as a "bad thing"
+due to the modules it uses, namely L<PadWalker>, L<Array::RefElem>,
+L<Devel::Caller>, L<Devel::LexAlias>, and L<attributes>. But BindLex has
+been widely used in Catalyst applications with no ill effects observed.
+
+=head2 Current Limitations
+
+The only known current limitation of BindLex is that you cannot
+lexically bind any variable that is declared in more than one scope in a
+sub due to the specifics of perl's internals. In other words an attempt
+to use any BindLex attribute on C<$foo> in the example below will cause
+an error:
+
+ sub dummy {
+   my ($self, $c) = @_;
+   my $foo; # First scoped here
+
+   if ($c->req->arguments) {
+     my $foo; # Scoped again here
+   }
+ }
+
+=head3 AUTHOR
+
+Ash Berlin <ash@cpan.org>
+
+=head3 COPYRIGHT
+
+Copyright 2006 Ash Berlin.  This document can be freely
+redistributed and can be modified and re-distributed under the same
+conditions as Perl itself.
+
+=cut 

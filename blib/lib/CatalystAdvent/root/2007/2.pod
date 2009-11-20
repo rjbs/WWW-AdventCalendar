@@ -1,0 +1,358 @@
+=head1 Get more REST - Using YUI and JavaScript for REST
+
+Today, we'll look into building a fully capable REST client in YUI that allows record
+creation, retrieving, updating and deletion (CRUD) as well as searching.  This is not a 
+copy and paste article, but explains the general concepts as a read-along to reading the
+source of the example application.
+
+=head2 Start Here First: Understanding REST
+
+To make the most of this article, it is important to not only understand the basic idea of
+REST but to also see how it works within Catalyst.
+
+To start out understanding REST, read the excellent article by Ryan Tomayko
+L<http://tomayko.com/articles/2004/12/12/rest-to-my-wife>, about explaining REST in simple
+terms that a non technical person is able to understand.  It will help a technical person
+understand it even more.
+
+Up next is to get a good understanding for how REST works inside of Catalyst, using Adam
+Jacob's excellent L<Catalyst::Action::REST> package.  The best way to get up to speed is to
+review Day 9 from the 2006 Advent Calendar, at
+L<http://www.catalystframework.org/calendar/2006/9.pod>.
+
+=head2 Following Along: Using the Source
+
+The examples that are listed here are available from the Catalyst subversion
+repository, available via:
+
+ svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/RestYUI
+
+This is a fully functional application that uses REST webservices instead of the
+traditional method of form submission and posting.  While this isn't an ideal use of
+REST, and it doesn't give you anything over a non-JavaScript based form, it should help
+people think about things a little different and show the power of a framework that can
+use any view, not just HTML, to represent objects.
+
+This article talks about building the core pieces, but there are many other important
+points in the example application that are not covered specifically in the article.  Please
+check out the source above, run the application and read the source as you read this
+article.  
+
+=head1 Why use JavaScript?
+
+The big question that comes along when working with REST in the browser is why
+do you have to use JavaScript.  The reason why we're required to use JavaScript
+for a full REST service is because the vocabulary that a browser speaks natively
+is limited to only two verbs: GET and POST.
+
+However, when using the C<XmlHttpRequest> JavaScript object that is available in
+all Grade A browsers the vocabulary is extended to support PUT, DELETE and HEAD
+and many others.
+
+With this, you can write a web application that is also a web service, with very
+little redundant code.  Additionally, the tests can test the data and separate
+tests can test the HTML rendering.  This makes things much less tedious, and the
+tests more accurate.
+
+With Selenium testing the JavaScript, you can have full end-to-end testing with
+very little pain.  To me, we're finally at a point in browser development where
+the question is why not use JavaScript.
+
+=head2 Connecting to REST
+
+The general idea of REST is getting what you ask for, in the format you want.  In the
+simplest form, an C<XmlHttpRequest> isn't enough to talk to a REST webservice.  There are a
+few major points that come together to make everything work:
+
+=over
+
+=item Content Type
+
+Because YUI assumes you're working with a brain-dead framework that can't
+support wonderful things like REST, you have to map the default content-type
+(or dig into YUI and setup different content type headers, but this is quite
+a bit of work).  In the REST controller, assigning this content type to 
+serialization format is a piece of cake:
+
+ __PACKAGE__->config(
+    # Set the default serialization to JSON
+    'default' => 'JSON',
+    'map' => {
+        # Remap x-www-form-urlencoded to use JSON for serialization
+        'application/x-www-form-urlencoded' => 'JSON',
+    },
+ );
+
+YUI will also not set the default content type header to a useful value, so you have to
+do that in the JavaScript.  This is covered later in detail.
+
+=item Request Method
+
+The request method is the verb.  This means you are GETting a resource, POSTting
+a new resource in the system, PUTing an update to an existing resource or
+DELETEing something.
+
+Luckily, XmlHttpRequest and YUI supports this just fine without any additional tweaking.
+
+=item Data Serialization
+
+The Content-Type not only specifies how you want the data back, but it specifies
+how you are sending data.  In the context of a PUT or POST, any data you send
+has to match the Content-Type provided.  So if you send a Content-type header of
+'text/x-json', the data has to be in JSON.  There are a ton of serialization
+for mats available, so pick what works best for you in each application.
+
+If you're working with a JavaScript-based interface, I prefer JSON.  If I'm
+doing command line interaction, I like serialization in YAML.  The same resource
+can handle multiple serialization formats, just change the Content-type!
+
+=back
+
+=head2 Starting the Catalyst Application
+
+We're taking last year's AdventREST example app and slightly modifying it to
+add support for YUI.
+
+So, to get started you can check out that application from subversion by doing:
+ 
+ svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/AdventREST
+
+Or check out the completed RestYUI application.
+
+The only fundamental change to the application is adding the Template Toolkit
+view:
+
+ script/adventrest_create.pl view TT TT
+
+Also, we have to grab the static files for YUI itself.  As of writing this,
+version 2.3.1 is available from L<http://sourceforge.net/project/downloading.php?group_id=165715&filename=yui_2.3.1.zip>.  Check the latest version at
+L<http://developer.yahoo.com/yui/>
+
+After extracting the files from the zip archive, just copy over the .js files to
+the root/static directory.  My preferred method is to do this:
+
+ cd MyApp
+ mkdir root/static/yui
+ cd /where/you/unpacked/yui/build
+ for i in *; do cp $i/$i.js $i/$i-beta.js /path/to/MyApp/root/static/yui; done
+
+That will copy all the non-minimized (but not debug versions) and beta JS files
+into your static/yui path, so you can reference them with an easy URI:
+ C</static/yui/yahoo.js>
+
+The other files that are very useful are the "sam" CSS and image files.  For
+the datatable, we're going to use C<sam/datatable.css> and a few other images:
+
+=over
+
+=item sprite.png
+
+=item dt-arrow-dn.png
+
+=item dt-arrow-up.png
+
+=back
+
+Those will make the DataTable look nice and stylish.  If you want to expand more
+on the YUI styles then the buttons, containers and other layouts are a great
+asset provided by Yahoo.
+
+=head2 Preparing the REST WebService
+
+To gain access to the REST services, we'll be accessing both the C<list> and the
+C<item> actions.  The list is going to be pulled by using a customized YUI
+DataSource object.
+
+This will ask the REST service for a list of our people objects, and in a simple
+form is nothing more than a L<DBIx::Class> search:
+
+   sub user_list_GET {
+       my ( $self, $c ) = @_;
+
+       my %user_list;
+       my $user_rs = $c->model('DB::User')->search;
+       while ( my $user_row = $user_rs->next ) {
+           $user_list{ $user_row->user_id } =
+             $c->uri_for( '/user/' . $user_row->user_id )->as_string;
+       }
+       $self->status_ok( $c, entity => \%user_list );
+   }
+
+That is from the original REST article, and to make the most of the list we're
+going to enhance the listing to provide some additional meta information that 
+enhances the webservice with features such as pagination and other contextual
+information.  We'll add in pagination with a CGI parameter "page" and a param
+for the number of items per page called "per_page"
+
+   sub user_list_GET {
+       my ( $self, $c ) = @_;
+       my $page     = $c->req->params->{page} || 1;
+       my $per_page = $c->req->params->{per_page} || 10;
+
+       # We'll use an array now:
+       my @user_list;
+       my $rs = $c->model('DB::User')
+           ->search(undef, { rows => $per_page })->page( $page );
+       while ( my $user_row = $rs->next ) {
+           push @user_list, {
+               $user_row->get_columns,
+               uri => $c->uri_for( '/user/' . $user_row->user_id )->as_string
+           };
+       }
+
+       $self->status_ok( $c, entity => {
+           result_set => {
+               totalResultsAvailable => $rs->pager->total_entries,
+               totalResultsReturned  => $rs->pager->entries_on_this_page,
+               firstResultPosition   => $rs->pager->current_page,
+               result => [ @user_list ]
+           }
+       });
+   };
+
+So now we have a serialized structure that looks like this in JSON:
+
+=head2 Connecting with YUI
+
+After the webservice is up, it is time to setup the Yahoo DataSource object.
+
+We'll create a simple template off of the index action in C<Root.pm>, so
+create this action in Root.pm:
+
+ sub index : Private {
+     my ( $self, $c ) = @_;
+     $c->forward( $c->view('TT') );
+ }
+
+That will just direct the action for "/" to go to TT, and render an "index.tt"
+template.
+
+The C<index.tt> file is pretty basic, and after the HTML tags this is the crux
+of what gets the job done:
+
+    /* Create the YAHOO.util.DataSource object, the parameter is the
+       URI to your REST service
+    */
+    this.myDataSource = new YAHOO.util.DataSource("[%
+         c.uri_for( c.controller('User').action_for('user_list') ) %]");
+    this.myDataSource.responseType = YAHOO.util.DataSource.TYPE_JSON;
+    this.myDataSource.connXhrMode = "queueRequests";
+    this.myDataSource.responseSchema = {
+    	resultsList: "result_set.result",
+        /* We have to define the fields for usage elsewhere */
+        fields: [
+            "pk1", "token", "default_lang", "languages",
+            "url", "t_created", "t_updated", "actions"
+        ]
+     };
+
+After this, we have a functional DataSource object that can be tied into a
+DataTable:
+
+        myDataTable = new YAHOO.widget.DataTable(
+            "kb_list", myColumnDefs,
+            this.myDataSource, {
+                /* The initialRequest is appended to the URI to set params */
+                initialRequest: "page=1&content-type=text/x-json"
+            }
+        );
+
+=head1 Adding REST PUT and POST Methods via YUI
+
+The fundamental difference between a PUT and POST is a POST creates a new
+resource and PUTT updates an existing resource.  In the original advent article,
+the PUT and POST articles were aliased and therefore provide identicali
+functionality.  We're not going to change this, because for the purposes of this
+article it doesn't matter.  YUI will respect whatever method provided in the
+C<asyncRequest> call.  So if you want to do a PUT, the call looks like:
+
+    var request = YAHOO.util.Connect.asyncRequest(
+        'PUT',
+        uri, callback, json_data
+    );
+
+It's a good idea to read the overview and some examples of how to use
+asyncRequest, but the usage is very simple.  That is really all that is
+necessary to trigger a REST call in YUI, but you have to watch the content type.
+By default, YUI will not set the proper content type, and since JSON is by far
+the easiest serialization method to use in JavaScript, we're going to use that.
+
+YUI fortunately has an easy method for changing the content type, but it isn't
+a well-named method and you have to be careful because it sets the content type
+on subsequent calls, even if they're not a POST:
+
+    YAHOO.util.Connect.setDefaultPostHeader('text/x-json');
+
+Adding that line before any C<asyncRequest> calls will ensure you are sending
+the right content type header, and won't cause the REST service any confusion.  
+The next step is actually encoding the JSON data from the form.
+
+=head2 JSON Parsing and Encoding in JavaScript
+
+The C<json2.js> JSON stringifier and parser is used in this article and is available from
+L<http://www.JSON.org/js.html>.  It is public domain, and works very well.
+
+=head2 From Form to JSON to REST
+
+Given a form object, as what is declared in the C<root/user/single_user.tt> file, and
+hijack the normal submit mechanisms to enable a REST POST or PUT to a backend webservice
+is just a simple few lines of JavaScript:
+
+    /* Setup the listener when the form is submitted: */
+    YAHOO.util.Event.addListener(form, "submit", function(e) {
+        /* Cancel the default submit event.
+           You can get creative here for graceful fallbacks, think about it!
+        */
+        YAHOO.util.Event.preventDefault(e);
+        /* Start a timeout to encapsulate the REST call */
+        window.setTimeout(function() {
+            /* What URI are we going to POST or PUT to?  Ourselves, in this case */
+            var uri  = '[% c.req.uri %]';
+
+            /* The actual data structure, it still is just JavaScript at this point.
+               Keep in mind there are better ways to take a form and translate it into
+               JSON, but being explicit never killed anybody
+            */
+            var data = {
+                user_id:     form['user_id'].value,
+                fullname:    form['fullname'].value,
+                description: form['description'].value
+            };
+            /* Set the content-type to text/x-json, otherwise things will break! */ 
+            YAHOO.util.Connect.setDefaultPostHeader('text/x-json');
+            /* The actual call, this bit makes the HTTP call */
+            var request = YAHOO.util.Connect.asyncRequest(
+                '[% method %]',
+                uri,
+                /* Callback should contain a success and failure method, read the
+                   YUI asyncRequest docs! */
+                callback,
+                /* Stringify our data structure into JSON, this is sent in the HTTP BODY */
+                JSON.stringify(data)
+            );
+        }, 200);
+    });
+
+That's it, with a lot of comments!  This will send a PUT or POST request to the backend
+service with the form data encoded in JSON.  You're not limited to PUT or POST methods,
+you can also use DELETE, HEAD and any other method defined in the RFC.
+
+To see the full page, check out C<root/user/single_user.tt> in the RestYUI example.
+
+=head1 The State of (un)REST in the Browser World
+
+Beware, that not all browsers support every method so YUI and REST is not guaranteed to
+work on every browser and every platform.  It's up to the browser developers to decide to
+support full specifications and I'm happy to report that most browsers do in this context,
+including both Internet Explorer 6.x and 7.
+
+=head1 AUTHOR
+
+J. Shirley wrote the YUI based portions, with the original 2006 REST article
+being written by Adam Jacob.
+
+Adam Jacob also wrote the Catalyst::Action::REST module, which is the foundation
+to all of this.
+
+=cut
+

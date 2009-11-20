@@ -1,0 +1,114 @@
+=head1 Day 13 - $c->uri_for fun and profit
+
+Today we will take a trip into the wonderful and mystical world of uri_for.
+The basic premise behind uri_for is to make generating URIs for actions with parameters easy and fun (well as fun as URIs get).
+
+=head2 Basic uri_for
+
+$c->uri_for will return the URL for the current actions namespace, so, if you are in Controller MyApp::Children it will return:
+
+    $c->uri_for()
+    http://localhost:3000/children
+
+for any action you are running in that controller. 
+If you wanted to get to a specific action you can do
+
+    $c->uri_for('good') 
+    http://localhost:3000/child/good
+
+What if I wanted to get outside of the 'child' namespace? well, use a / to root it.
+
+    $c->uri_for('/elves')
+    http://localhost:3000/elves
+ 
+For most cases this simple construct is more than adequate but a more canonical way is via the action_for construct for instance, If in my controller i have:
+
+    sub deliverto :Path('good') {
+        ...
+    }
+
+I could refer to this action in the current namespace as follows:
+
+    $c->uri_for($c->action_for('deliverto')) 
+    http://localhost:3000/children/good
+    
+Or in another namespace
+
+    $c->uri_for($c->controller('elves')->action_for('sweatshop')) 
+    http://localhost:3000/elves/jobs
+
+If, in the future i decided to change my URI structure all the references to this controller would update accordingly.
+
+=head2 Adding parameters
+
+You can easily add parameters to the uri_for object like this:
+
+    $c->uri_for('house',{fire => 0, mincepie => 1});
+    http://localhost:3000/house?fire=0&amp;mincepie=1
+
+or even in a TT template:
+
+    [% c.uri_for('house',{fire => 0, mincepie => 1}) %]
+    http://localhost:3000/house?fire=0&amp;mincepie=1
+
+or you could use the params that were passed into the page to re-populate it
+
+    $c->uri_for('house',$c->req->params) %]
+    http://localhost:3000/house/?a=b&amp;c=d (assuming parameters passed in to page were a=b c=d)
+
+=head2 Complex paths with captures
+
+uri_for makes it incredibly easy to create and adjust paths for chained actions, for instance from
+    
+    http://localhost:3000/house/4/address
+    
+    $c->uri_for($c->action,$c->req->captures,'print');
+
+would fill out all the captures for the previous request and add print to it:
+
+    http://localhost:3000/house/4/address/print
+
+But what if you wanted to change some of the captures... say for linking from a list - well it's just an array so thats easy:
+
+    $c->uri_for($c->action,[2],'new');
+    http://localhost:3000/house/2/address/print
+
+=head2 uri_for internals
+
+uri_for returns a normalised L<URI> object so you can do all the usual tricks, for instance, say you were wanting to go to a secure section of your catalyst site you could do the following : 
+
+    my $uri = $c->uri_for('secure');
+    $uri->scheme('https');
+    https://localhost:3000/letters/list
+
+=head2 Useful code snippets
+
+You could add these in your main application class (e.g. MyApp.pm) to make them available for all your actions. 
+
+    sub action_uri {
+            my ($c, $controller, $action, @params) = @_;
+            return $c->uri_for($c->controller($controller)->action_for($action), @params);
+    }
+    (thanks zamolxes!)
+
+    sub redirect_to_action {
+            my ($c, $controller, $action, @params) =@_;
+            $c->response->redirect($c->uri_for($c->controller($controller)->action_for($action), @params));
+            $c->detach;
+    }
+    (thanks zamolxes!)
+    
+    sub chained_uri_for {
+        my $c = shift;
+        return $c->uri_for($c->action,$c->req->captures,@_);    
+    }
+    
+    <a href="[% c.action_uri('Foo::Bar','baz',5) %]">BAZ!</a>
+
+    $c->redirect_to_action('User','login');
+
+=head1 AUTHOR
+
+Simon Elliott (purge, cpan@browsing.co.uk)
+
+=cut

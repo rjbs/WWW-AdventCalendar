@@ -1,0 +1,165 @@
+=head1 Day 12 - Producing PDFs with Template::Latex
+
+Using Template::Latex to produce PDFs in Catalyst
+
+=head2 LaTeX
+
+LaTeX (pronounced "lay-tek" by those in the know) is a typesetting
+language that can be used to produce DVI ("Device Independent"),
+Postscript, or PDF files. However the main problem is that LaTeX (and
+TeX, upon which LaTeX is based) is one of those "easy to learn, hard to
+master languages".  If you don't know LaTeX and are interested, there
+are a numerous tutorials around the web - hit Google. For the sake of
+completeness I will show a minimal example of a LaTeX file:
+
+ \documentclass[a4paper]{article}
+
+ \begin{document}
+
+ Look at me! I was typeset using \LaTeX
+
+ And I'm a second paragraph that
+ is split over two source lines.
+
+ \end{document}
+
+If you run C<pdflatex> (assuming you have it installed) and type those
+five lines in, you will end up with a small, beautifully presented PDF
+file. Easy wasn't it?
+
+=head2 Template::Latex
+
+So now that you know LaTeX (*cough*) we can go on and produce PDF documents
+from inside Catalyst. You could simply do a C<system('pdflatex')> call, except
+for the fact that TeX and LaTeX really don't like taking data from STDIN -
+I guess STDIN wasn't so common back in the 1970's when TeX was first written.
+
+So rather than going through the hassle of creating a temporary
+directory, saving the .tex file, parsing the output log and getting
+the output file ourselves, we will use the L<Template::Latex> module
+by Andy Wardley which handles all of this for us. Great!
+
+Once you've installed Template::Latex (and the LaTeX system itself if you 
+don't already have it installed) it's time to create a Catalyst application:
+
+  $ catalyst.pl PDFTest
+  $ cd PDFTest
+  $ perl ./script/pdftest_create.pl view TT TT
+
+Now we need to create our action that will generate the PDF file. In
+C<lib/PDFTest/Controller/Root.pm> add the following code:
+
+ sub pdf : Local {
+   my ($self, $c) = @_;
+
+   if ($c->forward( 'PDFTest::View::TT' ) ) {
+     # Only set the content type if we sucessfully processed the template
+     $c->response->content_type('application/pdf');
+     $c->response->header('Content-Disposition', "attachment; filename=PDFTest.pdf")
+  }
+
+ }
+
+Now let's create the template. Create a new file in your editor of
+choice, and save it as C<root/pdf> with the following contents:
+
+ [%- USE Latex;
+     FILTER latex("pdf") %]
+
+ \documentclass{article}
+ \begin{document}
+ I'm a doument created from [% name %]
+ \end{document}
+ [% END -%]
+
+(If you are using this in an existing application and you are using a wrapper,
+make sure that this template isn't wrapped, or you will get the binary PDF
+data nicely placed inside your wrapper.)
+
+=head2 Testing It Out
+
+We've created a template that uses the LaTeX filter, and an action
+that will cause it to be rendered. Let's test it!
+
+  $ perl ./script/pdftest_server.pl
+  <output snipped>
+  You can connect to your server at http://localhost:3000
+
+Since we called our action pdf, let's visit L<http://localhost:3000/pdf>. Now
+with any luck your browser should display the PDF inline or prompt you to save
+what to do with a file called "PDFTest.pdf". However if you are using 
+Catalyst::Runtime version 5.7006 (which is the latest at the time of writing)
+then you will be seeing an error like the following:
+
+ Couldn't render template "latex error - pdflatex exited with errors:
+ "
+
+This is caused by a bug in the standalone server only (version 5.7006 - 
+this will be fixed in newer versions) where all system calls return
+-1. Hmm, so we could use one of the other server modes, but they make developing
+harder. So instead let's use a dirty hack to get round the problem.
+
+WARNING: This is very dirty and prone to break for different versions,
+but it worked for me with pdfeTeX 3.141592-1.21a-2.2 (Web2C 7.5.4) and
+Template::Latex 2.17.  B<Don't use this in production code.  Use it
+for development only.  You have been warned.>
+
+The way this hack works is be defining a C<system> sub in the 
+C<Template::Latex> package that will get called instead of Perl's built-in
+system. What this 'replacement' system call does is first call the built-in
+C<system>, and it then examines the last line of the log file to see if it
+says "Output written on filename.pdf", in which case it returns 0, else it
+returns the return value of the built-in system call.
+
+Rather than explaining how to go about this hack, I will just include
+what the C<pdf> sub should look like:
+
+ sub pdf : Local {
+     my ($self, $c) = @_;
+
+     {
+       no warnings 'redefine';  # right here, you can tell bad things will happen
+       local *Template::Latex::system = sub {
+         
+         my $ret = system(@_);
+
+         my ($filename) = $_[0] =~ m[\\input{(.*?)}] ;
+         my $fh = new IO::File "${filename}.log"
+           or die "Unable to open pdflatex logfile ${filename}.log: $!";
+
+         my $line;
+         while ( defined($_ = $fh->getline) ) {
+             $line = $_;
+         }
+
+         return 0 if $line =~ /^Output written on ${filename}.pdf \(\d+ pages?, \d+ bytes?\).$/;
+         return $ret;
+       } if $c->engine =~ /^Catalyst::Engine::HTTP/;
+
+       if ($c->forward( 'PDFTest::View::TT')) {
+         $c->response->content_type('application/pdf');
+         $c->response->header('Content-Disposition', "attachment; filename=PDFTest.pdf");
+       }
+     }
+
+ }
+
+=head2 Caveat
+
+Hacks like the one detailed above are generally B<a really bad idea>,
+because you are messing with the internals of another package.  This
+is asking for trouble. It's included so that B<you> can make a working
+example with the development server under Catalyst 5.7006 - the bug should be fixed in subsequent versions.
+
+=head3 AUTHOR
+
+Ash Berlin <ash@cpan.org>
+
+=head3 COPYRIGHT
+
+Copyright 2006 Ash Berlin.  This document can be freely
+redistributed and can be modified and re-distributed under the same
+conditions as Perl itself.
+
+=cut
+

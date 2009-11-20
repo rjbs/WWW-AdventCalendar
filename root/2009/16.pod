@@ -1,0 +1,412 @@
+=head1 Day 16.  Catalyst 5.80
+
+Today's entry is about the upcoming Catalyst 5.80 release, also
+unofficially known as C<Catamoose>.
+
+The main aim of the 5.80 release is the porting of the Catalyst core
+from using L<Class::Accessor::Fast> and L<NEXT> to using L<Moose> and
+L<Class::C3>, in a backwards-compatible way.
+
+In this article I hope to explain some of the reasons why this change
+is being made.  I will show how simple it is to convert code to run
+I<natively> in 5.80 (i.e. without any of the backwards
+compatibility code used, and taking advantage of the more modern
+approaches offered by the port).  Then I will talk about what the
+change will enable the framework to do in future, give you some
+insight into the project progress so far, the remaining milestones,
+and explain what you can do to ensure 100% backwards compatibility for
+your applications.
+
+=head1 Motivation
+
+L<NEXT> is awfully slow and hacky, and L<Class::Accessor::Fast> is
+good at what it does, but it doesn't do very much.
+
+L<Class::C3::XS> is fast for Perl 5.8, and c3 MRO is included natively
+in Perl 5.10.  Moose, despite having a reputation for being slow,
+generates accessors which are slightly faster than those made by
+L<Class::Accessor::Fast>, and also gives you B<a lot> of useful
+functionality for extending classes in a flexible way, helps you to
+refactor, and makes code neater and more re-useable.
+
+Therefore porting Catalyst to use these newer technologies seemed like
+a logical step towards making the framework more flexible, better
+architected internally, easier to extend for users, and easier to
+componentise - as some of the more bleeding-edge Catalyst-based
+projects currently have to work in some inelegant ways to do what they
+want. The challenge to the project was maintaining backwards
+compatibility, so that existing plugin components, and people's
+existing applications, continue to function with the new architecture.
+
+Once this release is stable, there are many ideas for further projects
+in the next development version, all of which have become much easier
+than they've previously been.  Some example projects which have been
+talked about by various people are:
+
+=over
+
+=item *
+
+Refactoring the dispatcher (so that pluggable/custom dispatchers can
+be supported).
+
+=item *
+
+Splitting the application and request context (allowing configuration
+and templates to be white-labelled, so you can run many differently
+configured sites on the same codebase).
+
+=item *
+
+Allowing a full declarative/DSL syntax for application code, rather
+than relying on 'just good enough' hacks such as Perl's attributes.
+
+=item *
+
+Refactoring the application setup to be more generic and use an
+inversion of control system such as L<Bread::Board> to make the
+Catalyst wiring more flexible to whatever application you're building.
+
+=back
+
+The port itself, whilst just a step along the road, opens up many
+possibilities:
+
+=over
+
+=item *
+
+Debug mode could contain an application browser which let you drill
+down into the objects in your application and the values of their
+attributes.
+
+=item *
+
+Moose provides a lot of powerful introspection features - it would be
+possible to use those to enhance the scaffolding generator in
+L<Catalyst::Devel> to be more intelligent.
+
+=back
+
+These are just a couple of ideas off the top of my head. I'm sure
+that the ever-inventive Catalyst community will produce ideas that
+nobody has thought of yet.
+
+=head3 What has been the project time line?
+
+=over
+
+=item *
+
+10/3 mst branched and initial work started.
+
+=item *
+
+14/3 groditi & konobi start making major changes
+
+=item *
+
+23/6 The port has made slow progress, but is coming along nicely.
+There is a lot of screaming about how the class data / config system
+works.  quote from the revision log: C<config wins, groditi
+loses. FUCK YOU FOR SUPPORTING THAT STUPID BEHAVIOR>
+
+=item *
+
+28/7 I started playing and adding tests for bugs I find and fixes in
+L<MooseX::Emulate::Class::Accessor::Fast>.
+
+=item *
+
+1/9 Latest 5.70 trunk is merged to the moose branch by mst.
+
+=item *
+
+4/9 rafl decides running the (5.70) test suite is too slow, and makes
+a branch of 5.80 as that is where new development is happening.
+
+=item *
+
+9/9 The entire moose branch is merged to 5.80 trunk.
+
+=item *
+
+9/9 rafl's L<Test::Aggregate> branch is merged to trunk.
+
+=item *
+
+A month goes by, almost nothing happens :(
+
+=item *
+
+16/10 rafl starts making test fixes and small cleanups.
+
+=item *
+
+22/11 I start smoke tests against all the current plugins, and working
+out backwards-compatibility issues.
+
+=item *
+
+1/12 rafl completes L<Class::C3::Adopt::NEXT>
+
+=item *
+
+5/12 5.8000_04 developer release, at which point, most people's
+applications work out of the box.
+
+=item *
+
+16/12 19 fixes since the last developer release (more than 1 a day!).
+Next developer release due once a bug causing the
+L<Catalyst::Plugin::Authentication> backwards compatibility code to
+fail, an issue in L<MooseX::Emulate::Class::Accessor::Fast> is fixed,
+and the POD for L<Class::C3::Adopt::NEXT> has been updated.
+
+=back
+
+At this point, most applications work with 5.80, but there is still a
+list of known issues to solve, and some corner-case bugs which cause a
+number of plugins to fail their tests.
+
+Once these issues are solved, the remaining activities are:
+
+=over
+
+=item *
+
+Look at the performance vs. 5.70 and optimise where necessary to bring
+it back to previous levels.
+
+=item *
+
+Aggressively smoke test all known Catalyst components and applications
+on CPAN and in subversion repositories, going over the results
+compared to against 5.70 to catch remaining backwards compatibility
+issues.
+
+=back
+
+We hope to have 5.80 released as early as possible in the new year,
+but at the same time, we're not planning to rush, and there are still
+plenty of things which need fixing, and we need to be confident that
+we've done everything we can to test and ensure backwards
+compatibility.
+
+=head2 Why has it taken so long?
+
+Changing two of the core technologies of a complex framework such as
+Catalyst, whilst maintaining backwards compatibility, is no mean feat.
+
+At least two CPAN distributions
+(L<MooseX::Emulate::Class::Accessor::Fast> and
+L<Class::C3::Adopt::NEXT>) have been produced due to this project
+(with all the tests, documentation, and bugfixes that entails).
+
+Also, none of the Catalyst developers are paid for the work that they
+do, so it gets done at whatever pace people have time - 5.70 is still
+stable and good enough for most people's needs.
+
+=head2 Is there anything that I could do to help?
+
+Sure there is! If you have a Catalyst application (even if you think
+it is trivial), please download and test out the latest development
+release, or the latest code from Subversion.
+
+The team would B<very much> like to hear about any issues which you
+may find, and reporting bugs (even if we already found the bug
+ourselves) will give us greater confidence that 5.80 works for
+B<everyone's> Catalyst applications - not just those maintained by
+people involved in the project.
+
+If you're suddenly even more enthusiastic than just helping to test
+your applications and components, then feel free to drop into
+#catalyst-dev on irc and we'll be more than happy to suggest
+additional ways you can help.
+
+=head2 Porting to 5.80
+
+I<Wait a second - I thought you said that 5.80 would be backwards
+compatible?>
+
+I<Yes> - 5.80 B<is> backwards compatible, so everything should keep
+working, but there are a number of things you can do to make your
+components and applications up to date with the current best-practises
+for Catalyst application development, and forward-compatible with
+future Catalyst releases.
+
+Note that B<all> of the techniques shown here can B<already>
+be used in B<current> Catalyst components and applications. See,
+for example, L<Catalyst::Component::InstancePerContext>, which is
+based on Moose.
+
+=head3 NEXT
+
+Use of C<NEXT> is now deprecated. Switching to C<Class::C3> will stop
+L<Class::C3::Adopt::NEXT> from moaning at you, and is pretty trivial.
+
+An example of a class which has been switched (with the old code 
+commented out) is shown below:
+
+    package MyApp::Plugin::FooBar;
+    #use NEXT;
+    use MRO::Compat;
+
+    sub a_method {
+        my ($self, @args) = @_;
+        # Do some stuff, probably changing @args
+
+        # Re-dispatch method
+        #$self->NEXT::method();
+        $self->next::method(@args);
+    }
+
+There is more documentation and examples of switching to C<Class::C3> in
+the C<Class::C3::Adopt::NEXT> distribution..
+
+=head3 Using Moose directly in components
+
+Where before, you used plain old Perl and L<Class::Accessor::Fast>,
+you can now switch to L<Moose>. 
+
+=head3 A simple example
+
+    package MyApp::Model::SomeModel;
+    use strict;
+    use warnings;
+    use base qw/Catalyst::Model::SomeModel/;
+    
+    # Your code
+    
+becomes:
+
+    package MyApp::Model::SomeModel;
+    use Moose;
+    extends 'Catalyst::Model::SomeModel';
+    no Moose;
+    
+    # Your code.
+
+=head3 A more complex case (e.g. component authors, or overriding functionality in your base class):
+
+    package Catalyst::Model::SomeModel::SubClass;
+    use strict;
+    use warnings;
+    use base qw/Catalyst::Model::SomeModel/;
+    
+    __PACKAGE__->mk_accessors(qw/ foo bar /);
+
+    # In this case, we change the parameters and then call the original method.
+    sub baz {
+        my ($self, @args) = @_;
+        # Do stuff to @args
+        $self->NEXT::redispatch(@args);
+    }
+    
+    # In this case, we do something before and after running a method 
+    # (e.g. add to $c->stats), but don't change the method args at all.
+    sub quux {
+        my $self = shift;
+        # Code before method
+        $self->NEXT::redispatch(@_);
+        # Code after method
+    }
+    
+becomes:
+
+    package Catalyst::Model::SomeModel::SubClass;
+    use Moose;
+    extends 'Catalyst::Model::SomeModel';
+    has [qw/ foo bar /] => ( is => 'rw' );
+    
+    around 'baz' => sub {
+        my ($orig, $self, @args) = @_;
+        # Do stuff to @args
+        $self->$orig(@args);
+    };
+    
+    before 'quux' => sub { # Code before method };
+    after  'quux' => sub { # Code after method  };
+    no Moose;
+
+Don't worry if this scares you for any reason. Whilst C<NEXT>
+is actively deprecated, just using C<Class::C3> and normal Perl OO
+(as above) is still supported, but you should start getting familiar
+with the Moose concepts, as many components are likely to be ported,
+and this is the recommended way of creating new components right now.
+
+=head3 A note about controllers
+
+Due to the use of method attributes (e.g. C<sub login :Local {}>) in
+Controllers, currently you must either stick with C<use base> or C<use
+parent>, or use the Moose C<extends> keyword in a BEGIN block.
+
+We know that this is slightly inconvenient, but it's a side-effect of
+the compile-time nature of Perl's attributes. In the long term, the
+plan is to deprecate the attribute-based syntax for controllers,
+switching instead to a domain specific language (i.e. Moose-like
+sugar), and/or use Devel::Declare to provide new keywords.
+
+Current controller declarations will stay supported, but will become
+deprecated once a flexible syntax emerges. The exact nature of what
+we're planning to do is in no way decided yet, but the main aim of
+any refactor would be to enable different, pluggable syntaxes for
+controller/component declarations - so that several different syntaxes
+can co-exist in the same application, allowing people to chose
+something appropriate for their application, with the 'fittest' / most
+used candidate becoming the default.
+
+=head2 Where can I find out more?
+
+=over
+
+=item  *
+
+The TODO list for Catalyst 5.80
+(L<http://dev.catalyst.perl.org/repos/Catalyst/Catalyst-Runtime/5.80/trunk/TODO>)
+
+=item *
+
+C<#catalyst> or C<#catalyst-dev> on irc.perl.org
+
+=item *
+
+The Catalyst mailing list
+L<http://lists.scsys.co.uk/cgi-bin/mailman/listinfo/catalyst>
+
+=item *
+
+L<MooseX::Emulate::Class::Accessor::Fast>
+
+=item *
+
+L<Class::C3::Adopt::NEXT>
+
+=item *
+
+L<Moose>
+
+=item *
+
+L<Class::C3>
+
+=item *
+
+L<MRO::Compat>
+
+=item *
+
+#moose on irc.perl.org (for general Moose questions not related to Catalyst 5.80)
+
+=back
+
+=head1 ACKNOWLEDGEMENTS
+
+Thanks to all the contributors to the 5.80 port for making it happen,
+the Catalyst team for Catalyst in the first place, and the #moose guys
+for Moose itself. Also thanks to everyone who checked this article,
+pointed out mistakes and made suggestions.
+
+=head1 AUTHOR
+
+Tomas Doran (t0m) <bobtfish@bobtfish.net>

@@ -1,0 +1,617 @@
+=head1 Day 9 - Web Services with Catalyst::Action::REST
+
+Building RESTful Web Services with Catalyst::Action::REST.
+
+=head2 What are we going to do today?
+
+This article will serve as a brief introduction to the REST architectural
+style, specifically as it relates to web services.  It will walk you through
+a constructing a sample application using L<Catalyst::Controller::REST>, the
+source for which is available at the end of this article.
+
+=head2 What is REST?
+
+REST stands for Representational State Transfer.  It describes an
+architectural style for building systems on the World Wide Web.  REST
+sees every web application as a set of I<resources> (such as
+L<http://dev.catalyst.perl.org>) which represent a particular I<state>
+of an application.  When you access a resource, you are
+I<transferring> it; and thus possibly changing its I<state>.
+
+(For a longer, much more accurate description of REST, see the links
+at the end of this article.  The preceding paragraph owes quite a bit
+to the article at L<http://www.xfront.com/REST-Web-Services.html>)
+
+In practice, REST is a method for designing web services using three
+things:
+
+=over 4
+
+=item B<Nouns, or Resources>
+
+A noun is a thing (or set of things) that describe the actors in your
+system.  They are represented as URIs, and should be descriptive.  A
+good example of a noun (which we will be using in our example later
+on) would be L<http://example.com/user>, or
+L<http://example.com/user/adam>.
+
+=item B<Verbs, or Actions>
+
+Verbs in REST are the various actions you can apply to a Noun.  These
+are typically the same as HTTP Methods.  The four most common verbs in
+REST are:
+
+=over 2
+
+=item I<PUT>    - which creates (or updates) the data at a resource.
+
+=item I<GET>    - which retrieves the data from a resource.
+
+=item I<POST>   - which updates (or creates) the data at a resource.
+
+=item I<DELETE> - which deletes the data at a resource.
+
+=back
+
+Notice that they correspond quite neatly to the CRUD (Create,
+Retrieve, Update, Delete) acronym common in discussions of database
+actions.
+
+=item B<Content Types>
+
+The final piece of the REST puzzle is Content Types.  These are used to
+describe the format of a resource: how the various parts of our machine
+should process the resource.  In practice, we specify the Content Type
+to ensure that the representation we receive of a given resource is the
+one we are best suited to process (C<text/xml> for XML, C<text/x-yaml>
+for YAML, C<text/x-json> for JSON, etc.)
+
+=back
+
+These three things (Nouns, Verbs, and Content Types) form what's called the
+I<REST Triangle>.  Once you understand the interactions among these three
+things, you've got 95% of everything you need to know about REST.  
+
+What's the remaining 5%?  It's understanding HTTP 1.1; knowing when to
+return different status codes, what headers to be set, etc.
+
+=head2 Catalyst::Action::REST
+
+To make building RESTful web services easy, we've created
+L<Catalyst::Action::REST>.   It's composed of several pieces, each of which 
+helps you to implement a portion of the REST triangle (and to help wrangle
+HTTP, while you're at it.)  
+
+=over 2
+
+=item B<How it helps with Nouns>
+
+Truthfully, Catalyst already helps you here.  Its incredibly flexible
+dispatch system is perfect for creating RESTful URIs.
+
+=item B<How it helps with Verbs>
+
+L<Catalyst::Action::REST> helps you deal with the different verbs by
+extending the dispatcher.  When you declare a sub like this:
+
+   sub cat :Path('/cat') :Args(1) :ActionClass('REST') {}
+
+we will automatically re-dispatch to subroutines that have the current
+method appended with an C<_>.  So, for the above example, we might
+have:
+
+   sub cat_GET {
+       ... returns a particular cat ...
+   }
+
+   sub cat_PUT {
+       ... creates a new cat...
+   }
+
+When a reference is requested using a method you have not implemented,
+L<Catalyst::Action::REST> will automatically generate a proper C<405
+Not Implemented> response.  The C<Allow> header will contain a list of
+all the implemented methods.  (In this case, it would contain GET
+and PUT.) Similarly, support for OPTIONS requests are dynamically
+generated as well.
+
+=item B<How it helps with Content Types>
+
+Support for different Content Types is provided by
+L<Catalyst::Action::Serialize> and L<Catalyst::Action::Deserialize>.
+Together, these two Actions allow you to send serialized data back to
+clients (L<Catalyst::Action::Serialize>) and to deserialize data
+received from them (L<Catalyst::Action::Deserialize>).  Eleven different
+content types are currently supported (including YAML, JSON, XML, and
+Data::Dumper) and adding new ones is easy.
+
+We evaluate which content type to use by evaluating the following
+things on a per-request basis:
+
+=over 2
+
+=item B<The value of the Content-Type HTTP header>.
+
+If the client provides a Content-Type header, we will honor it first.
+
+=item B<The value of the content-type parameter>.
+
+For GET requests, you can manually set the content type with a query
+parameter.  Calling a resource like C<<
+http://example.com/user/adam?content-type=text/x-json >> would return
+a JSON structure.
+
+=item B<Parsing the Accept HTTP header>
+
+If none of these have been provided, we will parse the Accept header,
+selecting the content type most preferred by the client.
+
+=back
+
+=item B<How it helps with HTTP>
+
+Creating the proper HTTP responses to clients makes everyone's lives
+easier.  L<Catalyst::Controller::REST> provides I<status helpers>,
+which can be used to easily create well-formed HTTP responses.  For
+example, a C<200 OK> should include an HTTP Body that matches the
+requested content type.  Using a status helper, generating the proper
+response is:
+
+     $self->status_ok(
+       $c,
+       entity => {
+           radiohead => "Is a good band!",
+       }
+     );
+
+=back
+
+=head2 REST by Example
+
+Often the best way to learn about something is by doing, so let's
+build a simple REST web service with Catalyst.  You can follow along
+here, or download the source with subversion from
+L<http://dev.catalyst.perl.org/repos/Catalyst/examples/AdventREST>.
+
+Our example application will be a simple User database that tracks
+User ID's, Full Names, and Descriptions of users.
+
+So let's start by determining what our Nouns will be, and what Verbs
+are valid for them:
+
+=over 4
+
+=item Noun 1 - L<http://example.com/user>
+
+This noun represents all the users in our system.
+
+=over 2 
+
+=item Verb - I<GET> (retrieve)
+
+We want to be able to GET a list of users from the system.
+
+=back
+
+=item Noun 2 - L<http://example.com/user/user_id>
+
+These nouns will represent individual users in our system.  Each user
+gets a URL based on his or her User ID.
+
+=over 2
+
+=item Verb - I<PUT> (create)
+
+We need to be able to create new users by sending a PUT request to an
+individual user's URL.
+
+=item Verb - I<GET> (retrieve)
+
+Sending a GET request should return the state of the current user.
+
+=item Verb - I<POST> (update)
+
+POST requests will be needed to update the user.
+
+=item Verb - I<DELETE> (delete)
+
+And sadly, sometimes we need to delete a user entirely.
+
+=back
+
+=back
+
+So, now that we have our architecture laid out, let's get down to business.
+To follow along with this tutorial, you will need to have installed:
+
+=over 4
+
+=item L<Catalyst>
+
+=item L<Catalyst::Plugin::ConfigLoader>
+
+=item L<Catalyst::Action::REST>
+
+=item L<Catalyst::Model::DBIC::Schema>
+
+=item L<DBD::SQLite>
+
+=back
+
+=head2 Create the Application
+
+First off, we need to create our new Catalyst application.
+
+  $ catalyst.pl AdventREST
+
+The remaining commands in this tutorial are from the base of this new
+application.
+
+=head2 Create the Database, and the DBIx::Class Schema
+
+We need to have somewhere to store all our lovely users, so let's start with
+that.  A couple of directories need to get made:
+
+   $ mkdir db lib/AdventREST/Schema
+
+We have a simple SQL schema, which we will put in a file called C<db.sql>.  
+
+   CREATE TABLE user (
+    user_id TYPE text NOT NULL PRIMARY KEY,
+    fullname TYPE text NOT NULL,
+    description TYPE text NOT NULL
+   ); 
+
+Setting up our table structure is:
+
+   $ sqlite3 db/adventrest.db < db.sql
+
+Now we populate our L<DBIx::Class> schema.  In C<lib/AdventREST/Schema.pm> you
+should have:
+
+    #
+    # AdventREST::Schema.pm
+    #
+
+    package AdventREST::Schema;
+    use base qw/DBIx::Class::Schema/;
+
+    __PACKAGE__->load_classes(qw/User/);
+
+    1;
+
+The "user" table from above gets its own class as well, in
+C<lib/AdventREST/Schema/User.pm>. 
+
+    package AdventREST::Schema::User;
+
+    use base qw/DBIx::Class/;
+    __PACKAGE__->load_components(qw/Core/);
+    __PACKAGE__->table('user');
+    __PACKAGE__->add_columns(qw/user_id fullname description/);
+    __PACKAGE__->set_primary_key('user_id');
+
+    1;
+
+To understand what this code does, refer to the L<DBIx::Class>,
+L<DBIx::Class::Schema>, and L<DBIx::Class::ResultSource>
+documentation.
+
+We still need to have a Catalyst model for our database.  
+L<Catalyst::Model::DBIC::Schema> comes with one we can use, so let's do that:
+
+   $ ./script/adventrest_create.pl model DB DBIC::Schema AdventREST::Schema
+
+Connecting our new Database model to the SQLite database we created earlier is
+easy.  Just edit the C<adventrest.yml> file:
+
+    ---
+    name: AdventREST
+    Model::DB:
+        schema_class: AdventREST::Schema
+        connect_info:
+            - DBI:SQLite:dbname=__path_to(db/adventrest.db)__
+            - ""
+            - ""
+
+That makes our Database ready for use with Catalyst.  Now, let's create our
+Controller.
+
+=head2 Creating the User Controller.
+
+Using the C<adventrest_create.pl> command, let's create a User controller:
+
+   $ ./script/adventrest_create.pl controller User
+
+To make things easier, I'm going to annotate the contents of your new
+controller, which was created as C<lib/AdventREST/Controller/User.pm>.
+
+   package AdventREST::Controller::User;
+
+   use strict;
+   use warnings;
+   use base 'Catalyst::Controller::REST';
+
+Since this is a REST controller, we want to inherit from
+C<Catalyst::Controller::REST> instead of the regular C<Catalyst::Controller>.
+This sets things up to automatically handle Content-Type negotiation and
+provides the status helpers I mentioned earlier. 
+
+   sub user_list : Path('/user') :Args(0) : ActionClass('REST') { }
+
+The C<sub user_list> handles the L<http://example.com/user> noun.
+Remember that the various actions (verbs) are dealt with in different
+subroutines.  The actual list of users should only be generated on GET
+requests, so we create:
+
+   sub user_list_GET {
+       my ( $self, $c ) = @_;
+
+       my %user_list;
+       my $user_rs = $c->model('DB::User')->search;
+       while ( my $user_row = $user_rs->next ) {
+           $user_list{ $user_row->user_id } =
+             $c->uri_for( '/user/' . $user_row->user_id )->as_string;
+       }
+       $self->status_ok( $c, entity => \%user_list );
+   }
+
+It starts by doing a search of our database, populating a hash
+(C<%user_list>) with the C<user_id> and its resource URI.  We then pass that
+hash to the C<status_ok> I<status helper>, which returns the C<%user_list>
+serialized into a supported content-type.
+
+Since GET is the only verb we care about for L<http://example.com/user>,
+let's move on to creating the L<http://example.com/user/adam> style
+resources..
+
+    sub single_user : Path('/user') : Args(1) : ActionClass('REST') {
+        my ( $self, $c, $user_id ) = @_;
+
+        $c->stash->{'user'} = $c->model('DB::User')->find($user_id);
+    }
+
+Note that this routine is different from C<user_list>, in that it's 
+not empty.  It will be executed before any of the _METHOD subroutines
+are invoked, letting you pre-populate any data that is necessary 
+in each method.  In this case, we look up the user specified in our
+URL in the database, and stick it in the stash for later.
+
+Since we need to create users before we can retrieve them, we'll
+do the C<single_user_POST> method next.
+
+    sub single_user_POST {
+        my ( $self, $c, $user_id ) = @_;
+
+        my $new_user_data = $c->req->data;
+
+Methods like C<POST>, C<PUT>, and C<OPTIONS> requests will all have the
+data they sent deserialized and put into C<< $c->req->data >>.  
+
+        if ( !defined($new_user_data) ) {
+            return $self->status_bad_request( $c,
+                message => "You must provide a user to create or modify!" );
+        }
+
+If the client didn't supply any data, they didn't send a properly formed
+request.
+
+        if ( $new_user_data->{'user_id'} ne $user_id ) {
+            return $self->status_bad_request( 
+                    $c,
+                    message => 
+                        "Cannot create or modify user "
+                      . $new_user_data->{'user_id'} . " at "
+                      . $c->req->uri->as_string
+                      . "; the user_id does not match!" );
+        }
+
+If they did supply some data, but it isn't appropriate for the resource
+they specified, it's a bad request.
+
+        foreach my $required (qw(user_id fullname description)) {
+            return $self->status_bad_request( $c,
+                message => "Missing required field: " . $required )
+              if !exists( $new_user_data->{$required} );
+        }
+
+This makes sure that all the fields we need to update the database
+exist.
+
+        my $user = $c->model('DB::User')->update_or_create(
+            user_id     => $new_user_data->{'user_id'},
+            fullname    => $new_user_data->{'fullname'},
+            description => $new_user_data->{'description'},
+        );
+        my $return_entity = {
+            user_id     => $user->user_id,
+            fullname    => $user->fullname,
+            description => $user->description,
+        };
+
+This creates a new user in the database, and prepares the data we are going to
+return to our client.
+
+        if ( $c->stash->{'user'} ) {
+            $self->status_ok( $c, entity => $return_entity, );
+        } else {
+            $self->status_created(
+                $c,
+                location => $c->req->uri->as_string,
+                entity   => $return_entity,
+            );
+        }
+    }
+
+Since POST can handle both updating an existing resource and creating
+a new one, we need to know whether to return a C<200 OK> response, or
+a <201 CREATED>.  We do that by checking to see if the user object
+was populated in the stash.  The C<location> argument to C<status_created>
+should be the URI where the resource can be found.
+
+For our application, PUT and POST are the same.  We'll just take a little
+shortcut to making that so in our controller:
+
+    *single_user_PUT = *single_user_POST;
+
+Ok, so now we can list, create, and update users.  We still need to be able to
+retrieve an individual user.
+
+    sub single_user_GET {
+        my ( $self, $c, $user_id ) = @_;
+
+        my $user = $c->stash->{'user'};
+        if ( defined($user) ) {
+            $self->status_ok(
+                $c,
+                entity => {
+                    user_id     => $user->user_id,
+                    fullname    => $user->fullname,
+                    description => $user->description,
+                }
+            );
+        }
+        else {
+            $self->status_not_found( $c,
+                message => "Could not find User $user_id!" );
+        }
+    }
+
+This should look pretty familiar to you by now.  If we found the user
+when the request was made, then we'll return a C<200 OK> along with
+their data.  Otherwise, it's the old C<404 NOT FOUND> response for you.
+
+Last thing left to be done: deleting a user.
+
+    sub single_user_DELETE {
+        my ( $self, $c, $user_id ) = @_;
+
+        my $user = $c->stash->{'user'};
+        if ( defined($user) ) {
+            $user->delete;
+            $self->status_ok(
+                $c,
+                entity => {
+                    user_id     => $user->user_id,
+                    fullname    => $user->fullname,
+                    description => $user->description,
+                }
+            );
+        } else {
+            $self->status_not_found( $c,
+                message => "Cannot delete non-existent user $user_id!" );
+        }
+    }
+
+It's only a one-line difference from our _GET routine; we just
+delete the user if they exist.
+
+=head2 Fire it up!
+
+To test your new REST application, we'll just use the good old C<curl> command.
+You can get a copy of C<curl> at L<http://curl.haxx.se/>.  
+
+First off, we start up our Catalyst test server:
+
+   $ ./script/adventrest_server
+
+Next, we need to put some data together to populate our User service.
+(If you are following along from the reference implementation, these
+files exist in the "data" directory.) Let's start with some yaml.
+Create a file called C<new-user.yml>:
+
+    ---
+    user_id: adam
+    fullname: Adam Jacob
+    description: Another Catalyst Monkey
+
+This will create a user just like me! :)
+
+Ok, let's use curl to update our web service:
+
+   $ curl -X PUT -H 'Content-Type: text/x-yaml' -T new-user.yml \
+       http://localhost:3000/user/adam
+
+You will get back:
+
+    --- 
+    description: Another Catalyst Monkey
+    fullname: Adam Jacob
+    user_id: adam
+
+Note that the order of the fields will be (sort of) random, since
+we're serializing a hash.  Lets get a list of all the users we have
+created so far:
+
+   $ curl -X GET -H 'Content-Type: text/x-yaml' http://localhost:3000/user
+   --- 
+   adam: http://localhost:3000/user/adam
+
+I love monkeys as much as the next guy, but even I balk at having it in
+my description!  So let's change it to something else.  This time,
+create a file called C<update-user.datadumper>, and stick some Perl in
+there:
+
+    {
+        user_id => "adam",
+        fullname => "Adam Jacob",
+        description => "Catalyst::Action::REST rules!",
+    }
+
+Updating the user entry is:
+
+   $ curl -X POST -H 'Content-Type: text/x-data-dumper' \
+      -T update-user.datadumper \
+      http://localhost:3000/user/adam
+
+The server will respond:
+
+    {'fullname' => 'Adam Jacob','user_id' => 'adam','description' => 'Catalyst::Action::REST rules!'}
+
+As great as I am (and I'm pretty darn sweet) you probably don't want me in
+your user database.  Delete!  
+
+   $ curl -X DELETE -H 'Content-Type: text/x-yaml' \
+      http://localhost:3000/user/adam
+    --- 
+    description: Catalyst::Action::REST rules!
+    fullname: Adam Jacob
+    user_id: adam
+
+Viola!  Empty database.
+
+=head2 Summary
+
+REST is an incredibly useful way of looking at the web applications you build.
+Creating REST services with Catalyst tries to make implementing them as 
+easy as possible.  If you want to learn more about REST, here are some
+resources for you:
+
+=over 4
+
+=item L<http://www.xfront.com/REST-Web-Services.html>
+
+A pretty concise, well-structured introduction to REST.
+
+=item L<http://en.wikipedia.org/wiki/Representational_State_Transfer>
+
+The almighty Wikipedia has a slightly rambling, but ultimately useful
+entry on REST.
+
+=item L<http://rest.blueoxen.net/cgi-bin/wiki.pl>
+
+The REST wiki provides all sorts of information about REST.  
+
+=item L<http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm>
+
+This is Roy Fielding's doctoral thesis that first coined the term REST,
+and lays out its fundamental principles. 
+
+=back
+
+Thanks for reading!  Happy RESTing!
+
+=head3 AUTHOR
+
+Adam Jacob <adam@stalecoffee.org>
+

@@ -1,0 +1,302 @@
+=head1 Advanced Search in web DBIx::Class based applications (with tags, full text search and searching by location)
+
+There is a bit of irony that I write that article, for people to learn from it,
+while in fact it is my failing to properly wrap my head around the problem and encapsulate 
+my solution into a CPAN library that forces me to write an article in the first
+place.  But maybe someone smarter then me will read it and write that CPAN
+module?
+
+=head2 The Problem
+
+It is a common case that on a web site you need an 'advanced search' feature
+that let's the user combine simple predicates into more elaborated queries.
+Usually all the predicates are joined with an 'AND' - and the technique I
+describe here is based on this assumption.  At first this task looks pretty
+simple.  You have a list of parameters from the web form, corresponding the the
+columns of some database table, you have the values of those parameters and you
+need to find all the records in that table that have those values in those
+columns.  You just do: 
+
+    my @records = $schema->ResultSet( 'MyTable' )->search( 
+        $reqest->params, 
+        { page => 1, rows => 5 } 
+    );
+
+Simple.
+
+Then of course you add parameter validation and filtering - but this is outside
+of the scope of this article.
+
+Then you need to add checks on columns not only in the searched table, but also
+on columns from related records and things become more complicated.  What I
+propose here is a solution that works for the simple case, solves the related
+tables case, and also is easily extendable to cover more complicated predicates
+like searching by a conjunction of tags, full text searches or searches by
+location. I also add implementation of those 'advanced' predicates (using the
+PostgreSQL extensions for full text search and location based search).
+
+=head2 The Solution
+
+The solution I propose is this simple module:
+
+    package AdvancedSearch;
+    
+    use strict;
+    use warnings;
+    
+    use base qw( DBIx::Class::ResultSet );
+
+    sub advanced_search {
+        my ( $self, $params, $attrs ) = @_;
+        my $columns = {};
+        for my $column ( keys %$params ){
+            if( my $search = $self->can( "search_for_$column" ) ){
+                $self = $self->$search( $params );
+                next;
+            }
+            my ( $full_name, $relation ) = $self->parse_column( $column );
+            $self = $self->search({}, { join => $relation });
+            $columns->{$full_name} = $params->{$column};
+        }
+        return $self->search( $columns, $attrs );
+    }
+
+You can use it like that:
+
+    my @records = $schema->ResultSet( 'MyTable' )->advanced_search( 
+        $reqest->params, 
+        { page => 1, rows => 5 } 
+    );
+
+But first you need to make your ResultSet class inherit from it.  This can be
+done in several ways, what we do is adding:
+
+    MyTable->resultset_class(MyTable . '::ResultSet');
+    
+    package MyApp::DBSchema::MyTable::ResultSet;
+
+    use base qw( AdvancedSearch );
+
+
+to MyTable.pm.
+
+For the simple case it works just like the familiar 'search' method of the
+L<DBIx::Class::ResultSet class>. But it also works for searching in related
+records.  For that we have the parse_column function. It looks like that: 
+
+    sub parse_column {
+        my ( $self, $field)  = @_;
+        if( $field =~ /(.*?)\.(.*)/ ){
+            my $first = $1;
+            my $rest  = $2;
+            my( $column, $join ) = $self->parse_column( $rest );
+            if ( $join ) {
+                return $column, { $first => $join };
+            }else{
+                return $first . '.' . $column, $first;
+            }
+        }elsif( $field ){ 
+            return $field;
+        }else{
+            return;
+        }
+    }
+
+What it does is parsing column names of the format:
+'relationship1.relationship2.relationship3.column' into 'relationship3.column'
+- the fully qualified column name and a 
+'{ relationship1 => { relationship2 => relationship3 } }' hash used for joining
+the appropriate tables.
+
+(I had also a non-recursive version - but it was not simpler)
+
+So now you can do this:
+
+    my @records = $schema->ResultSet( 'MyTable' )->advanced_search( 
+        {
+            column1 => 'value1',
+            column2 => 'value2', 
+            some_relation.column => 'value3',
+            some_other_relation.some_third_relation.column => 'value4', 
+        },
+        { page => 1, rows => 5 }
+    );
+    
+Useful?
+We use it.
+
+=head2 The Extensions
+
+But the real advantage of this approach is how easily it can be extended.  
+It works as a kind of a fuzy L<http://en.wikipedia.org/wiki/Template_method_pattern> - where
+you don't specify the exact names of the methods to be called - but rather setup a condition
+on those names.  Like here we say - now call a method that starts with 'search_for_' if it exists.
+
+=head3 Tags
+
+For example let say we need to search by conjunction of tags like that:
+
+    my @records = $schema->ResultSet( 'MyTable' )->advanced_search( {
+        column1 => 'value1',
+        some_other_relation.some_third_relation.column => 'value4',
+        tags => [ qw/ tag1 tag2 tag3/ ],
+    });
+ 
+What we need is a method called 'search_for_tags' that will do the search.  The
+nice thing is that we don't need to wary how this will be combined with the
+rest of the predicates - DBIC will do the right thing (for and 'AND' relation).
+
+Here is the method:
+
+    sub search_for_tags {
+        my ( $self, $params ) = @_;
+        my @tags = @{$params->{tags}};
+        my %search_params;
+        my $suffix = '';
+        my $i = 1;
+        for my $tag ( @tags ){
+            $search_params{'tags' . $suffix .  '.name'} = $tag;
+            $suffix = '_' . ++$i;
+        }
+        my @joins = ( 'tags' ) x scalar( @tags );
+        $self = $self->search( \%search_params, { 
+                join => \@joins,
+            } 
+        );
+        return $self;
+    }
+
+It builds a query like that:
+
+    SELECT * FROM MyTable me, Tags tags, Tags tags_2, Tags tags_3
+    WHERE tags.mytable_id = me.id AND tags.tag = 'tag1' AND
+    tags_2.mytable_id = me.id AND tags_2.tag = 'tag2' AND
+    tags_3.mytable_id = me.id AND tags_3.tag = 'tag3' 
+
+This query will use indices and should be fast (a more detailed cover of this
+technique you can find at my blog at:
+L<http://perlalchemy.blogspot.com/2006/10/tags-and-search-and-dbixclass.html>).
+
+*Attention:* You need the 0.08008 version of DBIx::Class for this to work properly.
+
+=head3 Full Text Search
+
+For full text search I use the PostgreSQL tsearch2 engine here 
+(see L<http://www.sai.msu.su/~megera/postgres/gist/tsearch/V2/>).  
+First I split the query into a list of words, then I build a tsearch2 query out
+of those words using the '|' alternative operator and quote the result.  
+When programming a site for a geek audience the alternative approach can be to let 
+the user to build the query using the tsearch2 syntax.
+
+    sub search_for_query {
+        my ( $self, $rs, $params ) = @_;
+        my $value = $params->{query};
+        my @query_cols = $self->query_cols; 
+        my $dbh = $self->result_source->schema->storage->dbh;
+        my @words =  split /\s+/, $value;
+        my $q = $dbh->quote( join '|',  @words );
+        return $rs->search( {
+                '-nest' => [
+                $query_cols[0] => \"@@ to_tsquery( $q )",
+                $query_cols[1] => \"@@ to_tsquery( $q )",
+                ]
+            }
+        );
+    }
+    
+    sub query_cols {
+        return qw/ name_vec synopsis_vec /;
+    }
+
+We override the query_cols method in some subclasses so that we can search
+by different columns.
+
+=head3 Search by Proximity
+
+For searching by proximity I use the PostgreSQL geometric functions 
+L<http://www.postgresql.org/docs/8.2/interactive/functions-geometry.html>.
+There are  
+problems with it - the distance operator assumes planar coordinates, 
+while for the interesting thing is to search geographic data with the standard
+latitude/longitude coordinates and the search does not use indices.
+In our solution we just don't care about
+being exact and just multiply the 'distance' in degrees by 50 to get approximate
+distance in miles.  The actual proportion is about 43 for latitude and 69 for
+longitude at about the London's longitude, it would be possible to get quite 
+good results by dividing the latitude and longitude by those numbers in the
+database - but I would rather have good data in the database then more exact
+results.  Maybe at some point we shell switch to use some real geografic 
+distance functions (I've seen a PosgreSQL extension to do that - but I was
+scared a bit by it's experimental status).  
+
+Here is the function we use to filter the results by proximity to a place:
+
+    sub search_for_distance {
+        my ( $self, $rs, $params ) = @_;
+        my $lat_long = $params->{lat_long};
+        my $distance = $params->{distance} / 50;  
+        # around London the actual proportions are around 43 for latitude 
+        # and 69 for longitude 
+        return $rs->search( 
+            { "(lat_long <-> '$lat_long'::POINT) < " => \$distance },
+            { join => 'location' }
+        );
+    }
+
+This function assumes there are two parameters on the $params hash: distance
+and lat_long (lattitude/logintude coordinates).  The location data in our
+database are in a separate table called 'location'.
+
+We also use another search extension:
+
+    sub search_for_lat_long {
+        my ( $self, $rs, $params ) = @_;
+        my $lat_long = $params->{lat_long};
+        $rs = $rs->search( undef,        
+            { 
+                join => 'location',
+                '+select' => [ \"(lat_long <-> '$lat_long'::POINT) AS distance" ],
+                '+as' => 'distance',
+                order_by => 'distance ASC',
+            }
+        );
+        return $rs;
+    }
+
+This function sorts the results by proximity to the point determined by the
+lat_long coordinates.  This way the user does not need to specify the
+maximum distance - the closest results are displayed on the first pages
+anyway - and that is enough for most of the searches.
+
+I did not yet test the efficiency of this solution, but without using indices
+it cannot be very scalable.  There is a workaround for that.
+The '<<' (letf to), '>>' (right to) and '<<|', '|>>' for up and down 
+comparison operators can use indices.  So one can use them 
+to build a query based on
+L<http://en.wikipedia.org/wiki/Taxicab_geometry>
+instead of the normal geometry.
+
+=head2 The To Do
+
+One interesting addition to the code above would be to add some generic
+code to deal with ordering.  Another open question is how to package the 
+extensions.  They depend on the column names and this does not look generic. 
+Maybe someone reading this has a good idea how to do it. 
+
+=head2 The Conclusion
+
+What I presented here is a base class for ResultSets implementing an advanced_search
+method which can be treated as a replacement of the standard 'search' method but is
+easier to extend.  And which can be useful for the task of building queries out
+of HTML Form parameters.
+
+=head3 AUTHOR
+
+Zbigniew Lukasiak, E<lt>zzbbyy@gmail.comE<gt>
+
+L<http://perlalchemy.blogspot.com/>
+
+The code in this article is licenced under the same conditions as Perl itself.
+
+=cut
+

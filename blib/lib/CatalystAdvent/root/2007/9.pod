@@ -1,0 +1,604 @@
+
+=head1 Catalyst with Ext+Ajax: Editable Data Grids
+
+=head2 Creating an application
+
+This tutorial assumes you already have some Catalyst experience, so we won't
+go into too much detail with the basics of creating an application...
+
+  % catalyst.pl AdventAjaxGrid
+  ...
+  % cd AdventAjaxGrid
+  ...
+  % script/adventajaxgrid_create.pl view TT TTSite
+  ...
+
+=head2 Installing Ext
+
+To install Ext, you first need to download and unzip the distribution.  For
+this tutorial we will be using version 2.0, which is the latest version at
+the time of this writing.  If you use a different version, you will need to
+adjust some of these commands.
+
+  % cd root/static
+  % curl -O http://extjs.com/deploy/ext-2.0.zip
+  ...
+  % unzip ext-2.0.zip
+  ...
+  % mv ext-2.0 ext
+
+There are some portions of the Ext framework that we will need in every page,
+so we're going to add those to the head section now.  I like to define a
+macro to do the repetitive stuff for me, so fire up your editor again and
+open root/lib/config/main, then add the following code to the bottom of
+the file:
+
+  [% BLOCK stylesheet_link %][% FILTER collapse %]
+      [% DEFAULT rel="stylesheet" type="text/css" media="all" %]
+      <link
+          rel="[% rel %]"
+          type="[% type %]" 
+          media="[% media %]" 
+          href="[% href %]"
+      />
+  [% END %][% END %]
+  [% BLOCK javascript_link %][% FILTER collapse %]
+      [% DEFAULT type="text/javascript" %]
+      <script
+          src="[% src %]"
+          type="[% type %]"
+      ></script>
+  [% END %][% END %]
+  [% MACRO css_link INCLUDE stylesheet_link %]
+  [% MACRO js_link INCLUDE javascript_link %]
+
+This defines two blocks, one that produces a css link tag, and one that
+produces a javascript script tag.  Then we define a macro to go with each
+one to make their use even shorter.  Now we can very easily add javascript
+or css links whenever we need them.  Let's edit root/lib/site/html, and add
+the main core of the Ext libraries to the header section, just before the
+existing style tag:
+
+  [%
+    css_link( href = "/static/ext/resources/css/ext-all.css" );
+    js_link( src = "/static/ext/adapter/ext/ext-base.js" );
+    js_link( src = "/static/ext/ext-all.js" );
+  %]
+
+Now all we need to do before we can test this first portion, is to create an
+index template.  In root/src create a new template called index.tt2, which
+contains just the following content:
+
+  [% META title = 'Advent AJAX Grid' %]
+  <div id="datagrid"></div>
+
+And then add a method to your root controller to work with it.
+
+  =head2 index
+  
+  =cut
+  
+  sub index : Private {
+    my ( $self, $c ) = @_;
+  
+    $c->stash->{ 'template' } = 'index.tt2';
+  }
+
+Assuming there are no typos in any of that, you should now be able to start
+up the development server and connect to it, to see an empty page with just
+the default TTSite headers and footers.
+
+  % script/adventajaxgrid_server.pl 
+  
+  [info] AdventAjaxGrid powered by Catalyst 5.7011
+  You can connect to your server at http://localhost:3000
+
+=head2 Creating a data source
+
+Before we can get into creating our data grid, we need some data.  For that,
+we're going to set up a very simple L<DBIx::Class::Schema>-based database
+that can automatically deploy itself.  If you don't already have them
+installed, pull out your trusty L<CPAN> or L<CPANPLUS> tools, and install
+L<DBIx::Class> and L<DBICx::Deploy>.  Then create a new schema class in
+your lib directory called AdventDB.pm:
+
+  package AdventDB;
+  use strict;
+  use warnings;
+  use base qw( DBIx::Class::Schema );
+  
+  __PACKAGE__->load_classes();
+  
+  1;
+
+Then make a subdirectory in the same location called AdventDB, and create
+a new result class in there named AdventDB::Person:
+
+  package AdventDB::Person;
+  use strict;
+  use warnings;
+  use base qw( DBIx::Class );
+  
+  __PACKAGE__->load_components(qw( Core ));
+  __PACKAGE__->table( 'people' );
+  __PACKAGE__->add_columns(
+      id      => {
+          data_type           => 'integer',
+          is_nullable         => 0,
+          is_auto_increment   => 1,
+      },
+      name    => {
+          data_type           => 'varchar',
+          size                => 128,
+          is_nullable         => 0,
+      },
+      affiliation => {
+          data_type           => 'varchar',
+          size                => 16,
+          is_nullable         => 1,
+      },
+  );
+  __PACKAGE__->set_primary_key( 'id' );
+  
+  1;
+
+Now you have everything you need to create a database connection.  For the
+sake of example, we are going to use a L<SQLite> database, so pick a suitable
+place to store it, and use the dbicdeploy tool (from the L<DBICx::Deploy>
+package) to create a database from your classes.  From the top-level
+AdventDataGrid directory, run this command:
+
+  % dbicdeploy -l AdventDB dbi:SQLite:dbname=advent.db
+
+=head2 Populating the database
+
+Once the database is created, we need to populate it with some sample data.
+One of the nice things about having the whole database schema built from the
+code, is that during development you can very easily delete the entire
+development database and run dbicdeploy to get a brand-new one at any time.
+To make it even easier on us during development, we'll create a script that
+can then repopulate the database with a collection of suitable sample data.
+
+Create a new script in the script directory called populate-database.pl.
+
+  #!/usr/bin/perl -w
+  ##################
+  use strict;
+  use warnings;
+  use FindBin qw( $Bin );
+  use lib "$Bin/../lib";
+  use AdventDB;
+  
+  my $schema = AdventDB->connect( "dbi:SQLite:dbname=$Bin/../advent.db" );
+  
+  chomp( my @people = <DATA> );
+  my @affiliations = qw( Ninja Pirate );
+  
+  $schema->populate( 'Person', [
+      [ qw( name affiliation ) ],
+      map { [ $_, $affiliations[ rand( @affiliations ) ] ] } @people
+  ] );
+  __DATA__
+  Andy Grundman
+  Andy Wardley
+  Andreas Marienborg
+  Andrew Bramble
+  Andrew Ford
+  Andrew Ruthven
+  Arthur Bergman
+  Autrijus Tang
+  Brian Cassidy
+  Carl Franks
+  Christian Hansen
+  Christopher Hicks
+  Dan Sully
+  Danijel Milicevic
+  David Kamholz
+  David Naughton
+  Drew Taylor
+  Gary Ashton Jones
+  Geoff Richards
+  Jesse Sheidlower
+  Jesse Vincent
+  Jody Belka
+  Johan Lindstrom
+  Juan Camacho
+  Leon Brocard
+  Marcus Ramberg
+  Matt S Trout
+  Robert Sedlacek
+  Sam Vilain
+  Sascha Kiefer
+  Sebastian Willert
+  Tatsuhiko Miyagawa
+  Ulf Edvinsson
+  Yuval Kogman
+
+Now that you have a script to populate the database, run it to populate the
+database.  :)
+
+  % script/populate-database.pl
+
+=head2 Creating the model
+
+The last step in setting up our database environment is to create a model
+that Catalyst can use to access our database.  Since this is the only
+database model our tutorial project will have, we'll just call the model
+'DB':
+
+  % script/adventdatagrid_create.pl model DB DBIC::Schema \
+        AdventDB dbi:SQLite:dbname=advent.db
+
+Note that this command line is split (and a backslash used to escape the
+newline) simply for readability.  When actually running this command, enter
+it as one line and omit the backslash.
+
+=head2 Creating a JSON view
+
+To get data back and forth between the database and the browser, we'll need
+an interface, and since JSON is an easy one to use and setup, that's what
+we'll do.  Make sure you have L<Catalyst::View::JSON> installed, and then...
+
+  % script/adventdatagrid_create.pl view JSON JSON
+
+Now that you have more than one view, you will need to make sure Catalyst
+knows which one to use by default.  You can do this by adding
+'default_view: TT' to the adventajaxgrid.yml configuration file.
+
+Yes, technically using JSON means that our application is actually an
+'AJAJ' powered data grid, rather than AJAX, but it's fairly common for
+AJAX to simply mean 'javascript that interacts with the server in some way',
+as the pointy-haired bosses understand AJAX but not AJAJ or AJAH.  Turning
+this into an actual XML-powered AJAX app is left as an exercise for the
+reader.
+
+=head2 Providing data for the grid
+
+To provide data for the grid to display, we're going to create a new
+method in our root controller...
+
+  =head2 people_data
+  
+  =cut
+  
+  sub people_data : Local {
+      my ( $self, $c ) = @_;
+  
+      my $rs = $c->model( 'DB::Person' );
+      my @people = ();
+      while ( my $person = $rs->next ) {
+          push( @people, {
+              id          => $person->id,
+              name        => $person->name,
+              affiliation => $person->affiliation,
+          } );
+      }
+      $c->stash->{ 'people' } = \@people;
+      $c->detach( $c->view( 'JSON' ) );
+  }
+
+This will load up all of the people from the database, and stick their
+information into a data structure to be fed to the JSON view, which will
+in turn turn it into JSON and send it to the browser.
+
+=head2 Setting up the grid
+
+Now with all that prep-work out of the way (whew!) we can get on to the
+meat of this project, actually setting up our editable data grid.  To do
+that, we need to start out by writing some javascript.  Create a new file
+in root/static called advent.js.  It will be just an empty stub for now,
+but we're going to build on it further as we progress.
+
+  /*
+   * advent.js
+   */
+  
+  Ext.onReady(function(){
+  
+  });
+
+Ext.onReady runs the function given to it as an argument once the page has
+loaded enough for the javascript to work.  This may run before the page is
+completely loaded, while images are still loading (but it runs after the
+entire DOM is available.)  This is generally where Ext applications put their
+initialization.  All the javascript code that follows will go inside this
+function, unless otherwise noted.
+
+=head2 Defining the Column Model
+
+The next step is to define an Ext.grid.ColumnModel object.  The column model
+tells the grid component everything it needs to know about how to handle the
+data in each of the grid cells.  Remember to put this code inside the onReady
+function you just defined.
+
+    var col_model = new Ext.grid.ColumnModel([
+        {
+            id:         'id',
+            header:     'ID',
+            dataIndex:  'id',
+            width:      40
+        },
+        {
+            id:         'name',
+            header:     'Name',
+            dataIndex:  'name'
+        },
+        {
+            id:         'affiliation',
+            header:     'Affiliation',
+            dataIndex:  'affiliation',
+            width:      70
+        }
+    ]); 
+
+Ext's data grid objects are inherently sortable, you can either configure
+each row that you want to be sortable in the column model, or you can change
+the default sorting value for the entire model, to make every field sortable.
+I prefer to change the default, and then disable it as needed for individual
+fields.
+
+    col_model.defaultSortable = true;
+
+=head2 Defining a data record
+
+Ext provides an Ext.data.Record object, which encapsulates information about
+the data records we are working with.  It is possible to define the record
+information inline when we setup the data store in the next step, but
+creating an actual record for it makes it easier to reuse, and we'll need
+that when we add the ability to add a new row to the database.  So the
+next thing to go in that onReady function will be our person record type.
+
+    var Person = Ext.data.Record.create([
+        { name: 'id',           type: 'int' },
+        { name: 'name',         type: 'string' },
+        { name: 'affiliation',  type: 'string' }
+    ]);
+
+=head2 The Data Store
+
+Ext objects that need to access server-side data do so using an appropriate
+data store class.  Since we are going to use JSON for our transport format,
+we need to create an instance of an Ext.data.JsonStore object for our
+grid to consume.  You can find documentation on Ext.data.JsonStore in the
+API Docs at L<http://extjs.com/deploy/dev/docs/?class=Ext.data.JsonStore>.
+
+Because the data store needs to know the URL where it should get data from,
+it would be nice for this url to be created by the Catalyst uri_for method,
+so that our application is relocatable.  But since we want the rest of the
+javascript to be static (so that it can be served quickly) we're going to
+use a little trick.  Open up your index.tt2 template again, and add this
+between the existing META line and the div:
+
+  <script type="text/javascript">
+      var gridurl = '[% Catalyst.uri_for( "/people_data" ) %]';
+  </script>
+  [% js_link( src = '/static/advent.js' ) %]
+
+This way we get a nice relocatable link, without making catalyst process the
+whole javascript library as a template each time it is loaded.  The js_link
+call will include the library we are building now.
+
+Now we are ready to set up the data store.  This code goes in advent.js
+inside the onReady function.
+
+    var store = new Ext.data.JsonStore({
+        url:        gridurl,
+        root:       'people',
+        fields:     Person
+    });
+
+This creates a new Ext.data.JsonStore object, which will load its data from
+the url we just setup.  The 'root' key tells the data store which key in
+the returned data contains the information that should go in the grid, and
+the fields key provides the record constructor we created earlier so that
+the store will know what fields the information it retrieves will have.
+
+=head2 Creating the data grid object (FINALLY!)
+
+Now that we have a data store for our grid to use, we can B<finally> get to
+the point of creating the grid itself.  To do this we are going to create an
+instance of Ext.grid.EditorGridPanel.  Still working inside that advent.js,
+we're now going to add:
+
+    var grid = new Ext.grid.EditorGridPanel({
+        store:              store,
+        cm:                 col_model,
+        title:              'Edit People',
+        width:              600,
+        height:             300,
+        frame:              true,
+        autoExpandColumn:   'name',
+        renderTo:           'datagrid'
+    });
+
+The first few options to the constructor should be self-explanatory.  We
+first give it our store and column model objects, a title, and a width and
+height.  The frame option specifies whether to render the panel with fancy
+rounded borders or not, if it's false then the panel will be surrounded by
+a simple 1 pixel black border.  The autoExpandColumn option takes the id
+of a column which should be expanded to fill any unused space in the grid.
+This allows you to specify widths for those columns where it matters, and
+have the longest column (in our case, the 'name' column) use up any space
+that is left over.  The renderTo option provides the id of a div from our
+HTML template, it will be used as the target container when the grid is
+rendered, allowing for designers to specify exactly where on the page they
+want the grid to appear simply by putting an empty div there.
+
+Now the only thing that is left to do in order to see our grid, is to
+trigger the data store to load it's data and pass it to the grid for
+rendering.
+
+    store.load();
+
+=head2 Try it out!
+
+If all went well, you can restart your development server now, and go to
+http://localhost:3000/ and see the data grid in all it's glory.  Well, maybe
+not B<all> it's glory, as you may have noticed it's not really what one
+would call 'editable'.  We need to do a bit more work yet in order to
+make it B<actually> editable.  First off, we need to expand our column
+model to tell it what type of widget should be used to edit each of the
+different column types.  So open up advent.js again and change the hash
+for the name column to match the following:
+
+        {
+            id:         'name',
+            header:     'Name',
+            dataIndex:  'name',
+            editor:     new Ext.form.TextField({
+                allowBlank:     false,
+            })
+        },
+
+This tells the grid that name should be edited as a textfield, and that it
+is not allowed to be blank.  Next we are going turn the Affiliation field
+into a combobox.  A combobox is like a combination of textfield and popup
+menu, you can popup the menu to select something that already exists from
+the list, or you can type in something new.  Modify the affiliation hash
+like this:
+
+        {
+            header:     'Affiliation',
+            dataIndex:  'affiliation',
+            width:      70,
+            editor:     new Ext.form.ComboBox({
+                typeAhead:      true,
+                triggerAction:  'all',
+                transform:      'affpopup',
+                lazyRender:     true,
+                listClass:      'x-combo-list-small'
+            })
+        }
+
+The one important option to ComboBox here is 'transform'.  This is the lazy
+way of populating the popup list, it provides the id of an existing select
+option that should be turned into the popup.  To create this we need to edit
+the index.tt2 file again, and add a select element.
+
+    <select id="affpopup" style="display: none">
+    <option value="Ninja">Ninja</option>
+    <option value="Pirate">Pirate</option>
+    <option value="Unknown">Unknown</option>
+    </select>
+
+One advantage to doing it this way is that you don't have to change the
+javascript code just to add new items to the list.
+
+Now if you reload the page, you should be able to double-click on a name or
+an affiliation, and it will turn into an editable field so you can change
+the value.  The changes are not sent immediately to the server, however,
+instead they are simply marked in the grid by turning the upper left corner
+of the cell red to indicate that they have been changed.  In order to send
+the changes to the server to be put into the database, we need to create a
+save button.
+
+=head2 Adding a toolbar to the grid
+
+Rather than just a save button, lets add an entire toolbar to our grid.  Since
+the grid inherits from Ext.Panel, it automatically has both top and bottom
+toolbars, which we don't see in our example simply because we haven't told
+it to put anything there, so the empty toolbars are hidden.  Lets add some
+buttons to our toolbar.  We're going to create a toolbar that includes
+'New Person', 'Save Changes', and 'Discard Changes' buttons. 
+
+The last option provided to the EditorGridPanel was 'renderTo', so
+add a comma to the end of the renderTo option, and then follow it with this:
+
+        tbar:               [
+            {               
+                text:           'New Person',
+                handler:        function() {
+                    var p = new Person({
+                        name:           'Unnamed New Person',
+                        affiliation:    'Unknown',
+                    }); 
+                    grid.stopEditing();
+                    store.insert( 0, p );
+                    grid.startEditing( 0, 1 );
+                },
+            },
+            {
+                text:           'Save Changes',
+                handler:        function() {
+                    grid.stopEditing();
+                    var changes = new Array();
+                    var dirty = store.getModifiedRecords();
+                    for ( var i = 0 ; i < dirty.length ; i++ ) {
+                        var id = dirty[i].get( 'id' );
+                        var fields = dirty[i].getChanges();
+                        fields.id = dirty[i].get( 'id' );
+                        changes.push( fields );
+                    }
+                    console.log( changes );
+                    submitChanges( changes );
+                    store.commitChanges();
+                },
+            },
+            {
+                text:           'Discard Changes',
+                handler:        function() {
+                    grid.stopEditing();
+                    store.rejectChanges();
+                },
+            }
+        ]
+
+The first button creates a new Person object, inserts it at the top of the
+grid, and then starts editing that row in column 1 (we skip column 0 because
+it is the id, which isn't editable.)  The second button is the 'Save Changes'
+button, and it's handler collects the modified records from the grid and
+passes them to the submitChanges function to be sent to the server for
+processing.  The third button simply tells the store to reject any pending
+changes and revert the data to it's old values.
+
+In order to get the save button to work, we need to create the submitChanges
+function.  First we'll add another URL variable to the index.tt2 template,
+to indicate where the changes should be submitted to.
+
+    var posturl = '[% Catalyst.uri_for( "/people_data_submit" ) %]';
+
+Then we can use that when we write the submitChanges function, which uses
+Ext.Ajax to submit the changed data asynchronously.  On a successful return,
+we just signal the store to reload, causing it to get the current data from
+the database and update the grid.  Telling the grid to reload from the database
+makes sure that any items that were modified by triggers in the database
+(like our automatic primary keys) will show up correctly in the form.
+
+    function submitChanges( data ) {
+        Ext.Ajax.request({
+            url:        posturl,
+            success:    function() { store.reload() },
+            params:     { changes: Ext.util.JSON.encode( data ) }
+        });
+    }
+
+Now all we need is a new handler in our root controller to process the
+submitted data.
+
+  =head2 people_data_submit
+  
+  =cut
+  
+  use JSON::Any;
+  
+  sub people_data_submit : Local {
+      my ( $self, $c ) = @_;
+  
+      my $rs = $c->model( 'DB::Person' );
+  
+      my $j = JSON::Any->new;
+      my $data = $j->jsonToObj( $c->request->param( 'changes' ) );
+      for my $rec ( @{ $data } ) {
+          $rs->update_or_create( $rec );
+      }
+      $c->detach( $c->view( 'JSON' ) );
+  }
+
+=head3 AUTHOR
+
+Jason Kohles, E<lt>email@jasonkohles.comE<gt>
+
+L<http://www.jasonkohles.com/>
+
+=cut
+

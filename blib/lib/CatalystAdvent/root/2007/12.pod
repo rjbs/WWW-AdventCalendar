@@ -1,0 +1,301 @@
+=head1 A Future Look at Mango
+
+Mango is an attempt to combine the best of Catalyst, Handel and DBIx::Class into
+an ecommerce framework giving a jump start to anyone that needs to sell products
+online using our favorite MVC framework. Like Handel and to an extent Catalyst,
+the main goal of Mango is to have as many reusable, non web-specific parts as
+possible while simultaniously acknowledging that it can never be the one
+solution that fits all. It's a framework, not a solution. Mango is also an
+exercise in trying to round off some of the rough corners that aggravate me
+about Catalyst web development in general.
+
+=head2 Installable And Updatable
+
+One of the things about Catalyst applications that bugs me is that they aren't 
+really installable. Sure, you can run C<perl Makefile.PL & make install> on
+your shiny new MyApp but odd things happen. Where did that root directory go?
+Where's my templates? Why can't server.pl find my Makefile.PL. As a solution to
+that, most people take the unpack-and-run approach. But as soon you need to
+customize that application [built by someone else], now you have to merge your
+changes into each new release on your machine. That's a drag too.
+
+In Mango, the goal is to have to have everything that ships in the dist
+installed into the perl auto paths, including the default templates, forms,
+stylesheets, etc using C<File::ShareDir>:
+
+    perl Makefile.PL
+    make install
+    ...
+    /sw/lib/perl5/5.8.6/auto/Mango/forms/admin/users/create.yml
+    /sw/lib/perl5/5.8.6/auto/Mango/forms/admin/users/update.yml
+    /sw/lib/perl5/5.8.6/auto/Mango/forms/admin/users/delete.yml
+    /sw/lib/perl5/5.8.6/auto/Mango/templates/tt/html/admin/users/create
+    /sw/lib/perl5/5.8.6/auto/Mango/templates/tt/html/admin/users/update
+    /sw/lib/perl5/5.8.6/auto/Mango/templates/tt/html/admin/users/delete
+
+From there, L</Form Mapping> automaticaly maps the form files to other base
+controllers as they're loaded. The base view class automatically appends the
+shared template paths onto the template search paths:
+
+    package MyApp::Controller::Users;
+    use base 'Mango::Catalyst::Controller::Users';
+    
+    # looks for root/templates/tt/html/users/edit
+    # fallback to %SHAREDIR/templates/tt/html/users/edit
+    sub edit : Local Template('users/edit') {
+        $c->view('HTML');
+    };
+
+If you wish to provide your own templates, simply add them to your root path,
+changing the Template attribute if needed:
+
+    ## root/templates/tt/html/users/edit
+    Editting user X
+    [% form.render %]
+
+When an update to Mango is released, simply install it like any other perl dist.
+No merging. No fuss. Mango always tries to use your local files first, falling
+back to the shared files.
+
+=head2 Swappable Phat Models/Providers
+
+While it's somewhat a given that you can swap any model in catalyst out for
+another as long as the API is the same, this was a primary design goal in Mango.
+All of the models for Users, Roles, Profiles, Products,  Carts and Wishlsts
+share a common API for CRUD operations and while they all default to using the
+same database, it is assumed that some people may want to get their users from
+LDAP, their users profiles from an customer existing database, and their users
+carts from the Mango database.
+
+Changing where a block of data comes from is just a matter of customizing the
+appropriate model:
+
+    package MyApp::Model::Users;
+    use base 'Mango::Catalyst::Model::Users';
+    
+    sub search {
+        my ($self, $filter) = @_;
+        my $msg = $ldap->search(
+                        base   => "c=US",
+                        filter => convert_to_ldap($filter)
+        );
+
+        return convert_to_mango_users($msg->entries);
+    };
+
+=head2 Common User API
+
+Catalyst has a wonderful Authentication plugin to handle user authentication,
+but it leaves me wanting more when it comes to working with user data that spans
+authenticated and anonymous users in a consistant manner. Mango includes its own
+Authentication plugin which exposes common user bits consistantly for
+authenticated and anonymouse users, which is pretty conveinent when people start
+extending their application.
+
+    # anonymous user
+    print $c->user->profile->name; # "Anonymous"
+    my $cart = $c->user->cart;
+    $cart->add(...);
+    
+    # authenticated user
+    print $c->user->profile->name; # "Joe User"
+    my $cart = $c->user->cart;
+    $cart->add(...);
+
+The Mango authenticaton plugin also takes care of caching a users roles and
+profiles so you don't have to hit the source all of the time just to print their
+name on every page or to check role permissions. The authenticaiton plugin uses
+the various Mango models to get the job done, so feel free to drop in your own
+models to fetch user information from anywhere you need to.
+
+=head2 Better Forms
+
+I hate forms. I think working with forms is one of the rings of Hell. There are
+many forms/validation solutions on CPAN. That all have good points. That all
+have bad points. Forms are a problem to which there is no solution that works
+for everyone. So, I wrote another one for Mango. :-)
+
+It's akin to FormFu, sans the stack of templates used to render the forms bits.
+Maybe I'll migrate it later on when I get a chance.
+
+=head3 Form Configuration
+
+Mango::Form is a hybrid of C<CGI::FormBuilder> and C<FormValidator::Simple>,
+with a single config file that contains both the form definitions, the validator
+rules and the messages to output on failure:
+
+    ---
+    name: form_name
+    method: POST
+    javascript: 0
+    stylesheet: 1
+    sticky: 1
+    submit: LABEL_CREATE
+    fields:
+      - sku:
+          type: text
+          size: 25
+          maxlength: 25
+          constraints:
+            - NOT_BLANK
+            - LENGTH, 1, 25
+            - UNIQUE
+          messages:
+            NOT_BLANK: The sku field is blank.
+      - name:
+          label: MyName
+          type: text
+          size: 25
+          maxlength: 25
+          constraints:
+            - NOT_BLANK
+            - LENGTH, 1, 25
+
+=head3 Form Localization
+
+As you may have noticed in the configuration above, most of the fields have no
+messages or labels configured. By default, Mango assumes that each fields
+message is FIELDNAME_CONSTRAINTNAME and each fields label is LABEL_FIELDNAME.
+These values are sent through the localization plugin to be localized before
+being put on a page. Outside of Catalyst, this uses Mango::I18N to get the job
+done.
+
+    %Lexicon = (
+        Language     => 'English',
+        LABEL_UPDATE => 'Update',
+        LABEL_SKU    => 'Part Number/SKU',
+        LABEL_NAME   => 'Name',
+        SKU_NOT_BLANK => 'The part number is required',
+        SKU_LENGTH    => 'The part number must be between [_1] and [2] in length.',
+    };
+
+While running under Catalyst, it uses the localization plugin,  which checks
+for a MyApp::I18N before falling back to using Mango::I18N.
+
+=head3 Form Mapping
+
+Mango also contains magic similiar to the FormBuilder plugin that ties these
+form configurations to specific controller actions. By default, each base
+controller has forms assigned to it by matching their action names to files in
+the shared form config directory matching the controller name.
+
+    package Mango::Catalyst::Controller::Users;
+    
+    # uses %SHAREDIR/forms/users/edit.yml
+    sub edit : Local {};
+    
+    # uses %SHAREDIR/forms/users/create.yml
+    sub create : Local {};
+
+These mappings can be overriden at the controller level, or even at the action
+level:
+
+    package MyApp::Controller::Users;
+    use base 'Mango::Catalyst::Controller::Users';
+    __PACKAGE__->forms_directory('/www/myapp/forms/users');
+    
+    # uses /www/myapp/forms/users/edit.yml
+    sub edit : Local {};
+    
+    # uses /www/myapp/forms/users/other.yml
+    sub delete : Local Form('other') {};
+    
+    # uses /www/other/forms/create.yml
+    sub create : Local FormFile('/www/other/forms/create.yml') {};
+
+Within each method, one can simply call C<form>, C<submitted> and C<validate>
+to run the form validation:
+
+    sub edit : Local {
+        my $self = shift;
+        my $form = $self->form;
+
+        if {!$self->submitted) {
+            $form->values({
+                id               => $user->id,
+                username         => $user->username,
+                password         => $user->password,
+                confirm_password => $user->password,
+                created          => $user->created . '',
+                updated          => $user->updated . '',
+                first_name       => $profile->first_name,
+                last_name        => $profile->last_name,
+            };
+        } else {$self->submitted && $self->validate) {
+            $user->password($form->field('password'));
+            $user->update;
+        };
+    };
+    
+    ## user.tt
+    [% form.render %]
+
+=head2 REST-ish-able-like
+
+I'm not a true diehard REST preacher, but I do like some of the ideas and what
+the REST action controller for Catalyst has to offer. Mango makes use of the
+REST controller mostly for content-type negotiation and mapping friendly names
+to content-types using C<MIME::Types>.
+
+One of the goals was to make a Mango application available to web users and to
+remote developers as well using the REST controller.
+
+    ## serves the users info page to browsers
+    http://localhost/users/claco/
+
+    ## serves the users info to remote clients
+    my $ua = LWP::UserAgent->new;
+    $ua->header('Content-Type', 'text/x-yaml');
+    my $r = $ua->get('http://localhost/users/claco/');
+    my $user = YAML::Load($c->content);
+
+Mango adds a little bit of magic to just about everyone here. By default,
+MIME::Types doesn't have mappings for JSON or YAML. The Mango REST controller
+adds these, as well as some alternate friendly names for things, like
+.yml and .yaml => text/x-yaml. You can specify a preferred content type using
+the friendly name in the C<view> parameter:
+
+    my $ua = LWP::UserAgent->new;
+    my $r = $ua->get('http://localhost/users/claco/?view=yaml');
+    my $user = YAML::Load($c->content);
+
+in addition to the content-type parameter the REST action supplies:
+
+    my $ua = LWP::UserAgent->new;
+    my $r = $ua->get('http://localhost/users/claco/?content-type=text/x-yaml');
+    my $user = YAML::Load($c->content);
+
+The Mango REST controller also provides an alternate method to map unsupported
+methods in a browsers post to a support action in each controller:
+
+    <form method="POST" action="/users/claco/">
+        <input type="hidden" name="_method" value="DELETE" />
+    </form>
+    ...
+    
+    ## called by true DELETE /users/claco/
+    sub users_DELETE : Private {};
+
+=head2 Getting Started
+
+B<Warning>: Mango is in some form of ALPHA at the moment as I'm still trying to
+find a good balance of all of the features above. The cart and admin should work.
+Still needs plenty of love and code for product/tag browsing and checkout
+workflow.
+
+Getting started with Mango couldn't be much easier. Checkout the latest source
+and install it. To start your first Mango application, simply run:
+
+    $ mango.pl MyApp
+    $ cd MyApp
+    $ script/myapp_server.pl
+
+=head1 See Also
+
+L<http://www.catalystframework.org/calendar/2006/2>,
+L<http://svn.mangoframework.com/CPAN/Mango/trunk/>
+
+=head1 AUTHOR 
+
+    Christopher H. Laco
+    claco@chrislaco.com

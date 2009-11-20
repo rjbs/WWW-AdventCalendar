@@ -1,0 +1,7 @@
+=head1 HTML::FormFu::Model::DBIC
+
+=head1 AUTHOR
+
+Bogdan Lucaciu <bogdan@sinapticode.ro>
+
+Sinapticode

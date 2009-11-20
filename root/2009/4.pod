@@ -1,0 +1,250 @@
+
+=begin pod::xhtml
+
+<style>
+ pre {
+     border: 1px solid gray;
+     background-color: #d9d9d9;
+     padding: 3px;
+     padding-bottom: 0;
+ }
+</style>
+
+=end pod::xhtml
+
+=head1 Catalyst and OpenBSD
+
+On OpenBSD we have a package management system that allows us to
+get ready a fully-fledged Catalyst environment quite easily and fast.
+
+There are two possible ways to achieve this but this article sticks to the
+officially recommended one: packages.
+The other route would be the ports collection but that's a different
+story.
+
+=head1 Preparation
+
+Given you have installed OpenBSD 4.4, the first thing before you can start is to
+pick a mirror near you from L<http://www.openbsd.org/ftp.html>.
+I use my favorite mirror in this article, which is located in
+Europe/Germany, quite fast and up to date: L<ftp://ftp.de.openbsd.org/pub/OpenBSD/>.
+
+Now you need to append the path to the package directory.
+In my case - using amd64 - that is B<4.4/packages/amd64>.
+For i386, macppc and so on just replace the architecture with the one
+you're using.
+
+With the mirror and the package directory we have the complete URL pointing to
+L<ftp://ftp.de.openbsd.org/pub/OpenBSD/4.4/packages/amd64>
+which we put in the B<PKG_PATH> environment variable.
+
+What you should enter in your terminal (assuming a korn-like shell) is:
+
+  $ export PKG_PATH=ftp://ftp.de.openbsd.org/pub/OpenBSD/4.4/packages/amd64
+  $
+
+To save you from repeating that in the future, just put it into the shell
+profile (B<~/.profile> for ksh).
+
+Further I will assume you're in the B<wheel> group so you can run B<sudo>.
+
+=head1 Installation
+
+Now use B<pkg_info> to easily find all the packages having B<Catalyst> in their name:
+
+  $ pkg_info -Q Catalyst
+  p5-Catalyst-Action-RenderView-0.08.tgz
+  p5-Catalyst-Authentication-Store-DBIx-Class-0.104.tgz
+  p5-Catalyst-Controller-FormBuilder-0.04.tgz
+  p5-Catalyst-Controller-Rose-0.02.tgz
+  p5-Catalyst-Devel-1.08.tgz
+  p5-Catalyst-Engine-Apache-1.12.tgz
+  ...
+  p5-Catalyst-View-TT-0.27.tgz
+  p5-Catalyst-View-TT-ForceUTF8-0.06.tgz
+  p5-Catalyst-View-TT-FunctionGenerator-0.01.tgz
+  p5-Catalyst-View-XSLT-0.04.tgz
+  p5-Test-WWW-Mechanize-Catalyst-0.42.tgz
+  $
+
+We see L<p5-Catalyst-Devel|http://search.cpan.org/perldoc?Catalyst::Devel> in
+the list and proceed to install it:
+
+  $ sudo pkg_add p5-Catalyst-Devel
+  p5-Class-Accessor-0.31: complete
+  p5-Config-General-2.36: complete
+  p5-File-Copy-Recursive-0.36: complete
+  p5-Module-Install-0.67:p5-ExtUtils-CBuilder-0.18: complete
+  ...
+  p5-Catalyst-Plugin-ConfigLoader-0.20: complete
+  p5-Catalyst-Plugin-Static-Simple-0.20:p5-MIME-Types-1.24: complete
+  p5-Catalyst-Plugin-Static-Simple-0.20: complete
+  p5-Catalyst-Devel-1.08: complete
+  $
+
+... done, wasn't that easy?!  We have everything we need for the Catalyst base system.
+
+For session support we install 
+the L<session plugin|http://search.cpan.org/perldoc?Catalyst::Plugin::Session>,
+the L<file store|http://search.cpan.org/perldoc?Catalyst::Plugin::Session::Store::File>
+and L<cookie state|http://search.cpan.org/perldoc?Catalyst::Plugin::Session::State::Cookie> modules:
+
+  $ sudo pkg_add p5-Catalyst-Plugin-Session-Store-File p5-Catalyst-Plugin-Session-State-Cookie
+  p5-Error-0.17009: complete
+  p5-IPC-ShareLite-0.09p0: complete
+  p5-Digest-SHA1-2.11p0: complete
+  p5-Cache-Cache-1.05: complete
+  p5-Catalyst-Plugin-Session-0.19:p5-Object-Signature-1.05p1: complete
+  p5-Catalyst-Plugin-Session-0.19: complete
+  p5-Catalyst-Plugin-Session-Store-File-0.13: complete
+  p5-Catalyst-Plugin-Session-State-Cookie-0.09: complete
+  $
+  
+Let's assume we want the application to also use the
+L<authentication plugin|http://search.cpan.org/perldoc?Catalyst::Plugin::Authentication> too:
+
+  $ sudo pkg_add p5-Catalyst-Plugin-Authentication
+  p5-Catalyst-Plugin-Authentication-0.10006: complete
+  $
+
+... and L<DBIx::Class|http://search.cpan.org/perldoc?DBIx::Class> as the
+L<authentication store|http://search.cpan.org/perldoc?Catalyst::Plugin::Authentication::Store::DBIC>:
+
+  $ sudo pkg_add p5-Catalyst-Plugin-Authentication-Store-DBIC
+  p5-JSON-2.10: complete
+  p5-DBI-1.604:p5-Net-Daemon-0.43: complete
+  p5-DBI-1.604:p5-PlRPC-0.2018p0: complete
+  p5-DBI-1.604: complete
+  ...
+  p5-Set-Object-1.22: complete
+  p5-Catalyst-Plugin-Authorization-Roles-0.05p1:p5-Universal-isa-0.06p1: complete
+  p5-Catalyst-Plugin-Authorization-Roles-0.05p1: complete
+  p5-Catalyst-Plugin-Authentication-Store-DBIC-0.07p1: complete
+  $
+
+Now everything is installed and we can start to develop...
+
+=head1 Development and Testing
+
+To create a new Catalyst application, using the infamous name B<MyApp>, we type:
+
+  $ catalyst.pl MyApp
+  created "MyApp"
+  created "MyApp/script"
+  created "MyApp/lib"
+  created "MyApp/root"
+  ...
+  created "MyApp/script/myapp_fastcgi.pl"
+  created "MyApp/script/myapp_server.pl"
+  created "MyApp/script/myapp_test.pl"
+  created "MyApp/script/myapp_create.pl"
+  $
+
+Then change to the directory ...
+
+  $ cd MyApp
+  $
+
+... and start the local server:
+
+  $ ./script/myapp_server.pl
+  [debug] Debug messages enabled
+  [debug] Statistics enabled
+  [debug] Loaded plugins:
+  ...
+  
+  [info] MyApp powered by Catalyst 5.7014
+  You can connect to your server at http://127.0.0.1:3000
+
+Now you can connect to L<http://127.0.0.1:3000> and see the Catalyst
+welcome page.
+
+This is the point you can start implementing whatever nice application you want.
+
+=head1 Deployment
+
+After some time you surely want to make your application accessible to others.
+
+As OpenBSD already comes with an httpd capable to handle all of this you only
+need to configure it appropriately.
+Using FastCGI is quite an efficient option, so we should install mod_fastcgi, 
+the FCGI module and FCGI::ProcManager:
+
+  $ sudo pkg_add mod_fastcgi fcgi p5-FCGI-ProcManager
+  mod_fastcgi-2.4.2p2: complete
+  fcgi-2.4.0p3: complete
+  p5-FCGI-ProcManager-0.18: complete
+  --- mod_fastcgi-2.4.2p2 -------------------
+  To finish the install of mod_fastcgi, you need
+  to enable the module using the following command
+  
+    /usr/local/sbin/mod_fastcgi-enable
+  
+  If you already have Apache running on your machine,
+  you should not use "apachectl restart" - instead,
+  you should fully stop and then restart the server.
+  $
+
+To enable mod_fastcgi we just need to type:
+
+  $ sudo /usr/local/sbin/mod_fastcgi-enable
+  Enabling  module...
+  [activating module `fastcgi' in /var/www/conf/httpd.conf]
+  cp /usr/local/lib/mod_fastcgi.so /usr/lib/apache/modules/mod_fastcgi.so
+  chmod 755 /usr/lib/apache/modules/mod_fastcgi.so
+  cp /var/www/conf/httpd.conf /var/www/conf/httpd.conf.bak
+  cp /var/www/conf/httpd.conf.new /var/www/conf/httpd.conf
+  rm /var/www/conf/httpd.conf.new
+  $
+
+Then, in C</var/www/conf/httpd.conf> we configure FastCGI as follows:
+
+  FastCgiExternalServer /myapp -socket /tmp/myapp.socket
+
+  Alias / /myapp/
+
+Stop and start the server to load mod_fastcgi:
+
+  $ sudo apachectl stop
+  /usr/sbin/apachectl stop: httpd stopped
+  $ sudo apachectl start
+  /usr/sbin/apachectl start: httpd started
+  $
+
+The last thing we need to do is running B<script/myapp_fastcgi.pl>.
+
+One thing is important here: the httpd on OpenBSD is running in a change root
+environment per default, which is rooted at B</var/www>.
+
+So the path to the socket specified in the httpd.conf is relative to this, which
+means the actual path to the socket is B</var/www/tmp/myapp.socket>.
+
+First we create a tmp directory below B</var/www>:
+
+  $ sudo mkdir -m 1777 /var/www/tmp
+
+And now we start the fastcgi process(es):
+
+  $ ./script/myapp_fastcgi.pl -l /var/www/tmp/myapp.socket
+  ...
+  FastCGI: manager (pid 277): initialized
+  FastCGI: manager (pid 277): server (pid 31335) started
+  FastCGI: server (pid 31335): initialized
+
+Connect to your server address and see the application running there.
+
+One thing is recommended though, the static files should be served by the webserver,
+not your Catalyst application.
+
+Given you've put the application into the change root environment to
+B</var/www/MyApp> you need to add the following to the B<httpd.conf> B<before>
+the Alias directive mapping the FastCGI application:
+
+  Alias /static/ /MyApp/root/static/
+
+Congratulations, your deployment should be generally ready for prime time.
+
+=head1 AUTHOR
+
+Simon 'janus' Bertrang E<lt>simon.bertrang@puzzworks.comE<gt>
+

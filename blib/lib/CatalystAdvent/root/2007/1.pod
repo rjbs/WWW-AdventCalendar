@@ -1,0 +1,259 @@
+=head1 Day 1 - Getting started with ExtJS screen library
+
+Today we take a look at the ExtJS screen library and how to get started
+using it within a Catalyst web application.
+
+Don't forget to come back on Day 9 for a more advanced example by jasonk in 
+"Catalyst with Ext+Ajax: Editable Data Grids" 
+L<http://catalyst.perl.org/calendar/2007/9>
+
+=head2 What is ExtJS?
+
+ExtJS L<http://www.extjs.com/> is a cross-browser Javascript library for web 
+pages. You can use it to achieve Web 2.0 effects without writing too much 
+Javascript code (always a good idea!). It offers abstracted handling for HTML 
+elements, Document Object Model (DOM), event handling and AJAX (client-server) 
+calls. ExtJS also provides styling (blue, aero and Vista, you can write more) 
+and a good selection of widgets including:
+
+=over 2
+
+=item * window
+
+=item * layout
+
+=item * tabs
+
+=item * form
+
+=item * toolbar
+
+=item * menu
+
+=item * tree
+
+=item * combobox
+
+=item * grid
+
+=back 
+
+The full range is listed here L<http://extjs.com/learn/Ext_Extensions>
+
+
+The easiest way to see what is possible is to watch it in action:
+
+=over 2
+
+=item * desktop L<http://extjs.com/deploy/dev/examples/desktop/desktop.html>
+
+=item * feed viewer L<http://extjs.com/deploy/dev/examples/feed-viewer/view.html>
+
+=item * photo organiser L<http://extjs.com/deploy/dev/examples/organizer/organizer.html>
+
+=back
+
+For more examples see L<http://extjs.com/deploy/dev/examples/>
+
+
+
+=head2 What web browsers does it work on?
+
+=over 2
+
+=item * Internet Explorer 6+
+
+=item * Firefox 1.5+ (PC, Mac)
+
+=item * Safari 2+
+
+=item * Opera 9+ (PC, Mac)
+
+=back
+
+=head2 What about other Javascript libraries - I've got legacy code
+
+Because it grew out of Yahoo's YUI library and its developers
+wanted to support legacy code, ExtJS has a tiered design that
+allows you to choose the base Javascript adapter library
+
+=over 2
+
+=item * native Ext
+
+=item * YUI
+
+=item * jQuery
+
+=item * Prototype/Script.aculo.us
+
+=back 
+
+For new code, I'd recommend native Ext as it is faster to load.
+
+There are more details and a pretty picture of the design at
+L<http://extjs.com/learn/Ext_FAQ#What_other_libraries_are_required_to_run_Ext.3F>
+
+
+=head2 Downloading and installing the ExtJS library
+
+Download ExtJS 1.1.1 from L<http://extjs.com/download>
+
+The stable release, used in this article, is 1.1.1 and that's the one you need.
+The latest development release is Ext 2.0 but be aware that it has a different 
+object model to Ext 1.1 and many of the tutorials, docs and code on the site
+still relate to 1.1. 
+Once the widgets and documentation have been done for 2.0 I expect there will 
+be a rapid shift over in the user community.
+More details at L<http://extjs.com/learn/Ext_1_to_2_Migration_Guide>
+
+=head3 Installation
+
+If you're on Linux, install ExtJS to your web server document root, e.g. 
+/var/www/html/ext-1.1.1. When you want to use it in a Catalyst project create a 
+symbolic link from your root/static directory
+
+ $ ln -s /var/www/html/ext-1.1.1 root/static/
+
+Otherwise, you can simply unzip the whole lot below root/static.
+
+When running the Catalyst test server, it will expect to find the files there.
+
+For production use, use absolute URLs to the ExtJS javascript files from your 
+templates, e.g. http://myserver/ext-1.1.1/ext-core.js, and allow your web server 
+to serve them rather than Catalyst. It's much faster.
+
+=head2 Manuals and learning materials
+
+Visit L<http://extjs.com/learn/>. You will find tutorials at 
+L<http://extjs.com/learn/Tutorials>.
+
+Bookmark and early on read through the community manual 
+L<http://extjs.com/learn/Ext_Manual>.
+
+The archive comes with an ExtJS API reference manual. You can open ext-
+1.1.1/docs/index.html in a browser or if you installed it under your Linux web 
+server root it should be accessible at L<http://myserver/ext-1.1.1/docs/>. It's 
+also online at L<http://extjs.com/deploy/ext/docs/index.html>. Use this to look 
+up methods and attributes for ExtJS objects.
+
+
+=head2 Adding ExtJS to a web page
+
+Firstly you need to include the ExtJS Javascript libraries and stylesheets in 
+the <head> section of your HTML page
+
+ <link rel="stylesheet" type="text/css" href="/ext-1.1/resources/css/ext-all.css" />
+ <script type="text/javascript" src="/ext-1.1/adapter/ext/ext-base.js"></script>
+ <script type="text/javascript" src="/ext-1.1/ext-all.js"></script>
+
+In the body section use classes for styling
+
+ <body class="xtheme-gray" >
+
+Use named <div> tags to identify content that ExtJS will enhance
+
+ <div id="container"><div id="content" class="welcome">
+ ...
+ </div></div>
+
+Then supply Javascript to tell ExtJS what to do. The following creates a layout 
+with one panel called 'content' after the HTML page has finished loading
+
+ <script type="text/javascript">
+ Thescreen = function(){
+   return {
+     init: function(){
+       var layout = new Ext.BorderLayout(document.body, {
+         center: {
+           autoScroll: true,
+           minTabWidth: 50,
+           preferredTabWidth: 150,
+           titlebar: true
+         }
+       });
+            
+       layout.beginUpdate();
+       layout.add('center', new Ext.ContentPanel('content', {title:'ExtJS demo app'}));
+       layout.endUpdate();
+     }  
+   }
+ }();
+ Ext.EventManager.onDocumentReady(Thescreen.init, Thescreen, true);
+ </script>
+
+Note the prototype object-based approach used to create the 'Thescreen' object.
+This helps standardise objects and avoid memory leaks. 
+See L<http://extjs.com/learn/Manual:Intro:Class_Design> for further explanation.
+
+
+=head2 Simple Example
+
+I've provided a simple working example you can use as a starting point for
+writing ExtJS Catalyst applications. It provides code, a menu, a couple of pages
+and a set of templates initially generated using the Catalyst helpers to give
+a portal page.
+
+The ExtJS Catalyst sample app is accessible at
+L<http://www.dragonstaff.co.uk/extjs/home>
+
+=head2 Example application code
+
+You can check out the code from the Catalyst repository with
+
+ svn co http://dev.catalystframework.org/repos/Catalyst/trunk/examples/ExtJS
+
+Run it with
+
+ perl script/extjs_server.pl -k
+
+then browse to e.g. http://myserver:3000. Read the comments
+on the screens and in the code.
+
+
+=head2 Form Architecture Considerations
+
+You have a choice between implementing traditional "round trip" web pages
+and client-server AJAX dynamic web pages seen on Web 2.0 sites.
+
+In the "round trip" case, the user browses to a page, clicks a submit button to 
+post data to a server, HTML is sent back then the new page displays. You can 
+continue to do this with templates and use ExtJS to enhance the appearance and 
+add auto-completers to input fields.
+
+In the second case, you send HTML back once for the first page and then use 
+ExtJS to respond to events like button clicks to trigger display changes and 
+send/retrieve data to the server via asynchronous data transfers. The ExtJS Form 
+widget L<http://extjs.com/learn/Ext_Manual#Forms> handles this and can 
+automatically perform front-end data validation and display input warnings from 
+the backend. See L<http://extjs.com/deploy/dev/examples/#sample-7> and look at 
+the .js files. It's also possible to generate a form dynamically from an XML or 
+JSON definition in a data source, so you could hold your form definitions in a 
+database and serve them up from a Catalyst data handler.
+
+The choice will depend on how slick a user interface you want and your available 
+time, as writing Javascript can be time-consuming. AJAX screens often look better 
+but are less accessible for blind visitors and can be harder to debug. For 
+testing you would need to consider using a tool like Selenium. Check out 
+
+L<http://www.infoq.com/articles/testing-ajax-selenium> 
+
+L<http://www.infoq.com/news/2007/09/selenium-grid-parallel-testing>
+
+L<http://search.cpan.org/~lukec/Test-WWW-Selenium-1.13/lib/WWW/Selenium.pm>
+
+
+=head2 Comma Gotcha
+
+If you leave a trailing comma in a Javascript data structure, which is very easy 
+to do if you're used to programming Perl, it stops Internet Explorer's parser. 
+You'll get a blank page! It's easily spotted by running your output HTML code 
+through HTML Tidy.
+
+Good luck!
+
+=head1 AUTHOR
+
+peterdragon - Peter Edwards <peter@dragonstaff.co.uk>
+
+L<http://perl.dragonstaff.co.uk/>

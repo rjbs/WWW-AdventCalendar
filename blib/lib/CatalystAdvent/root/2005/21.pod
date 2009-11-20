@@ -1,0 +1,17 @@
+=head1 Catalyst Advent - Day 21 - A Catalyst Blog
+
+Today you get some special candy.
+
+This calendar will end in a few days but don't be sad, there is
+a Catalyst blog at L<http://catalystframework.org/random> now,
+which will continue to deliver the latest recipes and much more!
+
+The blog software we are using is a Catalyst application called Agave
+and the source code is available at
+L<http://svn.rawmode.org/repos/Agave/trunk>.
+
+Have fun!
+
+-- Sebastian
+
+=cut
