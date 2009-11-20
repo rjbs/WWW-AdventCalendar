@@ -12,19 +12,29 @@
 [% USE date %]
 [% calc = date.calc %]
 [% FOR week = calendar %]
-  [% week %]
 <tr>
   [% FOR day = week %]
-      [% IF day %]
+    [% IF day %]
 [% today = 0 %]
 [% today = 1 UNLESS calc.Delta_Days(now.year, now.month, now.day, year, 12, day ) %]
 [% future = 1 IF calc.Delta_Days(now.year, now.month, now.day, year, 12, day ) > 0 %]
-    <td class="[% 'future ' IF future %]link[% IF today %] today[% END %]"><a href="/[% day %]">[% day %]</a></td>
+    <td class="
+      [% 'future' IF future %]
+      [% 'link'   IF day < 26 %]
+      [% 'today'  IF today %]
+    ">
+      [% IF day < 26 %]
+      <a href="[% day %]">[% day %]</a>
+      [% ELSE %]
+      [% day %]
       [% END %]
-  [% ELSE %]
+    </td>
+    
+    [% ELSE %]
     <td>&nbsp;</td>
+    [% END %]
+  [% END %]
 [% END %]
 </tr>
-[% END %]
 </table>
 

@@ -6,11 +6,14 @@ use lib 'lib';
 
 use autodie;
 use Calendar::Advent::Article;
+use Calendar::Simple;
 use Email::Simple;
+use File::Copy qw(copy);
 use File::Path qw(remove_tree);
 use DateTime;
 use File::Basename;
 use Getopt::Long::Descriptive;
+use Template;
 
 my ($opt, $usage) = describe_options(
   '%c %o',
@@ -20,7 +23,7 @@ my ($opt, $usage) = describe_options(
 );
 
 sub parse_isodate {
-  my ($date, $time_from) = shift;
+  my ($date, $time_from) = @_;
 
   my ($y, $m, $d) = $date =~ /\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/;
   die "can't parse date: $date\n" unless $y and $m and $d;
@@ -75,8 +78,22 @@ print "$today\n";
 remove_tree($opt->{output});
 mkdir($opt->{output});
 
+my $template = Template->new(WRAPPER => 'templates/wrapper.tt');
+
+$template->process(
+  'templates/year.tt',
+  {
+    now  => $today,
+    year => $today->year,
+    calendar => scalar calendar(12, $today->year),
+  },
+  "$opt->{output}/index.html",
+) || die $template->error;
+
+copy $_ => $opt->{output} for <share/*>;
+
 for my $article (@articles) {
-  printf "DATE : %s\nTITLE: %s\n", $article->date, $article->title;
+  # printf "DATE : %s\nTITLE: %s\n", $article->date, $article->title;
 } continue {
-  print "\n";
+  # print "\n";
 }
