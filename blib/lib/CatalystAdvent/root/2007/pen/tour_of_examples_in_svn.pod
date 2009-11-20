@@ -1,5 +1,0 @@
-=head1 A tour of the examples directory in catalyst svn
-
-=head1 AUTHOR
-
-kd

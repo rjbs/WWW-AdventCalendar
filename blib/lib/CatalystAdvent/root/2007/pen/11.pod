@@ -1,5 +1,0 @@
-=head1 Catalyst Base Classes
-
-=head1 AUTHOR
-
-claco
