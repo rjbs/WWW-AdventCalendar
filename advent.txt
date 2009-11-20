@@ -1,3 +1,7 @@
+
+
+__[ ideas.txt ]___
+
 App::Addex
 App::Cronjob
 Number::Nary
@@ -13,7 +17,6 @@ MRO::Magic
 App::Cmd
 Color::Palette
 Config::MVP
-CPAN::Mini
 Data::Rx
 Data::Section
 DBIx::Locker
@@ -30,3 +33,5 @@ Path::Resolver
 Pod::Weaver
 String::Formatter
 Sub::Exporter
+
+CPAN::Mini

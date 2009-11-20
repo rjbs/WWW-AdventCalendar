@@ -20,9 +20,10 @@ use XML::Atom::SimpleFeed;
 
 my ($opt, $usage) = describe_options(
   '%c %o',
-  [ 'root',       'the root of articles', { default => './root' } ],
-  [ 'output|o=s', 'output directory',     { default => './out'  } ],
-  [ 'today=s',    'the day we treat as "today"; default to today' ],
+  [ 'root',       'the root of articles',        { default => './root'  } ],
+  [ 'share=s',    'directory of shared content', { default => './share' } ],
+  [ 'output|o=s', 'output directory',            { default => './out'   } ],
+  [ 'today=s',    'the day we treat as "today"; default to today'         ],
 );
 
 sub parse_isodate {
@@ -43,44 +44,9 @@ sub parse_isodate {
   );
 }
 
-my $today;
-if ($opt->{today}) {
-  $today = parse_isodate($opt->{today}, [localtime])
-} else {
-  $today = DateTime->now;
-}
-
-sub read_articles_from {
-  my ($root) = @_;
-  my @files = <$root/*>;
-
-  my %article;
-  ;
-  for my $file (@files) {
-    my ($name, $path) = fileparse($file);
-    my $document = Email::Simple->new(scalar `cat $file`);
-    my $isodate  = $document->header('Date') || $name;
-
-    my $article  = Calendar::Advent::Article->new(
-      body  => $document->body,
-      date  => parse_isodate($isodate),
-      title => $document->header('title') || "Article for $isodate",
-    );
-
-    next unless $article->date < $today;
-
-    die "already have an article for " . $article->date->ymd
-      if $article{ $article->date->ymd };
-
-    $article{ $article->date->ymd } = $article;
-  }
-
-  return \%article;
-}
-
-my $article = read_articles_from($opt->{root});
-
-print "$today\n";
+my $today = $opt->{today}
+          ? parse_isodate($opt->{today}, [localtime])
+          : DateTime->now;
 
 remove_tree($opt->{output});
 mkdir($opt->{output});
@@ -91,6 +57,28 @@ my $template = Template->new(
   POST_CHOMP => 1,
 );
 
+my $share = $opt->{share};
+copy $_ => $opt->{output} for <$share/*>;
+
+my $dec_01 = DateTime->new(year => 2009, month => 12, day => 1);
+if ($dec_01 > $today) {
+  my $dur  = $dec_01 - $today;
+  my $days = $dur->delta_days || 1;
+  my $str  = $days != 1 ? "$days days" : "1 day";
+
+  $template->process(
+    'templates/patience.tt',
+    {
+      days => $str,
+      year => $today->year,
+    },
+    "$opt->{output}/index.html",
+  ) || die $template->error;
+  exit;
+}
+
+my $article = read_articles_from($opt->{root});
+
 $template->process(
   'templates/year.tt',
   {
@@ -100,8 +88,6 @@ $template->process(
   },
   "$opt->{output}/index.html",
 ) || die $template->error;
-
-copy $_ => $opt->{output} for <share/*>;
 
 my $feed = XML::Atom::SimpleFeed->new(
   title   => 'RJBS Advent Calendar',
@@ -141,10 +127,39 @@ for my $date (reverse @dates){
     summary   => $article->body_xhtml,
     updated   => DateTime::Format::W3CDTF->new->format_datetime($article->date),
     category  => 'Perl',
+    category  => 'RJBS',
   );
 }
 
 open my $atom, '>', "$opt->{output}/atom.xml";
 $feed->print($atom);
 close $atom;
+
+sub read_articles_from {
+  my ($root) = @_;
+  my @files = <$root/*>;
+
+  my %article;
+  ;
+  for my $file (@files) {
+    my ($name, $path) = fileparse($file);
+    my $document = Email::Simple->new(scalar `cat $file`);
+    my $isodate  = $document->header('Date') || $name;
+
+    my $article  = Calendar::Advent::Article->new(
+      body  => $document->body,
+      date  => parse_isodate($isodate),
+      title => $document->header('title') || "Article for $isodate",
+    );
+
+    next unless $article->date < $today;
+
+    die "already have an article for " . $article->date->ymd
+      if $article{ $article->date->ymd };
+
+    $article{ $article->date->ymd } = $article;
+  }
+
+  return \%article;
+}
 

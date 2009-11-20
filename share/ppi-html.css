@@ -1,0 +1,32 @@
+
+.ppi-html {
+  background-color: #222;
+  color: #ddd;
+  font-size: 110%;
+  font-family: monospace;
+  white-space: pre;
+  padding-top: .1em;
+  border-collapse: collapse;
+}
+
+.ppi-html tr.line td { padding: 0; margin: 0 }
+
+.line {
+  margin: 0;
+  padding: 0;
+  line-height: auto;
+}
+
+.line_number {
+  background-color: #aea;
+  color: #000;
+  border-right: 2px red solid;
+  padding-left: .5em;
+}
+
+.keyword   { color: #67f;    }
+.symbol    { color: #00cccc; }
+.operator  { color: #fff;    }
+.structure { color: #bf0;    }
+.word      { color: #dd8;    }
+
