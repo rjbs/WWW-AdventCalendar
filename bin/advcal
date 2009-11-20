@@ -1,0 +1,82 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use lib 'lib';
+
+use autodie;
+use Calendar::Advent::Article;
+use Email::Simple;
+use File::Path qw(remove_tree);
+use DateTime;
+use File::Basename;
+use Getopt::Long::Descriptive;
+
+my ($opt, $usage) = describe_options(
+  '%c %o',
+  [ 'root',       'the root of articles', { default => './root' } ],
+  [ 'output|o=s', 'output directory',     { default => './out'  } ],
+  [ 'today=s',    'the day we treat as "today"; default to today' ],
+);
+
+sub parse_isodate {
+  my ($date, $time_from) = shift;
+
+  my ($y, $m, $d) = $date =~ /\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/;
+  die "can't parse date: $date\n" unless $y and $m and $d;
+
+  $time_from ||= [ (0) x 10 ];
+
+  return DateTime->new(
+    year   => $y,
+    month  => $m,
+    day    => $d,
+    hour   => $time_from->[2],
+    minute => $time_from->[1],
+    second => $time_from->[0],
+  );
+}
+
+my $today;
+if ($opt->{today}) {
+  $today = parse_isodate($opt->{today}, [localtime])
+} else {
+  $today = DateTime->now;
+}
+
+sub read_articles_from {
+  my ($root) = @_;
+  my @files = <$root/*>;
+
+  my @articles;
+  for my $file (@files) {
+    my ($name, $path) = fileparse($file);
+    my $document = Email::Simple->new(scalar `cat $file`);
+    my $isodate  = $document->header('Date') || $name;
+
+    my $article  = Calendar::Advent::Article->new(
+      body  => $document->body,
+      date  => parse_isodate($isodate),
+      title => $document->header('title') || "Article for $isodate",
+    );
+
+    next unless $article->date < $today;
+
+    push @articles, $article;
+  }
+
+  return @articles;
+}
+
+my @articles = read_articles_from($opt->{root});
+
+print "$today\n";
+
+remove_tree($opt->{output});
+mkdir($opt->{output});
+
+for my $article (@articles) {
+  printf "DATE : %s\nTITLE: %s\n", $article->date, $article->title;
+} continue {
+  print "\n";
+}
