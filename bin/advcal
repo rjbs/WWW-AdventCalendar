@@ -78,7 +78,11 @@ print "$today\n";
 remove_tree($opt->{output});
 mkdir($opt->{output});
 
-my $template = Template->new(WRAPPER => 'templates/wrapper.tt');
+my $template = Template->new(
+  WRAPPER => 'templates/wrapper.tt',
+  PRE_CHOMP  => 1,
+  POST_CHOMP => 1,
+);
 
 $template->process(
   'templates/year.tt',
