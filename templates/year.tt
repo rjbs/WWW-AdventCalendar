@@ -28,7 +28,7 @@
       [% ' future' IF future %]
     ">
       [% IF advent AND NOT future %]
-      <a href="[% day %].html">[% day %]</a>
+      <a href="[% year %]-12-[% day | format('%02s') %].html">[% day %]</a>
       [% ELSE %]
       [% day %]
       [% END %]

@@ -51,7 +51,8 @@ sub read_articles_from {
   my ($root) = @_;
   my @files = <$root/*>;
 
-  my @articles;
+  my %article;
+  ;
   for my $file (@files) {
     my ($name, $path) = fileparse($file);
     my $document = Email::Simple->new(scalar `cat $file`);
@@ -65,13 +66,16 @@ sub read_articles_from {
 
     next unless $article->date < $today;
 
-    push @articles, $article;
+    die "already have an article for " . $article->date->ymd
+      if $article{ $article->date->ymd };
+
+    $article{ $article->date->ymd } = $article;
   }
 
-  return @articles;
+  return \%article;
 }
 
-my @articles = read_articles_from($opt->{root});
+my $article = read_articles_from($opt->{root});
 
 print "$today\n";
 
@@ -96,8 +100,18 @@ $template->process(
 
 copy $_ => $opt->{output} for <share/*>;
 
-for my $article (@articles) {
-  # printf "DATE : %s\nTITLE: %s\n", $article->date, $article->title;
-} continue {
-  # print "\n";
+my @dates = sort keys %$article;
+for my $i (0 .. $#dates) {
+  my $date = $dates[ $i ];
+
+  $template->process(
+    'templates/day.tt',
+    {
+      article   => $article->{ $date },
+      tomorrow  => ($i < $#dates ? $dates[ $i + 1 ] : undef),
+      yesterday => ($i > 0       ? $dates[ $i - 1 ] : undef),
+      year      => $today->year,
+    },
+    "$opt->{output}/$date.html",
+  ) || die $template->error;
 }
