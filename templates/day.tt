@@ -1,4 +1,4 @@
-[% article.body %]
+[% article.body_xhtml %]
 
 <ul id="pager">
 [% IF yesterday %]
