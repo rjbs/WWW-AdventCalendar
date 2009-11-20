@@ -138,7 +138,7 @@ for my $date (reverse @dates){
     title     => $article->title,
     link      => "http://advent.rjbs.manxome.org/$date.html",
     id        => "$date", # 'urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a',
-    # summary   => 'Some text.',
+    summary   => $article->body_xhtml,
     updated   => DateTime::Format::W3CDTF->new->format_datetime($article->date),
     category  => 'Perl',
   );
