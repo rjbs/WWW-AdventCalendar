@@ -7,6 +7,8 @@ use lib 'lib';
 use autodie;
 use Calendar::Advent::Article;
 use Calendar::Simple;
+use DateTime;
+use DateTime::Format::W3CDTF;
 use Email::Simple;
 use File::Copy qw(copy);
 use File::Path qw(remove_tree);
@@ -14,6 +16,7 @@ use DateTime;
 use File::Basename;
 use Getopt::Long::Descriptive;
 use Template;
+use XML::Atom::SimpleFeed;
 
 my ($opt, $usage) = describe_options(
   '%c %o',
@@ -100,6 +103,18 @@ $template->process(
 
 copy $_ => $opt->{output} for <share/*>;
 
+my $feed = XML::Atom::SimpleFeed->new(
+  title   => 'RJBS Advent Calendar',
+  link    => 'http://advent.rjbs.manxome.org/',
+  link    => {
+    rel  => 'self',
+    href => 'http://advent.rjbs.manxome.org/atom.xml',
+  },
+  updated => DateTime::Format::W3CDTF->new->format_datetime($today),
+  author  => 'John Doe',
+  id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
+);
+
 my @dates = sort keys %$article;
 for my $i (0 .. $#dates) {
   my $date = $dates[ $i ];
@@ -115,3 +130,21 @@ for my $i (0 .. $#dates) {
     "$opt->{output}/$date.html",
   ) || die $template->error;
 }
+
+for my $date (reverse @dates){
+  my $article = $article->{ $date };
+
+  $feed->add_entry(
+    title     => $article->title,
+    link      => "http://advent.rjbs.manxome.org/$date.html",
+    id        => "$date", # 'urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a',
+    # summary   => 'Some text.',
+    updated   => DateTime::Format::W3CDTF->new->format_datetime($article->date),
+    category  => 'Perl',
+  );
+}
+
+open my $atom, '>', "$opt->{output}/atom.xml";
+$feed->print($atom);
+close $atom;
+

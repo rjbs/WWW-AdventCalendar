@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Language" content="en" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel="alternate" title="Advent Calendar RSS feed" href="/advent.atom.xml[% c.uri_for('/rss', year) %]" type="application/atom+xml" />
+    <link rel="alternate" title="Advent Calendar RSS feed" href="/atom.xml" type="application/atom+xml" />
     <link rel="stylesheet" href="screen.css" type="text/css" />
     <title>RJBS Advent Calendar</title>
 </head>
