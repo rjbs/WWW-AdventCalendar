@@ -31,14 +31,13 @@ SATURDAY  = Silly
 23 - String::RewritePrefix
 24 - Email::Sender
 
-_[ ideas.txt ]___
+25 - Task::BeLike::RJBS
+26 - Calendar::Advent..?
 
+_[ backups.txt ]___
 App::Addex
-
 Acme::ProgressBar
-
 Color::Palette
 DBIx::Locker
 HTML::Widget::Factory
 Mixin::Linewise
-

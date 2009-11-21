@@ -3,7 +3,7 @@ Format: Pod
 
 =head1 Your Face!
 
-This is all.
+This is all.  L<Sub::Exporter> is great.
 
 =begin perl
 
@@ -23,6 +23,9 @@ This is all.
 
 =head1 Conclusion
 
+=for wikidoc
+* you are cool
+* your friends are cool
+* I hate the bands you like
+
 It's that simple.
-
-

@@ -5,6 +5,8 @@ use autodie;
 use Pod::Elemental;
 use Pod::Elemental::Transformer::Pod5;
 use Pod::Elemental::Transformer::PPIHTML;
+use Pod::Elemental::Transformer::WikiDoc;
+use Pod::Hyperlink::BounceURL;
 use Pod::Xhtml;
 
 has body  => (is => 'ro', isa => 'Str',      required => 1);
@@ -20,13 +22,18 @@ sub body_xhtml {
 
   Pod::Elemental::Transformer::Pod5->new->transform_node($document);
   Pod::Elemental::Transformer::PPIHTML->new->transform_node($document);
+  Pod::Elemental::Transformer::WikiDoc->new->transform_node($document);
 
   $body = $document->as_pod_string;
 
   open my $fh, '<', \$body;
 
+  my $linkparser = Pod::Hyperlink::BounceURL->new;
+  $linkparser->configure(URL => 'http://search.cpan.org/perldoc?%s');
+
   my $px = Pod::Xhtml->new(
     FragmentOnly => 1,
+    LinkParser   => $linkparser,
     MakeIndex    => 0,
     MakeMeta     => 0,
     StringMode   => 1,
