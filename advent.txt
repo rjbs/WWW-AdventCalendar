@@ -1,0 +1,44 @@
+SUNDAY    = ??
+MONDAY    = Work
+TUESDAY   = Heavy
+WEDNESDAY = Easy
+THURSDAY  = Email
+FRIDAY    = Devel
+SATURDAY  = Silly
+
+ 1 - Sub::Exporter
+ 2 - Number::Nary
+ 3 - Email::Simple::Test:TraceHeaders ??
+ 4 - Pod::Coverage::TrustPod
+ 5 - Games::Nintendo::Mario
+ 6 - MRO::Magic
+ 7 - App::Cronjob
+ 8 - String::Formatter
+ 9 - Data::Section
+10 - Email::MIME::Kit
+11 - Dist::Zilla
+12 - Games::Bowling::Scorecard
+13 - Data::Rx
+14 - App::Cmd
+15 - Path::Resolver
+16 - Sort::ByExample
+17 - MIME::BodyMunger
+18 - Pod::Weaver
+19 - Git::Fingerd
+20 - Config::MVP
+21 - Git::Megapull
+22 - Mixin::ExtraFields
+23 - String::RewritePrefix
+24 - Email::Sender
+
+_[ ideas.txt ]___
+
+App::Addex
+
+Acme::ProgressBar
+
+Color::Palette
+DBIx::Locker
+HTML::Widget::Factory
+Mixin::Linewise
+
