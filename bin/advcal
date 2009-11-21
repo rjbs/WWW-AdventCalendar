@@ -147,10 +147,12 @@ sub read_articles_from {
     my $document = Email::Simple->new(scalar `cat $file`);
     my $isodate  = $document->header('Date') || $name;
 
+    die "no title set in $file\n" unless $document->header('title');
+
     my $article  = Calendar::Advent::Article->new(
       body  => $document->body,
       date  => parse_isodate($isodate),
-      title => $document->header('title') || "Article for $isodate",
+      title => $document->header('title'),
     );
 
     next unless $article->date < $today;
