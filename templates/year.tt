@@ -22,7 +22,7 @@
 [% advent = day AND day < 25 %]
 [% link = day %]
 [% link = 0 IF future OR late %]
-    <td class="day
+    <td id="dec-[% day | format('%02s') %]" class="day
       [% ' advent' IF advent %]
       [% ' today'  IF today  %]
       [% ' future' IF future %]

@@ -104,12 +104,16 @@ h2 {
 }
 
 .calendar td.today a:hover {
-   background: #bdb;
+  background: #bdb;
   color: #444;
 }
 
 .calendar td.day.advent.future {
   background: #eaa;
+}
+
+.calendar td#dec-25 {
+  background: #ffd700;
 }
 
 .calendar a {
