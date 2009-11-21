@@ -16,7 +16,7 @@
             <h1><a href="index.html">RJBS Advent Calendar</a></h1>
         </div>
 
-        <p id="note">25 days of Perl modules from RJBS!</p>
+        <p id="note">24 days of Perl modules from RJBS!</p>
 
         <div id="content">
           [% content %]
