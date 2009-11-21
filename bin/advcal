@@ -109,6 +109,7 @@ for my $i (0 .. $#dates) {
     'templates/day.tt',
     {
       article   => $article->{ $date },
+      date      => $date,
       tomorrow  => ($i < $#dates ? $dates[ $i + 1 ] : undef),
       yesterday => ($i > 0       ? $dates[ $i - 1 ] : undef),
       year      => $today->year,

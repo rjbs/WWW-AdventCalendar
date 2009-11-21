@@ -30,6 +30,7 @@ sub body_xhtml {
     MakeIndex    => 0,
     MakeMeta     => 0,
     StringMode   => 1,
+    TopHeading   => 2,
     TopLinks     => 0,
   );
   $px->parse_from_filehandle($fh);

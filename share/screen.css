@@ -25,6 +25,11 @@ h1 {
   text-align: center;
 }
 
+h1.title {
+  text-align: left;
+  color: #b00;
+}
+
 dt {
   margin: 0.5em 0 0.5em 0;
 }

@@ -1,3 +1,5 @@
+<h1 class='title'>[% date %]: [% article.title %]</h1>
+
 [% article.body_xhtml %]
 
 <ul id="pager">
