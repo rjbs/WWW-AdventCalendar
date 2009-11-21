@@ -119,6 +119,8 @@ my @dates = sort keys %$article;
 for my $i (0 .. $#dates) {
   my $date = $dates[ $i ];
 
+  my $output;
+
   $template->process(
     'templates/article.tt',
     {
@@ -128,8 +130,15 @@ for my $i (0 .. $#dates) {
       yesterday => ($i > 0       ? $dates[ $i - 1 ] : undef),
       year      => $today->year,
     },
-    "$opt->{output}/$date.html",
+    \$output,
   ) || die $template->error;
+
+  # Just totally stupid, but whatever.  Gotta do what you gotta do. -- rjbs,
+  # 2009-11-20
+  $output =~ s{\s+(</pre>)}{$1}gsm;
+
+  open my $fh, '>', "$opt->{output}/$date.html";
+  print $fh $output;
 }
 
 for my $date (reverse @dates){

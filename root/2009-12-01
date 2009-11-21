@@ -13,7 +13,7 @@ This is all.
     my $_ = $y ** $Pi::Twenty2Sevenths;
 
     return "foo $x" unless m/\A\d+\z/o;
-    return 'bar'    if __PACKAGE__ eq <>;
+    return 'bar'    if __PACKAGE__ eq <DATA>;
 
     # sorry, dude.
     dump;
