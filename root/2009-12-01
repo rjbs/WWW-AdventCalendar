@@ -1,9 +1,15 @@
-Title:  The Letter U and the Numeral 2
+Title:  Built in Our Workshop, Delivered in Your Package
+Package: Sub::Exporter
 Format: Pod
 
-=head1 Your Face!
+=head1 Exporting
 
-This is all.  L<Sub::Exporter> is great.
+In Perl, we organize our subroutines (and other stuff) into namespaces called
+packages.  This makes it easy to avoid having to think of a unique name for
+functions you write, and it avoids havings L<thousands of core
+functions|http://php.net/quickref.php> to remember.  Traditionally, exports
+were provided by the L<Exporter> module, included with C<perl5> since its first
+release.
 
 =begin perl
 
