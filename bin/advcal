@@ -60,7 +60,9 @@ my $template = Template->new(
 my $share = $opt->{share};
 copy $_ => $opt->{output} for <$share/*>;
 
-my $dec_01 = DateTime->new(year => 2009, month => 12, day => 1);
+my $dec_01 = DateTime->new(year => 2009, month => 12, day =>  1);
+my $dec_25 = DateTime->new(year => 2009, month => 12, day => 25);
+
 if ($dec_01 > $today) {
   my $dur  = $dec_01 - $today;
   my $days = $dur->delta_days || 1;
@@ -78,6 +80,18 @@ if ($dec_01 > $today) {
 }
 
 my $article = read_articles_from($opt->{root});
+
+{
+  my $d = $dec_01;
+  while (
+    $d->ymd le (sort { $a cmp $b } ($dec_25->ymd, $today->ymd))[0]
+  ) {
+    die "no article written for " . $d->ymd . "!\n"
+      unless $article->{ $d->ymd };
+
+    $d = $d + DateTime::Duration->new(days => 1 );
+  }
+}
 
 $template->process(
   'templates/year.tt',
@@ -141,7 +155,7 @@ sub read_articles_from {
   my @files = <$root/*>;
 
   my %article;
-  ;
+
   for my $file (@files) {
     my ($name, $path) = fileparse($file);
     my $document = Email::Simple->new(scalar `cat $file`);
