@@ -106,7 +106,7 @@ for my $i (0 .. $#dates) {
   my $date = $dates[ $i ];
 
   $template->process(
-    'templates/day.tt',
+    'templates/article.tt',
     {
       article   => $article->{ $date },
       date      => $date,
