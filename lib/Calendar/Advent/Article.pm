@@ -9,9 +9,8 @@ use Pod::Elemental::Transformer::WikiDoc;
 use Pod::Hyperlink::BounceURL;
 use Pod::Xhtml;
 
-has body  => (is => 'ro', isa => 'Str',      required => 1);
-has title => (is => 'ro', isa => 'Str',      required => 1);
-has date  => (is => 'ro', isa => 'DateTime', required => 1);
+has date => (is => 'ro', isa => 'DateTime', required => 1);
+has [ qw(title package body) ] => (is => 'ro', isa => 'Str', required => 1);
 
 sub body_xhtml {
   my ($self) = @_;

@@ -176,6 +176,7 @@ sub read_articles_from {
       body  => $document->body,
       date  => parse_isodate($isodate),
       title => $document->header('title'),
+      package => $document->header('package'),
     );
 
     next unless $article->date < $today;

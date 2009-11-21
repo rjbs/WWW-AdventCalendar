@@ -26,7 +26,7 @@ sub transform_node {
     my $space_count = 2 + length scalar @lines;
     my $spc = ' ' x $space_count;
 
-    $html = "<table class='ppi-html'>\n\n\n"
+    $html = "<table class='ppi-html'>"
           . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
           . (join q{}, map {; "<tr class='line'><td>$_</td></tr>\n" } @lines)
           . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"

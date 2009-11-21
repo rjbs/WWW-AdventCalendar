@@ -27,7 +27,13 @@ h1 {
 
 h1.title {
   text-align: left;
+  margin-bottom: 0;
   color: #b00;
+}
+
+.subtitle {
+  text-align: right;
+  border-top: 1px black solid;
 }
 
 dt {
