@@ -8,7 +8,7 @@
 
  1 - Sub::Exporter
  2 - Number::Nary
- 3 - Email::ARF
+ 3 - Email::Pipemailer::DieHandler
  4 - Pod::Coverage::TrustPod
  5 - Games::Nintendo::Mario
 
