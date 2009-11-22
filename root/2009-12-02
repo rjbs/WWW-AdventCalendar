@@ -2,7 +2,79 @@ Title:  Making a List, Checking it 0b10 Times...
 Format: Pod
 Package: Number::Nary
 
-=head1 Your Face!
+=head1 Beyond Hex and Octal
 
-This is all.
+It's sort of easy to convert between decimal, hexadecimal, and octal in Perl.
+C<sprintf> can produce decimal, hexadecimal, octal, or binary digit strings,
+and the C<oct> built-in can read those strings back into numbers.  For example,
+to convert from hex to binary strings, we might do the following:
+
+=begin perl
+
+  my $hex = '99';
+  my $num = oct("0x$hex"); # or we could use hex($hex);
+  my $bin = sprintf '%b', $num; # ...and we get 10011001
+
+=end perl
+
+This is a little inconsistent, but fast and easy.  Unfortunately, sometimes we
+need to work with really weird digit sets.  Fortunately, L<Number::Nary> makes
+these really easy to work with.  For example, if we need to convert from
+sexagesimal to trinary (presumably because we are writing a Star Trek script)
+we can just create routines using Number::Nary like this:
+
+=begin perl
+
+  use Number::Nary
+    -codec_pair => {
+      -suffix => '_3',
+      digits  => '012',
+    },
+    -codec_pair => {
+      -suffix => '_60',
+      digits  => [ map { sprintf '%02u', $_ } (0 .. 59) ], # 00 through 59
+    };
+
+=end perl
+
+Now we have four routines for converting between our numbering systems.  Given
+the number 102012012 in trinary, we can easily convert it to sexagesimal:
+
+=begin perl
+
+  my $trinary = '102012012';
+  my $number  = decode_3($trinary);
+  my $sexa    = encode_60($number); # "021559"
+
+=end perl
+
+Neat, but is it ever practical?  Yes!  For one thing, it can be used to fix
+numbers into weird character sets.  I've used it to cram several large numbers
+into email addresses by using the valid email address characters as a digit
+set.  There's also Jesse Vincent's L<Number::RecordLocator>, which "encodes
+integers into a short and easy to read and pronounce locator strings." Using Number::Nary, we can re-implement that module in just a few lines:
+
+=begin perl
+
+  use Number::Nary -codec_pair => {
+    digits    => [  2 .. 9, 'A', 'C' .. 'R', 'T' .. 'Z' ],
+    predecode => sub { my $s = $_[0]; $s =~ tr/01SBsb/OIFPFP/; return $s },
+  };
+
+  # We silently replace some digits with others to keep things easy to read.
+  ok(decode('1234') == decode('I234')); # 513430
+  ok(decode('10SB') == decode('IOFP')); # 491554
+
+=end perl
+
+Number::Nary is slower than C<sprintf> and C<oct> are, but since they can only
+handle a few different digit sets, they're not always going to solve the
+problem at hand.
+
+=head1 See Also
+
+=for wikidoc
+* [Number::Nary]
+* [UDCode] - a way to determine if a set of digits is sufficiently unique
+
 
