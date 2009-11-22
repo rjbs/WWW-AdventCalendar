@@ -13,25 +13,178 @@ release.
 
 =begin perl
 
-  my $x = Foo->new_auto($y);
+  # You use Exporter in your module...
+  package Gift::Dispatch;
 
-  $x->foreach(sub {
-    my $_ = $y ** $Pi::Twenty2Sevenths;
+  use Exporter qw(import);
+  our @EXPORT_OK   = qw(wrap label send);
+  our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
-    return "foo $x" unless m/\A\d+\z/o;
-    return 'bar'    if __PACKAGE__ eq <DATA>;
-
-    # sorry, dude.
-    dump;
-  });
+  sub wrap  { ... }
+  sub label { ... }
+  sub send  { ... }
 
 =end perl
 
-=head1 Conclusion
+Now when someone says C<< use Gift::Dispatch ':all' >> the three exported
+routines become available in their package.  This is a useful tool, and most
+Perl programmers interact with Exporter all the time.  Unfortunately, it's not
+very flexible.  For example, here's our attempt to use Gift::Dispatch:
+
+=begin perl
+
+  package Gift::Giver;
+
+  use Gift::Dispatch ':all';  # for physical presents
+  use Email::Send;            # for online gift codes
+
+  for my $gift ( @physical_presents ) {
+    send($gift, { carrier => 'UPS' });
+  }
+
+  for my $gift ( @gift_codes ) {
+    Email::Send->new->send( email_for($gift) );
+  }
+
+=end perl
+
+Email::Send exports a C<send> routine by default, which will clobber the one
+from Gift::Dispatch.  This is obviously a contrived example, but this problem
+happens in real life, too, and generally ends up being more obnoxious to track
+down.  Subroutines installed by Exporter also stick around forever, so when
+somebody ends up trying to call C<< Gift::Giver->send >>, forgetting that the
+right method is C<give>, they get one of your imported routines instead of a
+"no such method" exception.
+
+=head1 Sub::Exporter and Naming
+
+Sub::Exporter (sometimes affectionately referred to as S'Ex) makes it easy to
+fix this problem.  First, we update Gift::Dispatch:
+
+=begin perl
+
+  # You use Exporter in your module...
+  package Gift::Dispatch;
+
+  use Sub::Exporter -setup => [ qw(wrap label send) ];
+
+  sub wrap  { ... }
+  sub label { ... }
+  sub send  { ... }
+
+=end perl
+
+And then we update Gift::Giver to muck around with the names (unrelated code
+omitted):
+
+=begin perl
+
+  package Gift::Giver;
+
+  use Gift::Dispatch ':all' => { -prefix => '_', -suffix => '_gift' };
+
+  for my $gift ( @physical_presents ) {
+    _send_gift($gift, { carrier => 'UPS' });
+  }
+
+=end perl
+
+=head1 Sub::Exporter and Code Customization
+
+We got to muck about with the names under which things are imported.  This is
+only the tip of the iceberg.  Sub::Exporter can let you customize not just the
+names of imported routines, but also other facets of their operation.  For
+example, we might not want to require the "carrier" parameter for our shipment
+above, if we can provide a default.  It's easy to let Sub::Exporter handle an
+import like this:
+
+=begin perl
+
+  package Gift::Giver;
+
+  use Gift::Dispatch send => { -as => '_send_gift', carrier => 'UPS' };
+
+  for my $gift ( @physical_presents ) {
+    _send_gift($gift);
+  }
+
+=end perl
+
+With arguments like that, we can build routines with built-in defaults,
+overridden behavior, and all kinds of customization, wrapped up in a simple
+name that we choose.
+
+Over next few weeks, quite a few of the libraries that will be discussed will
+either use Sub::Exporter to provide exported functions or will use
+Sub::Exporter to provide powerful customizeable interfaces.  To really learn
+how these work, you should go to the [Sub::Exporter::Tutorial], but here's a
+quick non-trivial sample using the canonical closure example of a "counter":
+
+=begin perl
+
+  package Counter;
+  use Sub::Exporter -setup => {
+    groups  => [ counter => \'_gen_counter' ],
+  };
+
+  sub _gen_counter {
+    my ($class, $name, $arg) = @_;
+
+    my $cb = $arg->{callback};
+    my @log;
+
+    my %sub;
+    $sub{record} = sub {
+      my ($value) = @_;
+      $cb->($value) if @_;
+      push @log, $value;
+    };
+
+    $sub{list} = sub {
+      return @log;
+    };
+
+    $sub{count} = sub {
+      return scalar @log;
+    };
+
+    return \%sub;
+  }
+
+=end perl
+
+Then we put it to use...
+
+=begin perl
+
+  use Counter
+    -counter => {
+      -suffix => '_receipt',
+    },
+    -counter => {
+      -suffix => '_gift',
+      callback => sub { print "sending thankyou note to $_[0]\n" },
+    },
+  ;
+
+  record_receipt($_) for @presents_we_got;
+  record_gift($_)    for @presents_we_gave;
+
+  die "life isn't fair" if count_gift > count_receipt;
+
+=end perl
+
+Sub::Exporter is easier to use than Exporter and in its most trivial
+configuration provides much more utility.  Learning how to make the most of
+Sub::Exporter can make very complex code generation quite simple and can reduce
+the amount of code you must write significantly.
+
+=head1 See Also
 
 =for wikidoc
-* you are cool
-* your friends are cool
-* I hate the bands you like
+* [Sub::Exporter]
+* [Sub::Exporter::Tutorial] - a more thorough tutorial on the basics
+* [Sub::Exporter::Cookbook] - stupid Sub::Exporter tricks
+* [Sub::Exporter::Lexical] - imports that only last for your scope
+* [Sub::Import] - treat Exporter-using packages as if they used Sub::Exporter
 
-It's that simple.
