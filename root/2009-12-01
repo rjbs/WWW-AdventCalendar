@@ -136,7 +136,7 @@ quick non-trivial sample using the canonical closure example of a "counter":
     my %sub;
     $sub{record} = sub {
       my ($value) = @_;
-      $cb->($value) if @_;
+      $cb->($value) if $cb and @_;
       push @log, $value;
     };
 
