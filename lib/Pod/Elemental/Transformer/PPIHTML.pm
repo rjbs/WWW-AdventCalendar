@@ -2,6 +2,7 @@ package Pod::Elemental::Transformer::PPIHTML;
 use Moose;
 with 'Pod::Elemental::Transformer';
 
+use utf8;
 use PPI;
 use PPI::HTML;
 
@@ -17,6 +18,8 @@ sub transform_node {
     die "=begin :perl makes no sense\n" if $node->is_pod;
 
     my $perl    = $node->children->[0]->as_pod_string;
+    1 while chomp $perl;
+
     my $ppi_doc = PPI::Document->new(\$perl);
     my $ppihtml = PPI::HTML->new( line_numbers => 1 );
     my $html    = $ppihtml->html( $ppi_doc );
@@ -25,6 +28,8 @@ sub transform_node {
 
     my $space_count = 2 + length scalar @lines;
     my $spc = ' ' x $space_count;
+
+    $node->content =~ /stupid-hyphen/ and s/-/−/g for @lines;
 
     $html = "<table class='ppi-html'>"
           . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
