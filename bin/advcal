@@ -98,7 +98,8 @@ $template->process(
   {
     now  => $today,
     year => $today->year,
-    calendar => scalar calendar(12, $today->year),
+    calendar    => scalar calendar(12, $today->year),
+    article_for => sub { $article->{sprintf("2009-12-%02u", $_[0])} },
   },
   "$opt->{output}/index.html",
 ) || die $template->error;
