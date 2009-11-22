@@ -52,7 +52,8 @@ Neat, but is it ever practical?  Yes!  For one thing, it can be used to fix
 numbers into weird character sets.  I've used it to cram several large numbers
 into email addresses by using the valid email address characters as a digit
 set.  There's also Jesse Vincent's L<Number::RecordLocator>, which "encodes
-integers into a short and easy to read and pronounce locator strings." Using Number::Nary, we can re-implement that module in just a few lines:
+integers into a short and easy to read and pronounce locator strings." Using
+Number::Nary, we can re-implement that module in about four lines:
 
 =begin perl
 
@@ -69,12 +70,39 @@ integers into a short and easy to read and pronounce locator strings." Using Num
 
 Number::Nary is slower than C<sprintf> and C<oct> are, but since they can only
 handle a few different digit sets, they're not always going to solve the
-problem at hand.
+problem at hand.  Having Number::Nary in the wings when you need it can be a
+real time-saver.
+
+Finally, here's a quick bit of Christmas spirit:
+
+=begin perl
+
+  use Number::Nary 0.107 -codec_pair => {
+    digits => [ 'ho ' ],
+    postencode => sub {
+      (my $s = shift) =~ s/ \z//;
+      "Merry Christmas, $s!"
+    },
+    predecode  => sub {
+      my $s = lc shift;
+      $s =~ s/\Amerry christmas, //;
+      $s =~ s/!\z/ /;
+      warn ">> $s <<";
+      $s;
+    },
+  };
+
+  # Appropriate:
+  say encode(3);
+
+  # Not:
+  say encode(1);
+
+=end perl
 
 =head1 See Also
 
 =for wikidoc
 * [Number::Nary]
-* [UDCode] - a way to determine if a set of digits is sufficiently unique
-
+* [UDCode] - to determine if a set of digits will produce unambiguous strings
 
