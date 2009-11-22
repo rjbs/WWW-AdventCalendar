@@ -1,0 +1,81 @@
+Title:  The Little Deferral Boy
+Format: Pod
+Package: Email::Pipemailer::DieHandler
+
+=head1 Avoid Unwanted Returns
+
+I write a whole lot of code that takes a piece of mail and does something with
+it.  Some of these are SMTP servers, some process mailboxes on disk, but at
+least half of them a I<pipemailers>.  A pipemailer reads a message on STDIN and
+exits with a code that lets the calling program know what happened.  To grossly
+simplify, the possible exit values are:
+
+=for wikidoc
+* 0 - everything is okay; the message has been handled
+* 75 - we couldn't handle the message right now, try again later
+* anything else - something is wrong; report failure and never try again
+
+Why does this matter?  Well, say you're using L<Email::Filter> or
+L<Mail::Audit> or some other Perl library for deliverying your mail.  I mean,
+you're not using I<L<procmail|http://www.procmail.org/>> are you?  One day you
+decide you're going to start checking your mail with SpamAssassin, so you copy
+this blurb from the documentation:
+
+=begin perl stupid-hyphen
+
+  $mail->exit(0);
+  $mail->simple(Email::Simple->new($mail->pipe("spamassassin")));
+  $mail->exit(1);
+
+=end perl
+
+It's in the documentation, so it should be fine... but you've copied and pasted
+from F<perldoc> and you're getting bitten by its stupid use of C<< <U+2122> >>
+instead of a hyphen in the arrow operator.  (This gets me about once a week.)
+Unfortunately, you don't notice, and now your program dies because C<perl> has
+no idea what to do with that fake hyphen.  Your program exits 9 (or something
+else seemingly random) and your mail server starts bouncing absolutely all your
+mail.
+
+A test suite would help, and so would lots of other things, but
+Email::Pipemailer::DieHandler is dead simple, and a good first line of defense.
+When you install its "C<SIGDIE>" handler, any fatal exception outside of an
+eval will be logged and will cause the program to exit 75.  Your mail might not
+get delivered, but at least it won't get bounced.  Hopefully you'll notice
+before it all times out!
+
+Email::Pipemailer::DieHandler  is a pretty tiny module.  It's so short that I
+can reproduce all of its effective code right here:
+
+=begin perl
+
+  package Email::Pipemailer::DieHandler;
+  sub import {
+    my ($self, $install, $arg) = @_;
+    return unless $install and $install eq '-install';
+
+    $arg ||= {};
+    my $logger = $arg->{logger} || sub {};
+
+    $SIG{__DIE__} = sub {
+      return if $^S; # don't interfere with evals
+      my ($e) = @_;
+      defined $^S and eval { $logger->($e); };
+      $! = 75;
+      die $e;
+    };
+  }
+
+=end perl
+
+It might be the shortest module I've published on the CPAN, but don't let that
+fool you:  this module has saved me quite a lot of embarassment by converting
+stupid bounces into errors that only I needed to see.
+
+=head1 See Also
+
+=for wikidoc
+* [Email::Pipemailer::DieHandler]
+* [Email::Filter]
+* [Mail::Audit]
+
