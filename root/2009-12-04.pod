@@ -81,6 +81,7 @@ When you write your library, you'd write something like this:
 
 And you'd write your F<t/pod-coverage.t> file like this:
 
+  #!perl
   all_pod_coverage_ok({ coverage_class => 'Pod::Coverage::TrustPod' });
 
 That's it!  Now all your documentation's coverage is easy to test, and
