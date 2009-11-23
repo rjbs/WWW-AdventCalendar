@@ -65,7 +65,7 @@ my $dec_25 = DateTime->new(year => 2009, month => 12, day => 25);
 
 if ($dec_01 > $today) {
   my $dur  = $dec_01 - $today;
-  my $days = $dur->delta_days || 1;
+  my $days = $dur->delta_days + 1;
   my $str  = $days != 1 ? "$days days" : "1 day";
 
   $template->process(
