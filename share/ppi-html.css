@@ -22,16 +22,17 @@
   color: #fff;
   border-right: 2px #b00 solid;
   padding-left: .5em;
+  margin-right: 1em;
 }
 
-.keyword   { color: #89f;    }
-.symbol    { color: #00cccc; }
-.operator  { color: #fff;    }
-.structure { color: #bf0;    }
-.word      { color: #dd8;    }
-.comment   { color: #0f0;    }
-.match     { color: #ff0;    }
-.readline  { color: #caa;    }
-
-.single, .double { color: #0cf }
-
+.ppi-html .keyword   { color: #89f;    }
+.ppi-html .symbol    { color: #00cccc; }
+.ppi-html .operator  { color: #fff;    }
+.ppi-html .structure { color: #bf0;    }
+.ppi-html .word      { color: #dd8;    }
+.ppi-html .comment   { color: #0f0;    }
+.ppi-html .pod       { color: #0f0;    }
+.ppi-html .match     { color: #ff0;    }
+.ppi-html .readline  { color: #caa;    }
+.ppi-html .single,
+.ppi-html .double    { color: #0cf }

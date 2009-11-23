@@ -10,6 +10,7 @@ sub _xhtml_node_for_perl {
   my ($self, $perl, $opt) = @_;
 
   1 while chomp $perl;
+  $perl =~ s/^  //gms;
 
   my $ppi_doc = PPI::Document->new(\$perl);
   my $ppihtml = PPI::HTML->new( line_numbers => 1 );
