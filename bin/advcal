@@ -112,7 +112,7 @@ my $feed = XML::Atom::SimpleFeed->new(
     href => 'http://advent.rjbs.manxome.org/atom.xml',
   },
   updated => DateTime::Format::W3CDTF->new->format_datetime($today),
-  author  => 'John Doe',
+  author  => 'Ricardo Signes',
   id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
 );
 
@@ -145,7 +145,7 @@ for my $date (reverse @dates){
     title     => $article->title,
     link      => "http://advent.rjbs.manxome.org/$date.html",
     id        => "$date", # 'urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a',
-    summary   => $article->body_xhtml,
+    summary   => Encode::decode('utf-8', $article->body_xhtml),
     updated   => DateTime::Format::W3CDTF->new->format_datetime($article->date),
     category  => 'Perl',
     category  => 'RJBS',
