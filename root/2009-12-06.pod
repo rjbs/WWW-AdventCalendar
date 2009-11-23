@@ -1,0 +1,107 @@
+Title:   Less Boilerplate, More Ice Cream
+Format:  Pod
+Package: Mixin::Linewise
+
+=head1 Just a Little Less Work
+
+Let's take it easy, it's Sunday.  This library is just a little timesaver, but
+it saves you from the worst kind of work: boring, stupid, repetitive work.
+
+Here's some code I have written longhand way too many times:
+
+  #!perl
+  use strict;
+  package Character::Count;
+
+  sub read_file {
+    my ($self, $filename) = @_;
+    open my $fh, '<', $filename or die "drat: $!";
+
+    return $self->read_handle($fh);
+  }
+
+  sub read_handle {
+    my ($self, $fh) = @_;
+
+    local $/;
+    my $string = <$fh>;
+
+    return $self->read_string($string);
+  }
+
+  sub read_string {
+    my ($self, $string) = @_;
+
+    my %result;
+    $result{$_}++ for split //, $string;
+
+    return \$result;
+  }
+
+Except when I wrote it the first way too many times, each implementation was a
+little different.  Sometimes I forgot to check the result of opening a file.
+Sometimes I duplicated bits of code and only fixed bugs in one or the other.
+In the one above, I builed everything down to working on a string, which is
+going to stink if my input is really big and now I'm holding it all in memory
+at once and copying it around... and all that boilerplate for just two useful
+lines of code!
+
+Mixin::Linewise deals with this by letting you just write the filehandle-based
+iterator:
+
+  #!perl
+  use strict;
+  package Character::Count;
+  use Mixin::Linewise::Readers -readers;
+
+  sub read_handle {
+    my ($self, $fh) = @_;
+
+    my %result;
+    while (<$fh>) {
+      $result{$_}++ for split //;
+    }
+
+    return \$result;
+  }
+
+That cuts the amount of code roughly in half and ensures that any bugfixes
+apply to all your modules everywhere instead of just the methods in the modules
+you remember to go find and update.
+
+There's also a Mixin::Linewise::Writers, which does just what you think: you
+write C<write_handle> and it gives you C<write_file> and C<write_string>.
+(C<write_string> returns the string it has produced.)
+
+=head2 ...and because it's Sub::Exporter...
+
+Mixin::Linewise uses Sub::Exporter, which means you can parameterize and rename
+its exports, which means you can do this:
+
+  #!perl
+  use strict;
+  package ETL::System;
+  use Mixin::Linewise::Readers
+    -readers => { -suffix => '_ini', method => 'read_handle_ini' },
+    -readers => { -suffix => '_dat', method => 'read_handle_dat' };
+
+  sub read_handle_ini { ... }
+  sub read_handle_dat { ... }
+
+  # ...and then somewhere else ...
+
+  my $result = ETL::System->read_file_dat('datasource.dat');
+
+In other words, you can build a bunch of file and string reader methods with
+different names built on top of distinct handle-readers.
+
+So, Mixin::Linewise won't revolutionize how you write Perl, and it won't be
+useful all the time.  It will be useful once in a while, and will let you stop
+writing boring boilerplate code and, what's better, stop having to test it,
+too.
+
+=head1 See Also
+
+=for wikidoc
+* [Mixin::Linewise::Readers]
+* [Mixin::Linewise::Writers]
