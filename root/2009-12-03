@@ -21,13 +21,10 @@ you're not using I<L<procmail|http://www.procmail.org/>> are you?  One day you
 decide you're going to start checking your mail with SpamAssassin, so you copy
 this blurb from the documentation:
 
-=begin perl stupid-hyphen
-
+  #!perl stupid-hyphen
   $mail->exit(0);
   $mail->simple(Email::Simple->new($mail->pipe("spamassassin")));
   $mail->exit(1);
-
-=end perl
 
 It's in the documentation, so it should be fine... but you've copied and pasted
 from F<perldoc> and you're getting bitten by its stupid use of C<< <U+2122> >>
@@ -47,8 +44,7 @@ before it all times out!
 Email::Pipemailer::DieHandler  is a pretty tiny module.  It's so short that I
 can reproduce all of its effective code right here:
 
-=begin perl
-
+  #!perl
   package Email::Pipemailer::DieHandler;
   sub import {
     my ($self, $install, $arg) = @_;
@@ -65,8 +61,6 @@ can reproduce all of its effective code right here:
       die $e;
     };
   }
-
-=end perl
 
 It might be the shortest module I've published on the CPAN, but don't let that
 fool you:  this module has saved me quite a lot of embarassment by converting

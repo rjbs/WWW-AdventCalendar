@@ -11,8 +11,7 @@ functions|http://php.net/quickref.php> to remember.  Traditionally, exports
 were provided by the L<Exporter> module, included with C<perl5> since its first
 release.
 
-=begin perl
-
+  #!perl
   # You use Exporter in your module...
   package Gift::Dispatch;
 
@@ -24,15 +23,12 @@ release.
   sub label { ... }
   sub send  { ... }
 
-=end perl
-
 Now when someone says C<< use Gift::Dispatch ':all' >> the three exported
 routines become available in their package.  This is a useful tool, and most
 Perl programmers interact with Exporter all the time.  Unfortunately, it's not
 very flexible.  For example, here's our attempt to use Gift::Dispatch:
 
-=begin perl
-
+  #!perl
   package Gift::Giver;
 
   use Gift::Dispatch ':all';  # for physical presents
@@ -45,8 +41,6 @@ very flexible.  For example, here's our attempt to use Gift::Dispatch:
   for my $gift ( @gift_codes ) {
     Email::Send->new->send( email_for($gift) );
   }
-
-=end perl
 
 Email::Send exports a C<send> routine by default, which will clobber the one
 from Gift::Dispatch.  This is obviously a contrived example, but this problem
@@ -61,8 +55,7 @@ right method is C<give>, they get one of your imported routines instead of a
 Sub::Exporter (sometimes affectionately referred to as S'Ex) makes it easy to
 fix this problem.  First, we update Gift::Dispatch:
 
-=begin perl
-
+  #!perl
   # You use Exporter in your module...
   package Gift::Dispatch;
 
@@ -72,13 +65,10 @@ fix this problem.  First, we update Gift::Dispatch:
   sub label { ... }
   sub send  { ... }
 
-=end perl
-
 And then we update Gift::Giver to muck around with the names (unrelated code
 omitted):
 
-=begin perl
-
+  #!perl
   package Gift::Giver;
 
   use Gift::Dispatch ':all' => { -prefix => '_', -suffix => '_gift' };
@@ -86,8 +76,6 @@ omitted):
   for my $gift ( @physical_presents ) {
     _send_gift($gift, { carrier => 'UPS' });
   }
-
-=end perl
 
 =head1 Sub::Exporter and Code Customization
 
@@ -98,8 +86,7 @@ example, we might not want to require the "carrier" parameter for our shipment
 above, if we can provide a default.  It's easy to let Sub::Exporter handle an
 import like this:
 
-=begin perl
-
+  #!perl
   package Gift::Giver;
 
   use Gift::Dispatch send => { -as => '_send_gift', carrier => 'UPS' };
@@ -107,8 +94,6 @@ import like this:
   for my $gift ( @physical_presents ) {
     _send_gift($gift);
   }
-
-=end perl
 
 With arguments like that, we can build routines with built-in defaults,
 overridden behavior, and all kinds of customization, wrapped up in a simple
@@ -120,8 +105,7 @@ Sub::Exporter to provide powerful customizeable interfaces.  To really learn
 how these work, you should go to the [Sub::Exporter::Tutorial], but here's a
 quick non-trivial sample using the canonical closure example of a "counter":
 
-=begin perl
-
+  #!perl
   package Counter;
   use Sub::Exporter -setup => {
     groups  => [ counter => \'_gen_counter' ],
@@ -151,12 +135,9 @@ quick non-trivial sample using the canonical closure example of a "counter":
     return \%sub;
   }
 
-=end perl
-
 Then we put it to use...
 
-=begin perl
-
+  #!perl
   use Counter
     -counter => {
       -suffix => '_receipt',
@@ -171,8 +152,6 @@ Then we put it to use...
   record_gift($_)    for @presents_we_gave;
 
   die "life isn't fair" if count_gift > count_receipt;
-
-=end perl
 
 Sub::Exporter is easier to use than Exporter and in its most trivial
 configuration provides much more utility.  Learning how to make the most of

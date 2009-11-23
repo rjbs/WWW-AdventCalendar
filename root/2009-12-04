@@ -1,5 +1,18 @@
-Title:  The Little Deferral Boy
-Format: Pod
+Title:   In Pod we Trust
+Format:  Pod
 Package: Pod::Coverage::TrustPod
 
-foo
+=head1 Testing Pod Coverage
+
+Andy Lester's fantastic L<Test::Pod::Coverage> makes it easy to check whether
+you've covered all your code.  The standard usage is to make a file named
+something like F<t/pod-coverage.t>, with these contents:
+
+  #!perl
+  use Test::More;
+  plan skip_all => "Test::Pod::Coverage 1.08 required for this test"
+    unless eval "use Test::Pod::Coverage 1.08; 1";
+  all_pod_coverage_ok();
+
+Okay?
+
