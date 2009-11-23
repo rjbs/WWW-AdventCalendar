@@ -73,16 +73,18 @@ my $feed = XML::Atom::SimpleFeed->new(
   id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
 );
 
-my $dec_01 = DateTime->new(
-  year => 2009, month => 12, day =>  1, time_zone => 'America/New_York'
-);
+my %dec;
+for (1 .. 31) {
+  $dec{$_} = DateTime->new(
+    year  => 2009,
+    month => 12,
+    day   => $_,
+    time_zone => 'America/New_York',
+  );
+}
 
-my $dec_25 = DateTime->new(
-  year => 2009, month => 12, day => 25, time_zone => 'America/New_York'
-);
-
-if ($dec_01 > $today) {
-  my $dur  = $dec_01 - $today;
+if ($dec{1} > $today) {
+  my $dur  = $dec{1} - $today;
   my $days = $dur->delta_days + 1;
   my $str  = $days != 1 ? "$days days" : "1 day";
 
@@ -115,11 +117,11 @@ if ($dec_01 > $today) {
 my $article = read_articles_from($opt->{root});
 
 {
-  my $d = $dec_01;
+  my $d = $dec{1};
   while (
-    $d->ymd le (sort { $a cmp $b } ($dec_25->ymd, $today->ymd))[0]
+    $d->ymd le (sort { $a cmp $b } ($dec{25}->ymd, $today->ymd))[0]
   ) {
-    die "no article written for " . $d->ymd . "!\n"
+    warn "no article written for " . $d->ymd . "!\n"
       unless $article->{ $d->ymd };
 
     $d = $d + DateTime::Duration->new(days => 1 );
