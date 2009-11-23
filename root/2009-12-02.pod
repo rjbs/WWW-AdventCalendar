@@ -90,4 +90,5 @@ Finally, here's a quick bit of Christmas spirit:
 =for wikidoc
 * [Number::Nary]
 * [UDCode] - to determine if a set of digits will produce unambiguous strings
+* [Math::BaseCalc] - another take on the problem (but I don't recommend it)
 

@@ -72,4 +72,4 @@ stupid bounces into errors that only I needed to see.
 * [Email::Pipemailer::DieHandler]
 * [Email::Filter]
 * [Mail::Audit]
-
+* [Perrin Harkins speaks for us all|http://use.perl.org/~perrin/journal/36161]

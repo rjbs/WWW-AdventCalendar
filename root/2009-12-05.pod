@@ -82,3 +82,9 @@ soon, dozens of graphical bowling games written in Perl will be in the works,
 and they'll all be easier to write thanks to Games::Bowling::Scorecard.  I look
 forward to the day when the F<ELFBOWL2.EXE> that I angrily delete is compiled
 from Perl, using my own code.
+
+=head1 See Also
+
+=for wikidoc
+* [Games::Bowling::Scorecard]
+* [Real bowling|http://en.wikipedia.org/wiki/Ten-pin_bowling] (not candlepin!)

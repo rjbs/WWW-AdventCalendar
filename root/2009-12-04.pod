@@ -87,3 +87,32 @@ And you'd write your F<t/pod-coverage.t> file like this:
 That's it!  Now all your documentation's coverage is easy to test, and
 exceptions are easy to maintain by putting the exceptions right where they
 belong: in the Pod document itself.
+
+=head1 A final request...
+
+Having Pod coverage tests is great.  It helps you make sure that you documented
+things.  What isn't great is when you let those tests run on the computer of
+anybody who's installing your code and they fail for some stupid reason.  It
+prevents the user from installing your code just because it thinks you forgot
+to write enough documentation.
+
+So, always write this F<t/pod-coverage.t>
+
+  #!perl
+  use Test::More;
+  plan skip_all => "author test only" unless $ENV{AUTHOR_TESTING};
+  plan skip_all => "Test::Pod::Coverage 1.08 required for this test"
+    unless eval "use Test::Pod::Coverage 1.08; 1";
+
+  all_pod_coverage_ok({ coverage_class => 'Pod::Coverage::TrustPod' });
+
+That way, the tests will only be run when you're testing your distribution
+before release.
+
+=head1 See Also
+
+=for wikidoc
+* [Pod::Coverage::TrustPod]
+* [Pod::Coverage]
+* [Test::Pod::Coverage]
+* [Pod::Eventual]
