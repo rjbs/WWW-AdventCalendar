@@ -61,6 +61,18 @@ my $template = Template->new(
 my $share = $opt->{share};
 copy $_ => $opt->{output} for <$share/*>;
 
+my $feed = XML::Atom::SimpleFeed->new(
+  title   => 'RJBS Advent Calendar',
+  link    => 'http://advent.rjbs.manxome.org/',
+  link    => {
+    rel  => 'self',
+    href => 'http://advent.rjbs.manxome.org/atom.xml',
+  },
+  updated => DateTime::Format::W3CDTF->new->format_datetime($today),
+  author  => 'Ricardo Signes',
+  id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
+);
+
 my $dec_01 = DateTime->new(
   year => 2009, month => 12, day =>  1, time_zone => 'America/New_York'
 );
@@ -82,6 +94,22 @@ if ($dec_01 > $today) {
     },
     "$opt->{output}/index.html",
   ) || die $template->error;
+
+  $feed->add_entry(
+    title     => "The RJBS Advent Calendar is Coming",
+    link      => "http://advent.rjbs.manxome.org/",
+    id        => 'urn:uuid:5fe50e6e-d862-11de-8370-7b1cadc4aa0b',
+
+    summary   => "The first door opens in $str days...\n",
+    updated   => DateTime::Format::W3CDTF->new->format_datetime($today),
+    category  => 'Perl',
+    category  => 'RJBS',
+  );
+
+  open my $atom, '>', "$opt->{output}/atom.xml";
+  $feed->print($atom);
+  close $atom;
+
   exit;
 }
 
@@ -109,18 +137,6 @@ $template->process(
   },
   "$opt->{output}/index.html",
 ) || die $template->error;
-
-my $feed = XML::Atom::SimpleFeed->new(
-  title   => 'RJBS Advent Calendar',
-  link    => 'http://advent.rjbs.manxome.org/',
-  link    => {
-    rel  => 'self',
-    href => 'http://advent.rjbs.manxome.org/atom.xml',
-  },
-  updated => DateTime::Format::W3CDTF->new->format_datetime($today),
-  author  => 'Ricardo Signes',
-  id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
-);
 
 my @dates = sort keys %$article;
 for my $i (0 .. $#dates) {
