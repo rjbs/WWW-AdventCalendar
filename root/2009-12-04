@@ -14,5 +14,11 @@ something like F<t/pod-coverage.t>, with these contents:
     unless eval "use Test::Pod::Coverage 1.08; 1";
   all_pod_coverage_ok();
 
-Okay?
+The test will find all the Perl libraries in your distribution, find all the
+public subroutines or methods, and then try to ensure that they're documented.  
+It does this by finding all defined subroutines, ignoring ones that it thinks
+are private (anything starting with an underscore and Perl-wide things like
+C<import> or C<DESTROY>).  Then it looks for C<=headI<n>> or C<=item> entries.
+
+Foo.
 

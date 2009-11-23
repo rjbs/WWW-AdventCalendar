@@ -42,6 +42,7 @@ sub body_xhtml {
   $px->parse_from_filehandle($fh);
 
   my $string = $px->asString;
+  $string =~ s{\s*</?pre>\s*}{}g;
 
   return $string;
 }
