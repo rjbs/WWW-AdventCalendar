@@ -12,7 +12,7 @@
  4 - Pod::Coverage::TrustPod
  5 - Games::Bowling::Scorecard
 
- 6 - MRO::Magic
+ 6 - Mixin::Linewise
  7 - App::Cronjob
  8 - String::Formatter
  9 - Data::Section
@@ -43,4 +43,4 @@ Acme::ProgressBar
 Color::Palette
 DBIx::Locker
 HTML::Widget::Factory
-Mixin::Linewise
+MRO::Magic
