@@ -77,9 +77,8 @@ of turns and scores, but I think those uses are never going to be big wins over
 transparencies and grease pencils.
 
 No, I think that the big hot application for Games::Bowling::Scorecard will
-come with the growing resurgence of L<SDL
-Perl|git://github.com/kthakore/SDL_perl.git>.  Pretty soon, dozens of graphical
-bowling games written in Perl will be in the works, and they'll all be easier
-to write thanks to Games::Bowling::Scorecard.  I look forward to the day when
-the F<ELFBOWL2.EXE> that I angrily delete is compiled from Perl, using my own
-code.
+come with the growing resurgence of L<SDL Perl|http://sdl.perl.org>.  Pretty
+soon, dozens of graphical bowling games written in Perl will be in the works,
+and they'll all be easier to write thanks to Games::Bowling::Scorecard.  I look
+forward to the day when the F<ELFBOWL2.EXE> that I angrily delete is compiled
+from Perl, using my own code.
