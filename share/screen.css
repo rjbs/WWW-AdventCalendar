@@ -78,6 +78,14 @@ h2 {
   color: #b00;
 }
 
+pre {
+  background-color: #222;
+  color: #ddd;
+  font-size: 1em;
+  font-family: monospace;
+  width: 100%;
+}
+
 .calendar {
   margin-left: auto;
   margin-right: auto;

@@ -10,7 +10,7 @@
  2 - Number::Nary
  3 - Email::Pipemailer::DieHandler
  4 - Pod::Coverage::TrustPod
- 5 - Games::Nintendo::Mario
+ 5 - Games::Bowling::Scorecard
 
  6 - MRO::Magic
  7 - App::Cronjob
@@ -18,7 +18,7 @@
  9 - Data::Section
 10 - Email::MIME::Kit
 11 - Dist::Zilla
-12 - Games::Bowling::Scorecard
+12 - Games::Nintendo::Mario
 
 13 - Data::Rx
 14 - App::Cmd

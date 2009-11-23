@@ -134,10 +134,6 @@ for my $i (0 .. $#dates) {
     \$output,
   ) || die $template->error;
 
-  # Just totally stupid, but whatever.  Gotta do what you gotta do. -- rjbs,
-  # 2009-11-20
-  $output =~ s{\s+(</pre>)}{$1}gsm;
-
   open my $fh, '>', "$opt->{output}/$date.html";
   print $fh $output;
 }

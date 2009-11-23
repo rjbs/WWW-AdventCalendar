@@ -42,7 +42,14 @@ sub body_xhtml {
   $px->parse_from_filehandle($fh);
 
   my $string = $px->asString;
-  $string =~ s{\s*</?pre>\s*}{}g;
+
+  $string =~ s{
+    \s*<pre>\s*
+    (<table\sclass='ppi-html'>.+?
+    \s*</table>)\s*(?:<!--\shack\s-->)?\s*</pre>\s*
+  }{$1}gsmx;
+
+  $string =~ s{<pre>}{<pre>&nbsp;\n}g;
 
   return $string;
 }
