@@ -41,12 +41,13 @@ sub parse_isodate {
     hour   => $time_from->[2],
     minute => $time_from->[1],
     second => $time_from->[0],
+    time_zone => 'America/New_York',
   );
 }
 
 my $today = $opt->{today}
           ? parse_isodate($opt->{today}, [localtime])
-          : DateTime->now;
+          : DateTime->now(time_zone => 'America/New_York');
 
 remove_tree($opt->{output});
 mkdir($opt->{output});
@@ -60,8 +61,13 @@ my $template = Template->new(
 my $share = $opt->{share};
 copy $_ => $opt->{output} for <$share/*>;
 
-my $dec_01 = DateTime->new(year => 2009, month => 12, day =>  1);
-my $dec_25 = DateTime->new(year => 2009, month => 12, day => 25);
+my $dec_01 = DateTime->new(
+  year => 2009, month => 12, day =>  1, time_zone => 'America/New_York'
+);
+
+my $dec_25 = DateTime->new(
+  year => 2009, month => 12, day => 25, time_zone => 'America/New_York'
+);
 
 if ($dec_01 > $today) {
   my $dur  = $dec_01 - $today;
@@ -144,7 +150,7 @@ for my $date (reverse @dates){
   $feed->add_entry(
     title     => $article->title,
     link      => "http://advent.rjbs.manxome.org/$date.html",
-    id        => "$date", # 'urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a',
+    id        => $article->fake_guid,
     summary   => Encode::decode('utf-8', $article->body_xhtml),
     updated   => DateTime::Format::W3CDTF->new->format_datetime($article->date),
     category  => 'Perl',

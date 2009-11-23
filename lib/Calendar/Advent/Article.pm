@@ -54,4 +54,13 @@ sub body_xhtml {
   return $string;
 }
 
+sub fake_guid {
+  my ($self) = @_;
+
+  return sprintf 'urn:uuid:0984725a-%04u-%04u-%04u-d317acc4aa0b',
+    $self->date->year,
+    $self->date->month,
+    $self->date->day;
+}
+
 1;
