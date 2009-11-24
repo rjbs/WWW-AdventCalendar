@@ -4,6 +4,7 @@
     <meta http-equiv="Content-Language" content="en" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="alternate" title="Advent Calendar RSS feed" href="atom.xml" type="application/atom+xml" />
+    <link rel="shortcut icon" href="favicon.ico" />
     <link rel="stylesheet" href="screen.css" type="text/css" />
     <link rel="stylesheet" href="ppi-html.css" type="text/css" />
     <title>RJBS Advent Calendar
