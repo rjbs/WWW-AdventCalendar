@@ -18,7 +18,7 @@
  9 - Data::Section
 10 - Email::MIME::Kit
 11 - Dist::Zilla
-12 - Games::Nintendo::Mario
+12 - E'Mail::Acme
 
 13 - Data::Rx
 14 - App::Cmd
@@ -42,5 +42,6 @@ App::Addex
 Acme::ProgressBar
 Color::Palette
 DBIx::Locker
+Games::Nintendo::Mario
 HTML::Widget::Factory
 MRO::Magic
