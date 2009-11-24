@@ -1,0 +1,14 @@
+Title:   %{adj}s %s{holiday}s!
+Format:  Pod
+Package: String::Formatter
+
+=head1 C<sprintf> is My Favorite Chainsaw
+
+
+
+=head1 See Also
+
+=for wikidoc
+* [String::Formatter]
+* [String::Format] - String::Formatter's less powerful ancestor
+* [Lisp::Fmt] - a Lisp-like formatter that you may not use
