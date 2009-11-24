@@ -1,0 +1,184 @@
+Title:   MIME, Dreaming of a White Christmas
+Format:  Pod
+Package: Email::MIME::Kit
+
+=head1 Making an Email
+
+I maintain a lot of L<Perl email code|http://emailproject.perl.org>, and one of
+the most popular modules I maintain is L<Email::Simple>.  It was written to
+make a very simple class for looking at email documents.  It didn't let you do
+much, and its implementation assumed that you wouldn't even go very far using
+the interface it provided.  That's fine: it said, "here is a very simple tool
+for performing very simple operations on this very complicated thing, email."
+Unfortunately, sometimes we latch onto the dream -- the other way to read
+Email::Simple's name -- that email, itself, is simple.  Sadly, it just isn't.
+
+One of the most common kinds of email to send is a form letter.  You want to
+send an invoice or welcome message, and you want to fill in the details for
+this purchase or customer.  This is a simple thing to think about doing, and
+it's something we do a lot, so it seems like it should be really
+straightforward.  Frustratingly, this is about as simple as it gets:
+
+  #!perl
+  my $html_template = <<'END_HTML';
+  <h1>Welcome to Yoyodyne, [% customer.realname %]!</h1>
+
+  <p>You signed up with the following address:</p>
+  <pre>[% customer.address.envelope_style %]</pre>
+  END_HTML
+
+  my $text_template = <<'END_TEXT';
+  Welcome to Yoyodyne, [% customer.realname %]!
+
+  You signed up with this billing address:
+  [% customer.address %]
+  END_TEXT
+
+  my $email = Email::MIME->create(
+    header => [
+      From => 'Customer Service <noreply@example.com>',
+      To   => $customer->realname . " <" . $customer->email . ">",
+      Subject => 'Welcome to Yoyodyne!',
+    ],
+    { attributes => { content_type => 'multipart/alternative' },
+    parts => [
+      Email::MIME->create(
+        attributes => { content_type => { 'text/plain' } },
+        body       => render_tt($text_template, { customer => $customer }),
+      ),
+      Email::MIME->create(
+        attributes => { content_type => { 'text/html' } },
+        body       => render_tt($html_template, { customer => $customer }),
+      ),
+    ],
+  );
+
+Yow!  That's a lot of code, and a lot of it looks stupid and boring.  Also,
+there are a bunch of bugs.  If the customer's real name contains special
+characters (and I mean more than just 8-bit), the headers will be illegal.  We
+probably made a mistake by stringifying the customer's "address" attribute in
+the plain text template (but not in the HTML template).  We didn't specify any
+kind of encoding for the text parts, so there might be more bugs there.
+
+Email::Stuff is designed to make this a bunch simpler, replacing the C<<
+Email::MIME->create >> call with:
+
+  #!perl
+  my $email = Email::Stuff
+            ->to($customer->realname . " <" . $customer->email . ">")
+            ->from('Customer Service <noreply@example.com>')
+            ->subject('Welcome to Yoyodyne!')
+            ->text_body(render_tt($text_template, { customer => $customer }))
+            ->html_body(render_tt($html_template, { customer => $customer }))
+            ->email;
+
+That's a lot better!  Still, we're going to end up with encoding bugs, our
+templates diverged, and there are other more subtle problems.  For example,
+what if we accidentally pass in the wrong kind of object for C<$customer>?  It
+might throw an exception when we try to call methods on it setting the C<to>
+header, but it might not happen until the Template Toolkit template, so that
+exception might just translate to missing data.  It's a mess.
+
+=head1 Making Email Simple
+
+Email::MIME::Kit is designed to make it easy to write templates that get
+constructed into one email, abstracting the boring details and making it as
+easy as possible to add new features.
+
+Here's an example of a fully-loaded message kit (or mkit (pron. "em kit"), as
+we call them at work), both on disk and in the code that sends it.  We'll make
+a directory, F<welcome.mkit>, which is the mkit itself.  In it, we'll stick a
+bunch of files, starting with F<manifest.yaml> (often F<manifest.json>
+instead), which configures the kit as a whole:
+
+=begin vim yaml
+
+  validator: Rx
+  renderer : TT 
+  assembler:
+  - Markdown
+  - html_wrapper: wrapper.html
+    text_wrapper: wrapper.txt
+
+  header:
+  - From: Customer Service <noreply@example.com>
+  - To  : '[% customer.realname %] <[% customer.email %]>'
+  - Subject: Welcome to Yoyodyne!
+
+  path: body.mkdn
+
+=end vim
+
+This file explains how the message will be built.  It says we'll validate the
+input using L<Rx|http://rjbs.manxome.org/rx>, render templates using
+L<TT2|http://template-toolkit.org/>, and then construct the message using the
+Markdown-style assembler.  The Markdown assembler is the least straightforward
+bit of that, so let's look at it first.
+
+It says:  We've got a file, F<body.mkdn>, which is Markdown.  We'll render that
+Markdown as a TT2 template, wrap it up in some boilerplate, and use that as the
+plain text part.  Then we'll take that Markdown and render it into HTML, wrap
+that in some boilerplate, and use that as the HTML part.
+
+In other words, we'll get a easy to read plain text part and a pretty HTML
+part, and they'll have identical content.  So, for the message we were sending,
+above, we might have this Markdown file:
+
+=begin vim markdown
+
+  # Welcome to Yoyodyne, [% customer.realname %]!
+
+  You signed up with the following address:
+
+      [% customer.address.envelope_style %]
+
+=end vim markdown
+ 
+Unless told otherwise, Email::MIME::Kit assumes you're working in Unicode with
+files stored in UTF-8 and takes care of encoding for you.  Now you've got one
+template, identical across both alternatives, and all that remains is to
+validate the input.  We declared we'd use the Rx schema system, and we'll put a
+schema in F<rx.json> in our mkit directory.
+
+=begin vim javascript
+
+  {
+    "type": "//rec",
+    "required": {
+      "customer": {
+        "type": "/perl/obj",
+        "does": "Yoyo::Customer"
+      }
+    }
+  }
+
+=end vim
+
+Now we'll refuse to even build an email unless we were given a valid customer
+object.  How do we actually build the message?  It's easy.
+
+  #!perl
+  my $kit   = Email::MIME::Kit->new({ source => './welcome.mkit' });
+  my $email = $kit->assemble({ customer => $customer });
+
+At this point, we've written fewer total lines of code than we did in the very
+first example and have gotten a far superior result: fewer bugs are possible
+and all the "this email as a template" data are stored safely out of the way.
+This is also just the tip of the iceberg: mkits make it easy to write much more
+powerful templates and to share common components.  They can also be used with
+fewer of their features, getting you fewer bug-preventing measures, but still
+plenty of benefit over other techniques.
+
+In almost all non-trivial cases, mkits are a win over other methods of sending
+form letters -- and Email::MIME::Kit is still getting better.
+
+=head1 See Also
+
+=for wikidoc
+* [Email::MIME::Kit]
+* [Email::MIME::Kit::Assembler::Markdown]
+* [Email::MIME::Kit::Renderer::TT]
+* [Email::MIME::Kit::Validator::Rx]
+* [Email::MIME::Kit::KitReader::SWAK]
+* [Email::MIME]
+* [Email::Stuff]
