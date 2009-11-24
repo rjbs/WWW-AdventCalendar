@@ -1,0 +1,93 @@
+Title:   59 23 24 12 * /bin/celebrate
+Format:  Pod
+Package: App::Cronjob
+
+=head1 Solaris Ain't So Bad
+
+We've been using Solaris for most of our servers for quite a while at work now,
+and there's no question that it's made our sysadmin's life easier.  Everybody
+wants the BOFH to be happy, but there's often this idea that Solaris will make
+you, the programmer, miserable.  Given the choice between a miserable me and a
+miserable sysadmin, I know which one I will pick.  After all, if worse comes to
+worst, you can just replace the sysadmin with some more Perl, right?
+
+(I'm just kidding, Bryan, you're great.)
+
+In reality, Solaris is fine.  It almost never gets in my way, and that's
+because one of the first things that happens to every new Solaris box we build
+is the installation of the GNU tools.  I mean, ZFS and DTrace and zones are
+great, but Solaris grep is like a trip back to 1982.  The one tool that just
+wasn't quite easy enough to replace, though, was Solaris cron.  As we got more
+and more servers on to Solaris, in the beginning, more and more of my C<cron>
+mailbox started to look like this:
+
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+  Subject: Output from "cron" command
+
+Yeah.  That's just great.  Thanks.
+
+=head1 Keep the crond, just add more Perl
+
+So, as I said, replacing C<crond> wasn't as simple as we wanted it to be, so
+instead we wrote a wrapper and used
+L<Puppet|http://reductivelabs.com/products/puppet/> to make sure that every
+single cron job used it.  The wrapper is F<cronjob>, which you get when you
+install L<App::Cronjob>.
+
+You just replace "some-job" in your F<crontab> with:
+
+  /usr/local/bin/cronjob -s 'nightly llama maintenance' -E -c some-job
+
+By default, C<cronjob> will get a lock for the job.  Unless you tell it not to
+lock, no two jobs with the same subject can be run at once.  The default
+subject is the command to be run, but we've overridden it with the "C<-s>"
+switch, above.  If it gets a lock, it runs the job.  Just like normal cron, it
+will send you the output of the command -- but sometimes that's really
+annoying, so we've used "C<-E>" to tell it to only send mail if the command
+exits with an error condition.
+
+In addition to sending you the output of the command, it will include a summary
+of how the job went:
+
+  From: "cron/lambda.example.com" <cron@lambda.example.com>
+  To: root@lambda.example.com
+  Date: Thu, 19 Nov 2009 03:00:09 -0500
+  Subject: FAIL: nightly llama maintenance
+  In-Reply-To: <73d2be0cc900096550bc3b159b4d86d4@lambda.example.com>
+
+  Command: some-job
+  Time   : 47.5708s
+  Status : {{{"core": 0, "exit": 2, "signal": 0, "status": 512}}}
+
+  Output :
+
+  rm: cannot remove `/var/ram/foo@example_com_.3H6D8RyK': No such file or directory
+
+We can see how long it took, what happened, and its output.  The "FAIL" in the
+subject also lets us pick out jobs that failed from jobs that were merely
+noisy.
+
+Finally, see that message-id in the In-Reply-To header?  That will be the same
+for every job with the same subject on the same host.  That means your cronjob
+reports will form threads, and that means that you can tell C<mutt> to collapse
+all your threads and skim over the different error reports and their counts,
+rather than just seeing and endless stream of the same flapping service over
+and over.
+
+That's it!  App::Cronjob can help hide the pain of Solaris cron, but it isn't
+just for Solaris.  After all, cron might be better on most Linux systems than
+on Solaris, but its reports still can't compare with App::Cronjob's.
+
+=head1 See Also
+
+=for wikidoc
+* [App::Cronjob]
+* [crontab2english|http://interglacial.com/~sburke/pub/crontab2english.html] -
+Sean M. Burke's tool for making crontab schedules readable
+* [Cron|http://en.wikipedia.org/wiki/cron]
