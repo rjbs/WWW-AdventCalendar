@@ -23,7 +23,7 @@ sub _xhtml_node_for_perl {
 
   $opt =~ /stupid-hyphen/ and s/-/−/g for @lines;
 
-  $html = "<table class='ppi-html'>"
+  $html = "<table class='code-listing'>"
         . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
         . (join q{}, map {; "<tr class='line'><td>$_</td></tr>\n" } @lines)
         . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
@@ -84,3 +84,5 @@ sub transform_node {
 
   return $parent_node;
 }
+
+1;

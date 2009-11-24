@@ -7,6 +7,7 @@
     <link rel="shortcut icon" href="favicon.ico" />
     <link rel="stylesheet" href="screen.css" type="text/css" />
     <link rel="stylesheet" href="ppi-html.css" type="text/css" />
+    <link rel="stylesheet" href="vim-html.css" type="text/css" />
     <title>RJBS Advent Calendar
     [% IF article %] - [% article.title %] ([% date %])[% END %]
     </title>

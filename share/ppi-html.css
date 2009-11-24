@@ -1,38 +1,12 @@
 
-.ppi-html {
-  background-color: #222;
-  color: #ddd;
-  font-size: 1em;
-  font-family: monospace;
-  white-space: pre;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.ppi-html tr.line td { padding: 0; margin: 0 }
-
-.line {
-  margin: 0;
-  padding: 0;
-  line-height: auto;
-}
-
-.line_number {
-  background-color: #797;
-  color: #fff;
-  border-right: 2px #b00 solid;
-  padding-left: .5em;
-  margin-right: 1em;
-}
-
-.ppi-html .keyword   { color: #89f;    }
-.ppi-html .symbol    { color: #00cccc; }
-.ppi-html .operator  { color: #fff;    }
-.ppi-html .structure { color: #bf0;    }
-.ppi-html .word      { color: #dd8;    }
-.ppi-html .comment   { color: #0f0;    }
-.ppi-html .pod       { color: #0f0;    }
-.ppi-html .match     { color: #ff0;    }
-.ppi-html .readline  { color: #caa;    }
-.ppi-html .single,
-.ppi-html .double    { color: #0cf }
+.code-listing .keyword   { color: #89f;    }
+.code-listing .symbol    { color: #00cccc; }
+.code-listing .operator  { color: #fff;    }
+.code-listing .structure { color: #bf0;    }
+.code-listing .word      { color: #dd8;    }
+.code-listing .comment   { color: #0f0;    }
+.code-listing .pod       { color: #0f0;    }
+.code-listing .match     { color: #ff0;    }
+.code-listing .readline  { color: #caa;    }
+.code-listing .single,
+.code-listing .double    { color: #0cf }

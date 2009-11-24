@@ -4,7 +4,23 @@ Package: String::Formatter
 
 =head1 C<sprintf> is My Favorite Chainsaw
 
+There are a lot of horribly overcomplicated builtins, not just in Perl, but in
+many languages.  Some people like Lisp's C<format> best -- and why not?
+Like...
 
+=begin vim lisp
+
+  (format nil "~4,'0d-~2,'0d-~2,'0d" 2005 6 10) ; ==> 2005-06-10
+
+  (format nil "~:(~a~)" "tHe Quick BROWN foX")  ; ==> "The Quick Brown Fox"
+
+  (format nil "~:r" 1234)  ; ==> "one thousand two hundred thirty-fourth"
+
+  (format nil "~:@r" 1234) ; ==> "MCCXXXIIII"
+
+=end vim
+
+Right?  That's pretty awesome.  Then there's Perl's C<pack>
 
 =head1 See Also
 

@@ -186,3 +186,30 @@ a img {
   position: absolute;
   width: 33%;
 }
+
+.code-listing {
+  background-color: #222;
+  color: #ddd;
+  font-size: 1em;
+  font-family: monospace;
+  white-space: pre;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.code-listing tr.line td { padding: 0; margin: 0 }
+
+.line {
+  margin: 0;
+  padding: 0;
+  line-height: auto;
+}
+
+.line_number {
+  background-color: #797;
+  color: #fff;
+  border-right: 2px #b00 solid;
+  padding-left: .5em;
+  margin-right: 1em;
+}
+

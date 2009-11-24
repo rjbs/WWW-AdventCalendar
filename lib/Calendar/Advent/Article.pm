@@ -5,6 +5,7 @@ use autodie;
 use Pod::Elemental;
 use Pod::Elemental::Transformer::Pod5;
 use Pod::Elemental::Transformer::PPIHTML;
+use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::WikiDoc;
 use Pod::Hyperlink::BounceURL;
 use Pod::Xhtml;
@@ -21,6 +22,7 @@ sub body_xhtml {
 
   Pod::Elemental::Transformer::Pod5->new->transform_node($document);
   Pod::Elemental::Transformer::PPIHTML->new->transform_node($document);
+  Pod::Elemental::Transformer::VimHTML->new->transform_node($document);
   Pod::Elemental::Transformer::WikiDoc->new->transform_node($document);
 
   $body = $document->as_pod_string;
@@ -45,7 +47,7 @@ sub body_xhtml {
 
   $string =~ s{
     \s*<pre>\s*
-    (<table\sclass='ppi-html'>.+?
+    (<table\sclass='code-listing'>.+?
     \s*</table>)\s*(?:<!--\shack\s-->)?\s*</pre>\s*
   }{$1}gsmx;
 
