@@ -79,7 +79,7 @@ sub build {
       rel  => 'self',
       href => 'http://advent.rjbs.manxome.org/atom.xml',
     },
-    updated => DateTime::Format::W3CDTF->new->format_datetime($self->today),
+    updated => $self->_w3cdtf($self->today),
     author  => 'Ricardo Signes',
     id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
   );
@@ -113,14 +113,12 @@ sub build {
       link      => "http://advent.rjbs.manxome.org/",
       id        => 'urn:uuid:5fe50e6e-d862-11de-8370-7b1cadc4aa0b',
       summary   => "The first door opens in $str days...\n",
-      updated   => DateTime::Format::W3CDTF->new->format_datetime($self->today),
+      updated   => $self->_w3cdtf($self->today),
       category  => 'Perl',
       category  => 'RJBS',
     );
 
-    open my $atom, '>', $self->output->file('atom.xml');
-    $feed->print($atom);
-    close $atom;
+    $feed->print( $self->output->file('atom.xml')->openw );
 
     return;
   }
@@ -169,8 +167,7 @@ sub build {
       \$output,
     ) || die $template->error;
 
-    open my $fh, '>', $self->output->file("$date.html");
-    print $fh $output;
+    $self->output->file("$date.html")->openw->print($output);;
   }
 
   for my $date (reverse @dates){
@@ -181,15 +178,18 @@ sub build {
       link      => "http://advent.rjbs.manxome.org/$date.html",
       id        => $article->fake_guid,
       summary   => Encode::decode('utf-8', $article->body_xhtml),
-      updated   => DateTime::Format::W3CDTF->new->format_datetime($article->date),
+      updated   => $self->_w3cdtf($article->date),
       category  => 'Perl',
       category  => 'RJBS',
     );
   }
 
-  open my $atom, '>', $self->output->file('atom.xml');
-  $feed->print($atom);
-  close $atom;
+  $feed->print( $self->output->file('atom.xml')->openw );
+}
+
+sub _w3cdtf {
+  my ($self, $datetime) = @_;
+  DateTime::Format::W3CDTF->new->format_datetime($datetime);
 }
 
 sub read_articles{
