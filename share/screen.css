@@ -122,6 +122,11 @@ pre {
   color: #444;
 }
 
+.calendar td.day.advent.missing {
+  background: #000;
+  color: #f00;
+}
+
 .calendar td.day.advent.future {
   background: #eaa;
 }
