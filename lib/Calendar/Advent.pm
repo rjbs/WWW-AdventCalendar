@@ -70,7 +70,7 @@ sub build {
   );
 
   my $share = $self->share;
-  copy $_ => $self->output for <$share/*>;
+  copy $_ => $self->output for grep { ! $_->is_dir } $self->share->children;
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => 'RJBS Advent Calendar',
@@ -192,15 +192,12 @@ sub _w3cdtf {
   DateTime::Format::W3CDTF->new->format_datetime($datetime);
 }
 
-sub read_articles{
+sub read_articles {
   my ($self) = @_;
-  my $root = $self->root;
-
-  my @files = <$root/*>;
 
   my %article;
 
-  for my $file (@files) {
+  for my $file (grep { ! $_->is_dir } $self->root->children) {
     my ($name, $path) = fileparse($file);
     $name =~ s{\..+\z}{}; # remove extension
     my $document = Email::Simple->new(scalar `cat $file`);
