@@ -1,0 +1,25 @@
+<h1 class='title'><% $article->title |h %></h1>
+<div class='subtitle'><% $article->package |h %> - <% $article->date->ymd %></div>
+
+<% $article->body_xhtml %>
+
+<ul id="pager">
+% if ($yesterday) {
+    <li class="previous"><a href="<% $yesterday %>.html">Previous</a></li>
+% } else {
+    <li class="previous">Previous</li>
+% }
+
+% if ($tomorrow) {
+    <li class="next"><a href="<% $tomorrow %>.html">Next</a></li>
+% } else {
+    <li class="next">Next</li>
+% }
+</ul>
+<div style="clear: both"></div>
+
+<%args>
+$article
+$yesterday => undef
+$tomorrow  => undef
+</%args>

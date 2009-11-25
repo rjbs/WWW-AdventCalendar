@@ -11,8 +11,8 @@ use File::Copy qw(copy);
 use File::Path qw(remove_tree);
 use DateTime;
 use File::Basename;
+use HTML::Mason::Interp;
 use Path::Class ();
-use Template;
 use XML::Atom::SimpleFeed;
 
 has root   => (is => 'rw', required => 1);
@@ -25,6 +25,21 @@ has templates => (
   required => 1,
   default  => sub { Path::Class::Dir->new('templates') },
 );
+
+sub _masonize {
+  my ($self, $comp, $args) = @_;
+
+  my $str = '';
+
+  my $interp = HTML::Mason::Interp->new(
+    comp_root  => $self->templates->absolute->stringify,
+    out_method => \$str,
+  );
+
+  $interp->exec($comp, %$args);
+
+  return $str;
+}
 
 sub _parse_isodate {
   my ($date, $time_from) = @_;
@@ -63,12 +78,6 @@ sub build {
   $self->output->rmtree;
   $self->output->mkpath;
 
-  my $template = Template->new(
-    WRAPPER    => $self->templates->file('wrapper.tt')->stringify,
-    PRE_CHOMP  => 1,
-    POST_CHOMP => 1,
-  );
-
   my $share = $self->share;
   copy $_ => $self->output for grep { ! $_->is_dir } $self->share->children;
 
@@ -99,14 +108,12 @@ sub build {
     my $days = $dur->delta_days + 1;
     my $str  = $days != 1 ? "$days days" : "1 day";
 
-    $template->process(
-      $self->templates->file('patience.tt')->stringify,
-      {
+    $self->output->file("index.html")->openw->print(
+      $self->_masonize('/patience.mhtml', {
         days => $str,
         year => $self->today->year,
-      },
-      $self->output->file("index.html")->stringify,
-    ) || die $template->error;
+      }),
+    );
 
     $feed->add_entry(
       title     => "The RJBS Advent Calendar is Coming",
@@ -137,16 +144,15 @@ sub build {
     }
   }
 
-  $template->process(
-    $self->templates->file('year.tt')->stringify,
-    {
-      now  => $self->today,
-      year => $self->today->year,
-      calendar    => scalar calendar(12, $self->today->year),
-      article_for => sub { $article->{sprintf("2009-12-%02u", $_[0])} },
-    },
-    $self->output->file('index.html')->stringify,
-  ) || die $template->error;
+  $self->output->file('index.html')->openw->print(
+    $self->_masonize('/year.mhtml', {
+      today  => $self->today,
+      year   => 2009,
+      month  => \%dec,
+      calendar => scalar calendar(12, $self->today->year),
+      articles => $article,
+    }),
+  );
 
   my @dates = sort keys %$article;
   for my $i (0 .. $#dates) {
@@ -155,19 +161,15 @@ sub build {
     my $output;
 
     print "processing article for $date...\n";
-    $template->process(
-      $self->templates->file('article.tt')->stringify,
-      {
+    $self->output->file("$date.html")->openw->print(
+      $self->_masonize('/article.mhtml', {
         article   => $article->{ $date },
         date      => $date,
         tomorrow  => ($i < $#dates ? $dates[ $i + 1 ] : undef),
         yesterday => ($i > 0       ? $dates[ $i - 1 ] : undef),
         year      => $self->today->year,
-      },
-      \$output,
-    ) || die $template->error;
-
-    $self->output->file("$date.html")->openw->print($output);;
+      }),
+    );
   }
 
   for my $date (reverse @dates){
