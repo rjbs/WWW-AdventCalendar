@@ -119,7 +119,7 @@ sub build {
       title     => "The RJBS Advent Calendar is Coming",
       link      => "http://advent.rjbs.manxome.org/",
       id        => 'urn:uuid:5fe50e6e-d862-11de-8370-7b1cadc4aa0b',
-      summary   => "The first door opens in $str days...\n",
+      summary   => "The first door opens in $str...\n",
       updated   => $self->_w3cdtf($self->today),
       category  => 'Perl',
       category  => 'RJBS',
