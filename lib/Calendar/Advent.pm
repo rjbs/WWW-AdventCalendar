@@ -15,18 +15,11 @@ use HTML::Mason::Interp;
 use Path::Class ();
 use XML::Atom::SimpleFeed;
 
-has root   => (is => 'rw', required => 1);
-has share  => (is => 'rw', required => 1);
-
-has output_dir => (is => 'rw', required => 1);
+has article_dir => (is => 'rw', required => 1);
+has share_dir   => (is => 'rw', required => 1);
+has output_dir  => (is => 'rw', required => 1);
 
 has today  => (is => 'rw');
-
-has templates => (
-  is => 'rw',
-  required => 1,
-  default  => sub { Path::Class::Dir->new('templates') },
-);
 
 sub _masonize {
   my ($self, $comp, $args) = @_;
@@ -34,7 +27,7 @@ sub _masonize {
   my $str = '';
 
   my $interp = HTML::Mason::Interp->new(
-    comp_root  => $self->templates->absolute->stringify,
+    comp_root  => $self->share_dir->subdir('templates')->absolute->stringify,
     out_method => \$str,
   );
 
@@ -71,7 +64,9 @@ sub BUILD {
     : DateTime->now(time_zone => 'America/New_York')
   );
 
-  $self->$_( Path::Class::Dir->new($self->$_) ) for qw(root share output_dir);
+  for (map { "$_\_dir" } qw(article output share)) {
+    $self->$_( Path::Class::Dir->new($self->$_) );
+  }
 }
 
 sub build {
@@ -80,8 +75,9 @@ sub build {
   $self->output_dir->rmtree;
   $self->output_dir->mkpath;
 
-  my $share = $self->share;
-  copy "$_" => $self->output_dir for grep { ! $_->is_dir } $self->share->children;
+  my $share = $self->share_dir;
+  copy "$_" => $self->output_dir
+    for grep { ! $_->is_dir } $self->share_dir->subdir('static')->children;
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => 'RJBS Advent Calendar',
@@ -201,7 +197,7 @@ sub read_articles {
 
   my %article;
 
-  for my $file (grep { ! $_->is_dir } $self->root->children) {
+  for my $file (grep { ! $_->is_dir } $self->article_dir->children) {
     my ($name, $path) = fileparse($file);
     $name =~ s{\..+\z}{}; # remove extension
     my $document = Email::Simple->new(scalar `cat $file`);

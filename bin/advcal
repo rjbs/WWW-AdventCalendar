@@ -10,16 +10,17 @@ use Getopt::Long::Descriptive;
 
 my ($opt, $usage) = describe_options(
   '%c %o',
-  [ 'root',       'the root of articles',        { default => './root'  } ],
-  [ 'share=s',    'directory of shared content', { default => './share' } ],
-  [ 'output|o=s', 'output directory',            { default => './out'   } ],
-  [ 'today=s',    'the day we treat as "today"; default to today'         ],
+  [ 'articles|a=s', 'the root of articles',      { default => './articles' } ],
+  [ 'share=s',      'the root of shared files',  { default => './share'    } ],
+  [ 'output|o=s',   'output directory',          { default => './out'      } ],
+  [ 'today=s',      'the day we treat as "today"; default to today'          ],
 );
 
 my $cal = Calendar::Advent->new({
-  root       => $opt->{root},
-  share      => $opt->{share},
-  output_dir => $opt->{output},
+  article_dir => $opt->{articles},
+  share_dir   => $opt->{share},
+  output_dir  => $opt->{output},
+  today       => $opt->{today}
 });
 
 $cal->build;
