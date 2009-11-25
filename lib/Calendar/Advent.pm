@@ -79,7 +79,7 @@ sub build {
   $self->output->mkpath;
 
   my $share = $self->share;
-  copy $_ => $self->output for grep { ! $_->is_dir } $self->share->children;
+  copy "$_" => $self->output for grep { ! $_->is_dir } $self->share->children;
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => 'RJBS Advent Calendar',
