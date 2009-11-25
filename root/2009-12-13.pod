@@ -124,7 +124,7 @@ then you can write:
   type: /pcre/str
   regex: '\A867-[5309]{4}\z'
 
-=end yaml
+=end vim
 
 =head1 Coming Features (or: Missing Features)
 
