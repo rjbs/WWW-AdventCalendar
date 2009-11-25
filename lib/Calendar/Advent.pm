@@ -1,6 +1,5 @@
-use strict;
-use warnings;
 package Calendar::Advent;
+use Moose;
 
 use autodie;
 use Calendar::Advent::Article;
@@ -15,7 +14,12 @@ use File::Basename;
 use Template;
 use XML::Atom::SimpleFeed;
 
-sub parse_isodate {
+has root   => (is => 'ro', isa => 'Str',   required => 1);
+has share  => (is => 'ro', isa => 'Str',   required => 1);
+has output => (is => 'ro', isa => 'Str',   required => 1);
+has today  => (is => 'rw', isa => 'Value');
+
+sub _parse_isodate {
   my ($date, $time_from) = @_;
 
   my ($y, $m, $d) = $date =~ /\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/;
@@ -34,18 +38,14 @@ sub parse_isodate {
   );
 }
 
-sub new {
-  my ($class, $arg) = @_;
+sub BUILD {
+  my ($self) = @_;
 
-  my $guts = { %$arg };
-
-  my $today = $guts->{today}
-            ? parse_isodate($guts->{today}, [localtime])
+  my $today = $self->today
+            ? _parse_isodate($self->today, [localtime])
             : DateTime->now(time_zone => 'America/New_York');
 
-  $guts->{today} = $today;
-
-  return bless $guts => $class;
+  $self->today($today);
 }
 
 sub build {
@@ -201,7 +201,7 @@ sub read_articles{
 
     my $article  = Calendar::Advent::Article->new(
       body  => $document->body,
-      date  => parse_isodate($isodate),
+      date  => _parse_isodate($isodate),
       title => $document->header('title'),
       package => $document->header('package'),
     );
