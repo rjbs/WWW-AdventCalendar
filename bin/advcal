@@ -16,7 +16,11 @@ my ($opt, $usage) = describe_options(
   [ 'today=s',    'the day we treat as "today"; default to today'         ],
 );
 
-my $cal = Calendar::Advent->new({ %$opt });
+my $cal = Calendar::Advent->new({
+  root       => $opt->{root},
+  share      => $opt->{share},
+  output_dir => $opt->{output},
+});
 
 $cal->build;
 

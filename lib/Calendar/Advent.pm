@@ -17,7 +17,9 @@ use XML::Atom::SimpleFeed;
 
 has root   => (is => 'rw', required => 1);
 has share  => (is => 'rw', required => 1);
-has output => (is => 'rw', required => 1);
+
+has output_dir => (is => 'rw', required => 1);
+
 has today  => (is => 'rw');
 
 has templates => (
@@ -69,17 +71,17 @@ sub BUILD {
     : DateTime->now(time_zone => 'America/New_York')
   );
 
-  $self->$_( Path::Class::Dir->new($self->$_) ) for qw(root share output);
+  $self->$_( Path::Class::Dir->new($self->$_) ) for qw(root share output_dir);
 }
 
 sub build {
   my ($self) = @_;
 
-  $self->output->rmtree;
-  $self->output->mkpath;
+  $self->output_dir->rmtree;
+  $self->output_dir->mkpath;
 
   my $share = $self->share;
-  copy "$_" => $self->output for grep { ! $_->is_dir } $self->share->children;
+  copy "$_" => $self->output_dir for grep { ! $_->is_dir } $self->share->children;
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => 'RJBS Advent Calendar',
@@ -108,7 +110,7 @@ sub build {
     my $days = $dur->delta_days + 1;
     my $str  = $days != 1 ? "$days days" : "1 day";
 
-    $self->output->file("index.html")->openw->print(
+    $self->output_dir->file("index.html")->openw->print(
       $self->_masonize('/patience.mhtml', {
         days => $str,
         year => $self->today->year,
@@ -125,7 +127,7 @@ sub build {
       category  => 'RJBS',
     );
 
-    $feed->print( $self->output->file('atom.xml')->openw );
+    $feed->print( $self->output_dir->file('atom.xml')->openw );
 
     return;
   }
@@ -144,7 +146,7 @@ sub build {
     }
   }
 
-  $self->output->file('index.html')->openw->print(
+  $self->output_dir->file('index.html')->openw->print(
     $self->_masonize('/year.mhtml', {
       today  => $self->today,
       year   => 2009,
@@ -161,7 +163,7 @@ sub build {
     my $output;
 
     print "processing article for $date...\n";
-    $self->output->file("$date.html")->openw->print(
+    $self->output_dir->file("$date.html")->openw->print(
       $self->_masonize('/article.mhtml', {
         article   => $article->{ $date },
         date      => $date,
@@ -186,7 +188,7 @@ sub build {
     );
   }
 
-  $feed->print( $self->output->file('atom.xml')->openw );
+  $feed->print( $self->output_dir->file('atom.xml')->openw );
 }
 
 sub _w3cdtf {
