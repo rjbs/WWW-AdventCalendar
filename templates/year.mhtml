@@ -1,27 +1,27 @@
-<h2>December <% $year %></h2>
+<h2><% $month{1}->month_name %> <% $month{1}->year %></h2>
 <table class="calendar">
 <tr>
-    <th>Sunday</th>
-    <th>Monday</th>
-    <th>Tuesday</th>
-    <th>Wednesday</th>
-    <th>Thursday</th>
-    <th>Friday</th>
-    <th>Saturday</th>
+  <th>Sunday</th>
+  <th>Monday</th>
+  <th>Tuesday</th>
+  <th>Wednesday</th>
+  <th>Thursday</th>
+  <th>Friday</th>
+  <th>Saturday</th>
 </tr>
 
 % for my $week (@calendar) {
 <tr>
-%   for my $day (@$week) {
-%     $day = $month{ $day } if $day;
+%   for my $day (map {; $_ ? $month{ $_ } : undef } @$week) {
 %     my %class;
-%     my $article;
-%     $article = $articles{ $day->ymd } if $day;
-%     $class{today}   = 1 if $day and $day->ymd eq $today->ymd;
-%     $class{future}  = 1 if $day and $day > $today;
-%     $class{advent}  = 1 if $day and $day < $month{25};
-%     $class{missing} = 1 if ! $class{future} and ! $article;
-%     my $class = join q{ }, keys %class;
+%     my $article = $day ? $articles{ $day->ymd } : undef;
+%     if ($day) {
+%       $class{today}  = $day->ymd eq $today->ymd;
+%       $class{future} = $day > $today;
+%       $class{advent} = $day < $month{25};
+%     }
+%     $class{missing} = ! $class{future} && ! $article;
+%     my $class = join q{ }, grep { $class{$_} } keys %class;
 %     if ($day) {
     <td id="dec-<% sprintf('%02u', $day->day) %>" class="day <% $class %>">
 %       if ($article) {
