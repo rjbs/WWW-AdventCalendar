@@ -16,5 +16,5 @@ my ($opt, $usage) = describe_options(
   [ 'today=s',    'the day we treat as "today"; default to today'         ],
 );
 
-Calendar::Advent->new($opt)->build;
+Calendar::Advent->new({ %$opt })->build;
 

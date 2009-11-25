@@ -11,13 +11,20 @@ use File::Copy qw(copy);
 use File::Path qw(remove_tree);
 use DateTime;
 use File::Basename;
+use Path::Class ();
 use Template;
 use XML::Atom::SimpleFeed;
 
-has root   => (is => 'ro', isa => 'Str',   required => 1);
-has share  => (is => 'ro', isa => 'Str',   required => 1);
-has output => (is => 'ro', isa => 'Str',   required => 1);
-has today  => (is => 'rw', isa => 'Value');
+has root   => (is => 'rw', required => 1);
+has share  => (is => 'rw', required => 1);
+has output => (is => 'rw', required => 1);
+has today  => (is => 'rw');
+
+has templates => (
+  is => 'rw',
+  required => 1,
+  default  => sub { Path::Class::Dir->new('templates') },
+);
 
 sub _parse_isodate {
   my ($date, $time_from) = @_;
@@ -41,27 +48,29 @@ sub _parse_isodate {
 sub BUILD {
   my ($self) = @_;
 
-  my $today = $self->today
-            ? _parse_isodate($self->today, [localtime])
-            : DateTime->now(time_zone => 'America/New_York');
+  $self->today(
+    $self->today
+    ? _parse_isodate($self->today, [localtime])
+    : DateTime->now(time_zone => 'America/New_York')
+  );
 
-  $self->today($today);
+  $self->$_( Path::Class::Dir->new($self->$_) ) for qw(root share output);
 }
 
 sub build {
   my ($self) = @_;
 
-  remove_tree($self->{output});
-  mkdir($self->{output});
+  $self->output->rmtree;
+  $self->output->mkpath;
 
   my $template = Template->new(
-    WRAPPER => 'templates/wrapper.tt',
+    WRAPPER    => $self->templates->file('wrapper.tt')->stringify,
     PRE_CHOMP  => 1,
     POST_CHOMP => 1,
   );
 
-  my $share = $self->{share};
-  copy $_ => $self->{output} for <$share/*>;
+  my $share = $self->share;
+  copy $_ => $self->output for <$share/*>;
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => 'RJBS Advent Calendar',
@@ -91,12 +100,12 @@ sub build {
     my $str  = $days != 1 ? "$days days" : "1 day";
 
     $template->process(
-      'templates/patience.tt',
+      $self->templates->file('patience.tt')->stringify,
       {
         days => $str,
         year => $self->today->year,
       },
-      "$self->{output}/index.html",
+      $self->output->file("index.html")->stringify,
     ) || die $template->error;
 
     $feed->add_entry(
@@ -109,11 +118,11 @@ sub build {
       category  => 'RJBS',
     );
 
-    open my $atom, '>', "$self->{output}/atom.xml";
+    open my $atom, '>', $self->output->file('atom.xml');
     $feed->print($atom);
     close $atom;
 
-    exit;
+    return;
   }
 
   my $article = $self->read_articles;
@@ -131,14 +140,14 @@ sub build {
   }
 
   $template->process(
-    'templates/year.tt',
+    $self->templates->file('year.tt')->stringify,
     {
       now  => $self->today,
       year => $self->today->year,
       calendar    => scalar calendar(12, $self->today->year),
       article_for => sub { $article->{sprintf("2009-12-%02u", $_[0])} },
     },
-    "$self->{output}/index.html",
+    $self->output->file('index.html')->stringify,
   ) || die $template->error;
 
   my @dates = sort keys %$article;
@@ -149,7 +158,7 @@ sub build {
 
     print "processing article for $date...\n";
     $template->process(
-      'templates/article.tt',
+      $self->templates->file('article.tt')->stringify,
       {
         article   => $article->{ $date },
         date      => $date,
@@ -160,7 +169,7 @@ sub build {
       \$output,
     ) || die $template->error;
 
-    open my $fh, '>', "$self->{output}/$date.html";
+    open my $fh, '>', $self->output->file("$date.html");
     print $fh $output;
   }
 
@@ -178,14 +187,14 @@ sub build {
     );
   }
 
-  open my $atom, '>', "$self->{output}/atom.xml";
+  open my $atom, '>', $self->output->file('atom.xml');
   $feed->print($atom);
   close $atom;
 }
 
 sub read_articles{
   my ($self) = @_;
-  my $root = $self->{root};
+  my $root = $self->root;
 
   my @files = <$root/*>;
 
@@ -216,7 +225,5 @@ sub read_articles{
 
   return \%article;
 }
-
-sub today { $_[0]->{today} }
 
 1;
