@@ -4,14 +4,14 @@
 <% $article->body_xhtml %>
 
 <ul id="pager">
-% if ($yesterday) {
-    <li class="previous"><a title="<% $yesterday->title |h %>" href="<% $yesterday->date->ymd %>.html">Previous</a></li>
+% if ($prev) {
+    <li class="previous"><a title="<% $prev->title |h %>" href="<% $prev->date->ymd %>.html">Previous</a></li>
 % } else {
     <li class="previous">Previous</li>
 % }
 
-% if ($tomorrow) {
-    <li class="next"><a title="<% $tomorrow->title |h %>" href="<% $tomorrow->date->ymd %>.html">Next</a></li>
+% if ($next) {
+    <li class="next"><a title="<% $next->title |h %>" href="<% $next->date->ymd %>.html">Next</a></li>
 % } else {
     <li class="next">Next</li>
 % }
@@ -20,6 +20,6 @@
 
 <%args>
 $article
-$yesterday => undef
-$tomorrow  => undef
+$prev => undef
+$next  => undef
 </%args>

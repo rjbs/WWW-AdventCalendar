@@ -161,11 +161,11 @@ sub build {
     print "processing article for $date...\n";
     $self->output_dir->file("$date.html")->openw->print(
       $self->_masonize('/article.mhtml', {
-        article   => $article->{ $date },
-        date      => $date,
-        tomorrow  => ($i < $#dates ? $article->{ $dates[ $i + 1 ] } : undef),
-        yesterday => ($i > 0       ? $article->{ $dates[ $i - 1 ] } : undef),
-        year      => $self->today->year,
+        article => $article->{ $date },
+        date    => $date,
+        next    => ($i < $#dates ? $article->{ $dates[ $i + 1 ] } : undef),
+        prev    => ($i > 0       ? $article->{ $dates[ $i - 1 ] } : undef),
+        year    => $self->today->year,
       }),
     );
   }
