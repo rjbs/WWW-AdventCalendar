@@ -1,0 +1,26 @@
+Title:   First-Class CLI Applications
+Package: App::Cmd
+
+=head1 Scripts are Our Friends
+
+In my experience, it's pretty common to find a large piece of functionality
+built into a command-line program (or "script" (and I am I<totally> not going
+to get into the "script" vs. "program" debate here)) and then to find that the
+program isn't tested at all.  When you say, "For the love of God, why are you
+not testing this vital program?" the answer is, "Well, scripts are really hard
+to test!"
+
+It's true.  Maybe they're not as hard to test as people think, but it's still a
+pain.  They're also full of too many standards for getopt or error messages.
+People just do whatever gets work done, and then later have to pay the price
+for making crazy decisions.
+
+App::Cmd is a simple framework for writing command-line applications that are
+easy to test, that have powerful and easy to use standard tools, and that can
+be extended easily.
+
+=head1 See Also
+
+=for wikidoc
+* [App::Cmd]
+* [App::CLI] - a precursor to App::Cmd (with almost no documentation)
