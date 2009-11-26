@@ -163,8 +163,8 @@ sub build {
       $self->_masonize('/article.mhtml', {
         article   => $article->{ $date },
         date      => $date,
-        tomorrow  => ($i < $#dates ? $dates[ $i + 1 ] : undef),
-        yesterday => ($i > 0       ? $dates[ $i - 1 ] : undef),
+        tomorrow  => ($i < $#dates ? $article->{ $dates[ $i + 1 ] } : undef),
+        yesterday => ($i > 0       ? $article->{ $dates[ $i - 1 ] } : undef),
         year      => $self->today->year,
       }),
     );
