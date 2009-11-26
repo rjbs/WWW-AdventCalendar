@@ -1,13 +1,15 @@
 package Pod::Elemental::Transformer::PPIHTML;
 use Moose;
-with 'Pod::Elemental::Transformer';
+with 'Pod::Elemental::Transformer::SynHi';
 
 use utf8;
 use PPI;
 use PPI::HTML;
 
-sub _xhtml_node_for_perl {
-  my ($self, $perl, $opt) = @_;
+sub build_html {
+  my ($self, $arg) = @_;
+  my $perl = $arg->{content};
+  my $opt  = $arg->{options};
 
   1 while chomp $perl;
   $perl =~ s/^  //gms;
@@ -32,57 +34,39 @@ sub _xhtml_node_for_perl {
   # This should not be needed, because this is a data paragraph, not a
   # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
   # and tries to expand format codes. -- rjbs, 2009-11-20
+  # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
+  # working and (B) valid. -- rjbs, 2009-11-26
   $html =~ s/^/  /gsm;
 
-  my $para = Pod::Elemental::Element::Pod5::Data->new({
-    content => $html,
-  });
-
-  # This should not be needed, because if there's a \n\n in the content, we
-  # should get a =begin and not a =for. -- rjbs, 2009-11-20
-  my $hack = Pod::Elemental::Element::Pod5::Data->new({
-    content => "<!-- hack -->\n",
-  });
-
-  my $new = Pod::Elemental::Element::Pod5::Region->new({
-    format_name => 'xhtml',
-    is_pod      => 0,
-    content     => '',
-    children    => [ $para, $hack ],
-  });
-
-  return $new;
+  return $html;
 }
 
-sub transform_node {
-  my ($self, $parent_node) = @_;
+sub synhi_params_for_para {
+  my ($self, $para) = @_;
 
-  for my $i (0 .. (@{ $parent_node->children } - 1)) {
-    my $node = $parent_node->children->[ $i ];
+  if (
+    $para->isa('Pod::Elemental::Element::Pod5::Region')
+    and    $para->format_name eq 'perl'
+  ) {
+    die "=begin :perl makes no sense\n" if $para->is_pod;
 
-    my $new;
-
-    if (
-      $node->isa('Pod::Elemental::Element::Pod5::Region')
-      and    $node->format_name eq 'perl'
-    ) {
-      die "=begin :perl makes no sense\n" if $node->is_pod;
-
-      my $perl = $node->children->[0]->as_pod_string;
-      $new  = $self->_xhtml_node_for_perl($perl, $node->content);
-    } elsif ($node->isa('Pod::Elemental::Element::Pod5::Verbatim')) {
-      my $content = $node->content;
-      next unless $content =~ s/\A\s*#!perl(?:\s+(\S+))?\n+//gsm;
-      $new  = $self->_xhtml_node_for_perl($content, $1 || '');
-    } else {
-      next;
+    my $perl = $para->children->[0]->as_pod_string;
+    return {
+      content => $para->content,
+      options => ($1 || ''),
+      syntax  => 'perl',
     }
-
-    die "couldn't produce new xhtml" unless $new;
-    $parent_node->children->[ $i ] = $new;
+  } elsif ($para->isa('Pod::Elemental::Element::Pod5::Verbatim')) {
+    my $content = $para->content;
+    return unless $content =~ s/\A\s*#!perl(?:\s+(\S+))?\n+//gsm;
+    return {
+      content => $content,
+      options => ($1 || ''),
+      syntax  => 'perl',
+    }
   }
 
-  return $parent_node;
+  return;
 }
 
 1;

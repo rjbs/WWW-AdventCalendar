@@ -1,11 +1,13 @@
 package Pod::Elemental::Transformer::VimHTML;
 use Moose;
-with 'Pod::Elemental::Transformer';
+with 'Pod::Elemental::Transformer::SynHi';
 
 use Text::VimColor;
 
-sub _xhtml_node_for_vim {
-  my ($self, $syntax, $string) = @_;
+sub build_html {
+  my ($self, $arg) = @_;
+  my $string = $arg->{content};
+  my $syntax = $arg->{syntax};
 
   1 while chomp $string;
   $string =~ s/^  //gms;
@@ -20,6 +22,8 @@ sub _xhtml_node_for_vim {
   # This should not be needed, because this is a data paragraph, not a
   # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
   # and tries to expand format codes. -- rjbs, 2009-11-20
+  # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
+  # working and (B) valid. -- rjbs, 2009-11-26
   $html =~ s/\A\n+//;
   $html =~ s/^/  /gsm;
   1 while chomp $html;
@@ -53,51 +57,25 @@ sub _xhtml_node_for_vim {
 
   $html = sprintf $fmt, $lines;
 
-  my $para = Pod::Elemental::Element::Pod5::Data->new({
-    content => $html,
-  });
-
-  # This should not be needed, because if there's a \n\n in the content, we
-  # should get a =begin and not a =for. -- rjbs, 2009-11-20
-  my $hack = Pod::Elemental::Element::Pod5::Data->new({
-    content => "<!-- hack -->",
-  });
-
-  my $new = Pod::Elemental::Element::Pod5::Region->new({
-    format_name => 'xhtml',
-    is_pod      => 0,
-    content     => '',
-    children    => [ $para, $hack ],
-  });
-
-  return $new;
+  return $html;
 }
 
-sub transform_node {
-  my ($self, $parent_node) = @_;
+sub synhi_params_for_para {
+  my ($self, $para) = @_;
 
-  for my $i (0 .. (@{ $parent_node->children } - 1)) {
-    my $node = $parent_node->children->[ $i ];
+  if (
+    $para->isa('Pod::Elemental::Element::Pod5::Region')
+    and    $para->format_name eq 'vim'
+  ) {
+    die "=begin :vim makes no sense\n" if $para->is_pod;
 
-    my $new;
-
-    if (
-      $node->isa('Pod::Elemental::Element::Pod5::Region')
-      and    $node->format_name eq 'vim'
-    ) {
-      die "=begin :vim makes no sense\n" if $node->is_pod;
-
-      my $string = $node->children->[0]->as_pod_string;
-      $new  = $self->_xhtml_node_for_vim($node->content, $string);
-    } else {
-      next;
-    }
-
-    die "couldn't produce new xhtml" unless $new;
-    $parent_node->children->[ $i ] = $new;
+    return {
+      syntax  => $para->content,
+      content => $para->children->[0]->as_pod_string,
+    };
   }
 
-  return $parent_node;
+  return;
 }
 
 1;

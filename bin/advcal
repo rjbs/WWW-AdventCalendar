@@ -4,8 +4,8 @@ use warnings;
 
 use lib 'lib';
 
-use Calendar::Advent;
-use Calendar::Advent::Article;
+use WWW::AdventCalendar;
+use WWW::AdventCalendar::Article;
 use Getopt::Long::Descriptive;
 
 my ($opt, $usage) = describe_options(
@@ -16,7 +16,7 @@ my ($opt, $usage) = describe_options(
   [ 'today=s',      'the day we treat as "today"; default to today'          ],
 );
 
-my $cal = Calendar::Advent->new({
+my $cal = WWW::AdventCalendar->new({
   article_dir => $opt->{articles},
   share_dir   => $opt->{share},
   output_dir  => $opt->{output},

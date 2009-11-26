@@ -1,4 +1,4 @@
-package Calendar::Advent::Article;
+package WWW::AdventCalendar::Article;
 use Moose;
 
 use autodie;

@@ -1,8 +1,7 @@
-package Calendar::Advent;
+package WWW::AdventCalendar;
 use Moose;
 
 use autodie;
-use Calendar::Advent::Article;
 use Calendar::Simple;
 use DateTime;
 use DateTime::Format::W3CDTF;
@@ -14,6 +13,7 @@ use File::Basename;
 use HTML::Mason::Interp;
 use Path::Class ();
 use XML::Atom::SimpleFeed;
+use WWW::AdventCalendar::Article;
 
 has article_dir => (is => 'rw', required => 1);
 has share_dir   => (is => 'rw', required => 1);
@@ -205,7 +205,7 @@ sub read_articles {
 
     die "no title set in $file\n" unless $document->header('title');
 
-    my $article  = Calendar::Advent::Article->new(
+    my $article  = WWW::AdventCalendar::Article->new(
       body  => $document->body,
       date  => _parse_isodate($isodate),
       title => $document->header('title'),
