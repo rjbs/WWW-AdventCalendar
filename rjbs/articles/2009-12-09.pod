@@ -1,5 +1,4 @@
 Title:   Like <DATA>, Only Less Stupid
-Format:  Pod
 Package: Data::Section
 
 =head1 First, An Alternative

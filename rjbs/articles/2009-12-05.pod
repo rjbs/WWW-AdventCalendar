@@ -1,5 +1,4 @@
 Title:   The Other Kind of Turkey
-Format:  Pod
 Package: Games::Bowling::Scorecard
 
 =head1 It's Elf Bowling Time Again

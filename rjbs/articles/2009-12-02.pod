@@ -1,5 +1,4 @@
 Title:  Making a List, Checking it 0b10 Times...
-Format: Pod
 Package: Number::Nary
 
 =head1 Beyond Hex and Octal

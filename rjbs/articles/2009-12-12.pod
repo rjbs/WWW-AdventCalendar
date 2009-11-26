@@ -1,5 +1,4 @@
 Title:   E-mail Made Simple
-Format:  Pod
 Package: E'Mail::Acme
 
 =head1 Okay, I Lied

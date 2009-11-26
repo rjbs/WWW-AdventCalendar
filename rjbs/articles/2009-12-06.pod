@@ -1,5 +1,4 @@
 Title:   Less Boilerplate, More Ice Cream
-Format:  Pod
 Package: Mixin::Linewise
 
 =head1 Just a Little Less Work

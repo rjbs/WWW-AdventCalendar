@@ -1,5 +1,4 @@
 Title:   59 23 24 12 * /bin/celebrate
-Format:  Pod
 Package: App::Cronjob
 
 =head1 Solaris Ain't So Bad

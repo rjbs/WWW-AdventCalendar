@@ -1,6 +1,5 @@
 Title:  Built in Our Workshop, Delivered in Your Package
 Package: Sub::Exporter
-Format: Pod
 
 =head1 Exporting
 

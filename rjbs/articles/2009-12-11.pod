@@ -1,5 +1,4 @@
 Title:   Giving the Gift of Code
-Format:  Pod
 Package: Dist::Zilla
 
 =head1 I Hate Wrapping

@@ -1,5 +1,4 @@
 Title:   %{adj}s %s{holiday}s!
-Format:  Pod
 Package: String::Formatter
 
 =head1 C<sprintf> is My Favorite Chainsaw

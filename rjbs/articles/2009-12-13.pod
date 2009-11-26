@@ -1,5 +1,4 @@
 Title:   Valid Data to All Nations
-Format:  Pod
 Package: Data::Rx
 
 =head1 Params::Validate is Okay

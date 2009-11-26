@@ -1,5 +1,4 @@
 Title:  The Little Deferral Boy
-Format: Pod
 Package: Email::Pipemailer::DieHandler
 
 =head1 Avoid Unwanted Returns

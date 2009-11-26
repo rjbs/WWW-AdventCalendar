@@ -1,5 +1,4 @@
 Title:   MIME, Dreaming of a White Christmas
-Format:  Pod
 Package: Email::MIME::Kit
 
 =head1 Making an Email

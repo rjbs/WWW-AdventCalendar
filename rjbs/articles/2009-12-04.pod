@@ -1,5 +1,4 @@
 Title:   In Pod We Trust
-Format:  Pod
 Package: Pod::Coverage::TrustPod
 
 =head1 Testing Pod Coverage
