@@ -21,6 +21,8 @@ has output_dir  => (is => 'rw', required => 1);
 
 has today  => (is => 'rw');
 
+has tracker_id => (is => 'ro');
+
 sub _masonize {
   my ($self, $comp, $args) = @_;
 
@@ -31,7 +33,7 @@ sub _masonize {
     out_method => \$str,
   );
 
-  $interp->exec($comp, %$args);
+  $interp->exec($comp, tracker_id => $self->tracker_id, %$args);
 
   return $str;
 }

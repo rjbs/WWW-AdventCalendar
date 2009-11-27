@@ -14,13 +14,16 @@ my ($opt, $usage) = describe_options(
   [ 'share=s',      'the root of shared files',  { default => './share'    } ],
   [ 'output|o=s',   'output directory',          { default => './out'      } ],
   [ 'today=s',      'the day we treat as "today"; default to today'          ],
+  [],
+  [ 'tracker|t=s',  'include Google Analytics; -t TRACKER-ID' ],
 );
 
 my $cal = WWW::AdventCalendar->new({
   article_dir => $opt->{articles},
   share_dir   => $opt->{share},
   output_dir  => $opt->{output},
-  today       => $opt->{today}
+  today       => $opt->{today},
+  tracker_id  => $opt->{tracker},
 });
 
 $cal->build;
