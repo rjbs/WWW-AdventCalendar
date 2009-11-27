@@ -79,9 +79,99 @@ we didn't get any!
 One of the big reasons to use App::Cmd was supposed to be its testability, so
 let's see how that works.
 
+  #!perl
+  use Test::More;
+  use App::Cmd::Tester;
+
+  use Christmas::App;
+
+  {
+    my $result = test_app('Christmas::App' => [ qw(--all) ]);
+    is($result->stderr, '', "nothing to stderr");
+
+    like($result->stdout, qr/Ricardo Signes/,     "rjbs is in our list");
+    like($result->stdout, qr/Violet Beauregarde/, "violet is, too");
+  }
+
+  {
+    my $result = test_app('Christmas::App' => [ qw(--all --nice) ]);
+    is($result->stderr, '', "nothing to stderr");
+
+    like($result->stdout, qr/Ricardo Signes/,       "rjbs was nice");
+    unlike($result->stdout, qr/Violet Beauregarde/, "Violet was naughty");
+  }
+
+  {
+    my $result = test_app('Christmas::App' => [ qw(--nice) ]);
+    is($result->stderr, '', "nothing to stderr");
+
+    unlike($result->stdout, qr/Ricardo Signes/,     "no rjbs w/o --all");
+    unlike($result->stdout, qr/Violet Beauregarde/, "Violet still naughty");
+  }
+
+This should be fairly straightforward: C<test_app> runs the application, using
+the passed arrayref as the value for C<@ARGS>.  It doesn't run in a subprocess,
+so there's no weird issues with interprocess communication.  Also, because it
+runs in process, you can replace hunks of the app with mocks if you want, and
+you'll have them available for inspection after testing.
+
+=head1 Organizing Complex Interfaces
+
+I didn't write App::Cmd for simple programs, though, I wrote it for complex
+ones.  I wanted to write programs that behave like C<svn> or C<git>, where the
+first thing you tell the command-line program is which of its subcommands you
+want to run.  So, maybe the program we wrote above is meant to be run as
+C<christmas list>.  We also want to have C<christmas music> to control our MP3
+player and C<christmas cards> to assemble and send off some
+L<mkit|http://advent.rjbs.manxome.org/2009-12-10.html> Christmas cards.
+
+This is easy, we do it like this:
+
+=for wikidoc
+* rename Christmas::App to Christmas::App::Command::list
+* replace its {use base 'App::Cmd::Simple'} with {use Christmas::App -command}
+* create a new Christmas::App (shown below)
+* create Christmas::App::Command::music and ::cards
+
+That's it.  Now the new Christmas::App will be run, it will find all the
+command classes we've written, and it will decide which one to execute based on
+the first argument to the C<christmas> command.  Christmas::App is easy to
+write; here it is in its entirety:
+
+  #!perl
+  package Christmas::App;
+  use App::Cmd::Setup -app;
+  1;
+
+=head1 Other Cool Stuff
+
+When you write a "full" App::Cmd program -- that is, one that uses App::Cmd and
+not App::Cmd::Simple -- you get a bunch more features for free.  For one thing,
+you get commands for C<commands> and C<help> that can list and describe the
+other available commands.  (C<commands> is what happens by default if you were
+to run C<christmas> with no arguments, but you can change that by writing a
+C<default_command> method.)
+
+You get access to the plugins system, which is woefully underdocumented, but
+allows you to set up easy to use routines in all your commands, so that you
+could say, in Christmas::App:
+
+  #!perl
+  package Christmas::App;
+  use App::Cmd::Setup -app => {
+    plugins => [ qw(App::Cmd::Plugin::Prompt) ],
+  };
+
+...and then all your commands could use routines like C<prompt_yn> or
+C<prompt_any_key> without you having to waste keystrokes on ugly method calls
+to some object delegate.
+
 =head1 See Also
 
 =for wikidoc
 * [App::Cmd]
-* [App::CLI] - a precursor to App::Cmd (with almost no documentation)
+* [App::Cmd::Tester]
+* [App::Cmd::Simple]
 * [Getopt::Long::Descriptive]
+* [App::CLI] - an alternative to App::Cmd (with almost no documentation)
+* [MooseX::App::Cmd]
