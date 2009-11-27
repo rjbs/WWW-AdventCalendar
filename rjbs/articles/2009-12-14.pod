@@ -15,12 +15,73 @@ pain.  They're also full of too many standards for getopt or error messages.
 People just do whatever gets work done, and then later have to pay the price
 for making crazy decisions.
 
+=head1 A Simple App::Cmd Program
+
 App::Cmd is a simple framework for writing command-line applications that are
 easy to test, that have powerful and easy to use standard tools, and that can
 be extended easily.
+
+For example, here's a simple command we might write, in two parts.  First, the
+script that we put in our path, then the library that implements it.
+
+F<./bin/christmas>:
+
+  #!perl
+  use Christmas::App;
+  Christmas::App->run;
+
+F<./lib/Christmas/App.pm>:
+
+  #!perl
+  package Christmas::App;
+  use base 'App::Cmd::Simple';
+  # ABSTRACT: an app for managing our christmas shopping
+
+  sub opt_spec {
+    return (
+      [ 'nice|n' => 'list only nice people' ],
+      [ 'all|a'  => 'list even people for whom shopping is done' ],
+    );
+  }
+
+  sub validate_args {
+    my ($self, $opt, $args) = @_;
+    $self->usage_error("no args expected") if @$args;
+  }
+
+  sub execute {
+    my ($self, $opt, $args) = @_;
+
+    my @presents = Christmas::Presents->get(
+      # ... args based on opts
+    );
+    
+    print $self->_list_presents(@presents); # implementation left to imagination
+  }
+
+So far, we've only added a little structure to our code, but it's already a big
+help.  The C<opt_spec> routine uses L<Getopt::Long::Descriptive> to not only
+process command line switches (with quite a lot of power), but also to generate
+helpful usage messages like:
+
+  Usage: christmas
+
+  christmas [-an] [long options...]
+    -n --nice   list only nice people
+    -a --all    list even people for whom shopping is done
+
+We also get a phase before execution but after argument processing to decide
+whether the arguments we were given make any sense -- here we just ensure that
+we didn't get any!
+
+=head1 Putting it to the Test
+
+One of the big reasons to use App::Cmd was supposed to be its testability, so
+let's see how that works.
 
 =head1 See Also
 
 =for wikidoc
 * [App::Cmd]
 * [App::CLI] - a precursor to App::Cmd (with almost no documentation)
+* [Getopt::Long::Descriptive]
