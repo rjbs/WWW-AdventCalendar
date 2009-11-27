@@ -13,7 +13,13 @@ use Pod::Xhtml;
 has date => (is => 'ro', isa => 'DateTime', required => 1);
 has [ qw(title package body) ] => (is => 'ro', isa => 'Str', required => 1);
 
-sub body_xhtml {
+has body_xhtml => (
+  is   => 'ro',
+  lazy => 1,
+  builder => '_build_body_xhtml',
+);
+
+sub _build_body_xhtml {
   my ($self) = @_;
 
   my $body = $self->body;
