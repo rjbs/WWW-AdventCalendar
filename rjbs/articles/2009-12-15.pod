@@ -72,6 +72,7 @@ Of course, there's no reason that all the resolvers in there have to be
 filesystem resolvers.  Maybe your web app installs its own templates, but they
 can be overridden by the user.
 
+  #!perl
   my $resolver = Path::Resolver::Resolver::Mux::Ordered->new({
     resolvers => [
       Path::Resolver::Resolver::FileSystem->new({ root => './templates' }),
