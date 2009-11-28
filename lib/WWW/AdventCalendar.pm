@@ -15,6 +15,11 @@ use Path::Class ();
 use XML::Atom::SimpleFeed;
 use WWW::AdventCalendar::Article;
 
+has title  => (is => 'ro', default => 'RJBS Advent Calendar');
+has uri    => (is => 'ro', default => 'http://advent.rjbs.manxome.org/');
+has editor => (is => 'ro', default => 'Ricardo Signes');
+has categories => (is => 'ro', default => sub { [ qw(Perl RJBS) ] });
+
 has article_dir => (is => 'rw', required => 1);
 has share_dir   => (is => 'rw', required => 1);
 has output_dir  => (is => 'rw', required => 1);
@@ -53,7 +58,7 @@ sub _parse_isodate {
     hour   => $time_from->[2],
     minute => $time_from->[1],
     second => $time_from->[0],
-    time_zone => 'America/New_York',
+    time_zone => 'local',
   );
 }
 
@@ -63,7 +68,7 @@ sub BUILD {
   $self->today(
     $self->today
     ? _parse_isodate($self->today, [localtime])
-    : DateTime->now(time_zone => 'America/New_York')
+    : DateTime->now(time_zone => 'local')
   );
 
   for (map { "$_\_dir" } qw(article output share)) {
@@ -82,14 +87,14 @@ sub build {
     for grep { ! $_->is_dir } $self->share_dir->subdir('static')->children;
 
   my $feed = XML::Atom::SimpleFeed->new(
-    title   => 'RJBS Advent Calendar',
-    link    => 'http://advent.rjbs.manxome.org/',
+    title   => $self->title,
+    link    => $self->uri,
     link    => {
       rel  => 'self',
-      href => 'http://advent.rjbs.manxome.org/atom.xml',
+      href => $self->uri . 'atom.xml',
     },
     updated => $self->_w3cdtf($self->today),
-    author  => 'Ricardo Signes',
+    author  => $self->editor,
     id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
   );
 
@@ -99,7 +104,7 @@ sub build {
       year  => 2009,
       month => 12,
       day   => $_,
-      time_zone => 'America/New_York',
+      time_zone => 'local',
     );
   }
 
@@ -116,13 +121,13 @@ sub build {
     );
 
     $feed->add_entry(
-      title     => "The RJBS Advent Calendar is Coming",
-      link      => "http://advent.rjbs.manxome.org/",
+      title     => $self->title . " is Coming",
+      link      => $self->uri,
       id        => 'urn:uuid:5fe50e6e-d862-11de-8370-7b1cadc4aa0b',
       summary   => "The first door opens in $str...\n",
       updated   => $self->_w3cdtf($self->today),
-      category  => 'Perl',
-      category  => 'RJBS',
+
+      (map {; category => $_ } @{ $self->categories }),
     );
 
     $feed->print( $self->output_dir->file('atom.xml')->openw );
@@ -177,12 +182,11 @@ sub build {
 
     $feed->add_entry(
       title     => $article->title,
-      link      => "http://advent.rjbs.manxome.org/$date.html",
+      link      => $self->uri . "$date.html",
       id        => $article->fake_guid,
       summary   => Encode::decode('utf-8', $article->body_xhtml),
       updated   => $self->_w3cdtf($article->date),
-      category  => 'Perl',
-      category  => 'RJBS',
+      (map {; category => $_ } @{ $self->categories }),
     );
   }
 
