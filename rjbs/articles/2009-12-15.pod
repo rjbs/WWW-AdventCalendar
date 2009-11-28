@@ -1,0 +1,110 @@
+Title:   Like FUSE, but Stupider
+Package: Path::Resolver
+
+=head1 From Filename to Thing
+
+A few years ago, my coworker L<Dieter|http://blog.weftsoar.net/> and I were
+working on improving the componentization of some of our internal web
+applications.  We wanted it to be easier to say "put a paginated table thing
+here" or "give me a link here."  We were pretty happy with
+L<HTML::Widget::Factory> for low-level use, and the rest could be done with
+L<Mason|HTML::Mason> components.  We just didn't like the way that you'd have
+to know whether a component was a method call on a widget factory object or a
+component call in Mason.  I said something like, "I wish we could make it all
+look like Mason."  Totally blowing my mind for all time, Dieter said, "We can"
+and L<made it happen|MasonX::Resolver::WidgetFactory>
+L<seamlessly|MasonX::Resolver::Multiplex>.
+
+The thing is that Mason's system for resolving path-like things into a
+component is itself a thing that can customized or replaced.  It's the
+resolver, and you can write a new one.
+
+Many times after seeing the elegance of that solution, I wanted to be able to
+replace parts of all sorts of code that expected filenames.  I looked a number
+of "emulate a filesystem in Perl" libraries, but they wanted to provide all
+kinds of stuff I didn't care about -- like statting deleting files.  Heck, I
+just wanted an entity!
+
+Finally my will broke and I wrote the crappiest thing I could think of that
+would still work.  That was Path::Resolver version 0, and now we're up to 3.
+It's still pretty stupid, and that's a feature.  The simplest use is something
+like this:
+
+  #!perl
+  my $resolver = Path::Resolver::Resolver::FileSystem->new({ root => '/tmp' });
+  my $content  = $resolver->entity_for('/baz/bar/quux.txt')->content;
+
+  # or ...
+  my $resolver = Path::Resolver::Resolver::Archive::Tar->new({ archive => 'foo.tar.gz' });
+
+  # or ...
+  my $resolver = Path::Resolver::Resolver::DistDir->new({ dist_name => 'Christmas-App' });
+
+The resolver is, of course, the thing that goes from a filename to an entity.
+The definition of an entity is pretty vague: it's just a thing.  Resolvers know
+what kind of things they'll return, and you can give them a converter that will
+expect that kind of thing and return another kind.  For example, the FileSystem
+resolver resolves things to absolute filenames.  Then it can be converted to a
+"SimpleEntity," which basically is just a thing with content.  The tarball
+resolver produces SimpleEntities natively.  By knowing what kind of entity
+things will find, and by having a means to convert them, it's easy to put
+together a bunch of different kinds of resolvers and multiplex them.
+
+=head1 Multiplexing Resolvers
+
+Multiplexing resolvers?  It's really simple.  "Mux" resolvers just say "I have
+a bunch of resolvers that all return the same kind of thing, and I have a
+strategy for picking one of them."  There are two important muxers that come
+with Path::Resolver: Ordered and Prefix.  The ordered resolver lets you set up
+things like the C<$PATH> environment variable.  Imagine you did this:
+
+  #!perl
+  my $resolver = Path::Resolver::Resolver::Mux::Ordered->new({
+    resolvers => [
+      Path::Resolver::Resolver::FileSystem->new({ root => '/bin' }),
+      Path::Resolver::Resolver::FileSystem->new({ root => '/usr/bin' }),
+      Path::Resolver::Resolver::FileSystem->new({ root => '/usr/local/bin' }),
+    ],
+  });
+
+Now you'd have something resembling the way your shell finds commands to run.
+Of course, there's no reason that all the resolvers in there have to be
+filesystem resolvers.  Maybe your web app installs its own templates, but they
+can be overridden by the user.
+
+  my $resolver = Path::Resolver::Resolver::Mux::Ordered->new({
+    resolvers => [
+      Path::Resolver::Resolver::FileSystem->new({ root => './templates' }),
+      Path::Resolver::Resolver::DistDir->new({ dist_name => 'My-WebApp' }),
+    ],
+  });
+
+If the file isn't found in the F<./templates> directory, we'll look in the
+files we installed when your webapp was installed.
+
+The prefix muxer is more complex.  It represents a virtual directory where each
+subdirectory is handled by a different resolver.  This is used in
+L<Email::MIME::Kit::KitReader::SWAK> to make
+L<Email::MIME::Kit|http://advent.rjbs.manxome.org/2009-12-10.html> easer to
+use.  It sets up resolvers like this:
+
+  file.txt      - looks in the mkit directory
+  /kit/file.txt - looks in the mkit directory
+  /dist/My-WebApp/header.html      - looks in dist ShareDir for My-WebApp
+  /fs/usr/share/common/header.html - looks in /usr on the filesystem
+
+=head1 Putting it to Use
+
+A nice thing about Path::Resolver is that in general, you can use it without
+worrying about how it will get used later.  If you have some part of your
+program that reads stuff from disk, you can just say, "Whatever, I'll use a
+Path::Resolver here."  Then whenever anyone wants to make it do something wild
+and crazy, it's much, much simpler for them to do so -- they just supply a new
+Path::Resolver object to replace your stock FileSystem resolver.
+
+=head1 See Also
+
+=for wikidoc
+* [Path::Resolver]
+* [HTML::Mason::Resolver]
+* [Email::MIME::Kit::KitReader::SWAK]
