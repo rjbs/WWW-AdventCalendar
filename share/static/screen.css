@@ -71,6 +71,9 @@ a {
 
 a:hover {
   color: #d00;
+  background: #ffc;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
 }
 
 h2 {
