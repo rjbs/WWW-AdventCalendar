@@ -1,0 +1,70 @@
+Title:   Sorting Automatically, By Hand
+Package: Sort::ByExample
+
+=pod
+
+Here's a nice easy one:  sorting stuff by providing a pre-sorted set of data.
+
+The problem with custom sort functions is that sometimes it's stupidly easy to
+explain how you want to sort something to a person, but once you try to explain
+it to the computer, it becomes a real chore.  Here's an example:  we've got a
+bunch of presents to delivery, and usually we deliver them by the destination's 
+latitude, northerly destinations first, but we have a few VIP users who always
+get first service.  Their presents get delivered first, then everybody else's.
+
+  #!perl
+  use Sort::ByExample qw(sbe);
+
+  my $sorter = sbe(
+    [ 'Klortho the Magnificent', 'Mrs. Claus', 'Cold Miser' ],
+    {
+      xform    => sub { $_[0]->recipient },
+      fallback => sub { $_[3]->degrees_north <=> $_[2]->degrees_north },
+    }
+  );
+
+  my @jobs = $sorter->( @presents );
+
+Now all deliveries will be sorted by destination, but presents for our three
+VIPs will be pulled out of order: first, all of Klortho's gifts (by submission
+time), then Mrs. Claus's, then Cold Miser's.  The C<xform> callback is used to
+perform a L<Schwartzian
+transform|http://en.wikipedia.org/wiki/Schwartzian_transform>, so that the sort
+routines will see the recipient's name rather than the present object.
+C<fallback> provides a callback to sort items not sorted by the example, or
+that have the same position in the example.  Note that the C<fallback> routine
+looks at the third and fourth elements rather than the first two.  These give
+it access to the value before transformation.
+
+Finally, you can mark items as "ties" in the example sort by using a hashref as
+the example:
+
+  #!perl
+  my $sorter = sbe(
+    {
+      'Klortho the Magnificent' => 1,
+      'Mrs. Claus' => 2,
+      'Cold Miser' => 3,
+      'Heat Miser' => 4,
+    },
+    {
+      xform    => sub { $_[0]->recipient },
+      fallback => sub { $_[3]->degrees_north <=> $_[2]->degrees_north },
+    }
+  );
+
+Sort::ByExample is not intended to be blazing fast, but it should be fairly
+efficient.  It also isn't L<the Swiss Army chainsaw of
+sorting|http://search.cpan.org/dist/Sort-Maker>.  I tried to use that at first
+before giving up and writing this code.
+
+Sort::ByExample solves a pretty specific problem, and one that could always be
+solved by writing just a few more lines of Perl.  Still, not having to write
+those lines is a pretty nice perk that leaves more time for solving the real
+problem.
+
+=head1 See Also
+
+=for wikidoc
+* [Sort::ByExample]
+* [Sort::Maker]
