@@ -34,8 +34,8 @@
 23 - String::RewritePrefix
 24 - Email::Sender
 
-25 - * Task::BeLike::RJBS
-26 - * Calendar::Advent..?
+25 - * WWW::AdventCalendar
+26 - * Task::BeLike::RJBS and TaskWeaver
 
 ___[ backups.txt ]___
 App::Addex
