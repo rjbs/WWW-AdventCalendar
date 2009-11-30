@@ -1,0 +1,108 @@
+Title:   Rewrite Email Without Worrying
+Package: MIME::Visitor
+
+=head1 Encoding and Email
+
+Talking about encoding is sort of tiresome, and I think everybody has heard
+enough of it.  Talking is about email is pretty tiresome, too, and I know I<I>
+have had enough.  So, here's a very, very brief overview of why the two things
+are annoying together.
+
+There are many systems for picking a set of symbols and assigning them
+numerical values.  These are I<character sets>.  Unicode is the current
+favorite.  In unicode, for example, the character numbered 0x9731 is a snowman
+(E<#9731>).  There are also systems for writing out strings of characters to
+bytes so you can put them in a file system.  These are I<encodings>.  UTF-8 is
+a popular way to do this for unicode, but not the only way.  Some character
+sets already fit in 8-bit bytes, so they are their own encoding.  Latin-1 is a
+good example.  MacCyrillic is also an example.
+
+Rougly speaking, in email, character set and encoding are conflated and called
+charset.  If you declare your message's charset to be UTF-8, it means that it's
+UTF-8 encoded Unicode.  In general, this conflation does not lead to problems.
+The problem is that email has to be encoded to 7-bit octets -- that is, bytes
+where the high bit is always off.  The process by which this is done is called
+encoding (content transfer encoding).
+
+So, say you're operating a mailing list and you need to attach footers to a
+message.  First you have to decode from 7-bit to 8-bit and then from 8-bit to
+characters.  Then you can tack on your footer, then you have to do the reverse
+encoding dance.
+
+=head1 Hiding the Encoding Process
+
+MIME::Visitor does its best to get rid of the whole mess.
+
+  #!perl
+  # This example might be a bit naive, but it should make the point pretty
+  # clearly:
+  my $mime_entity = get_email;
+
+  MIME::Visitor->rewrite_parts($mime_entity, sub {
+    my ($content_ref, $part) = @_;
+    $$content_ref .= footer_for( $part->mime_type );
+  });
+
+So, with just a few lines of code, we hide all the annoying bits of encoding
+and decoding, letting you just focus on the content you want to play with.  It
+has a number of other ways to handle messages, and it does work to ensure that
+it never rewrites parts that haven't been changed.
+
+Unwrapped to code you'd have to write, the above is something like:
+
+  #!perl
+  my $mime_entity = get_email;
+
+  my $walk;
+  $walk = sub {
+    my ($root, $code) = @_
+    if ($root->is_multipart) {
+      $walk->($_, $code) for $root->parts;
+      return;
+    }
+
+    return unless $_[0]->effective_type =~ qr{\Atext/(?:html|plain)(?:$|;)}i;
+
+    my $charset = $entity->head->mime_attr('content-type.charset')
+               || 'ISO-8859-1';
+
+    $charset = 'MacRoman' if lc $charset eq 'macintosh';
+
+    Carp::carp(qq{rewriting message in unknown charset "$charset"})
+      unless my $known_charset = Encode::find_encoding($charset);
+
+    my $changed = 0;
+    my $got_set = Variable::Magic::wizard(set => sub { $changed = 1 });
+
+    my $body = $known_charset
+             ? Encode::decode($charset, $entity->bodyhandle->as_string)
+             : $entity->bodyhandle->as_string;
+
+    Variable::Magic::cast($body, $got_set);
+    $code->(\$body, $entity);
+
+    if ($changed) {
+      my $io = $entity->open('w');
+      $io->print($known_charset ? Encode::encode($charset, $body) : $body);
+    }
+  };
+
+  $walk->($mime_entity, sub {
+    my ($content_ref, $part) = @_;
+    $$content_ref .= footer_for( $part->mime_type );
+  });
+
+=head2 MIME::Entity!?
+
+The most glaring problem with MIME::Visitor is that it works with MIME::Entity
+objects instead of Email::MIME objects, which are generally more common in my
+toolchain.  When MIME::Visitor was written, access to get and set the Unicode
+content of a text part wasn't very good.  It's better now, so this may get
+fixed soon!
+
+=head1 See Also
+
+=for wikidoc
+* [MIME::Visitor]
+* [MIME::BodyMunger] - used by MIME::Visitor's rewriting methods
+* [MIME::Entity] - yet another email message representation
