@@ -1,0 +1,68 @@
+Title:   Restoring The Traditions of our Forefathers
+Package: Git::Fingerd
+
+=head1 The War on "Finger"
+
+I'll admit it:  I am a traditionalist.  I believe in honoring the protocols
+that were left to us by our forefathers.  Maybe that makes me "old-fashioned"
+or "short sighted" or "terminally irrelevant," but I see no reason I should
+have to abandon technologies that have existed for 30 years just because they
+are "horrible" and "obsolete" and "full of security holes."  What does HTTP
+really give us over Gopher?  Why should I use BitTorrent instead of FTP?  How
+is Wave any better than L<Ytalk|http://en.wikipedia.org/wiki/Ytalk>?
+
+...and then there's L<finger|http://www.faqs.org/rfcs/rfc742.html>.  People try
+to replace finger more than anything else.  First "the home page" and then
+"MySpace" and "Classmates" and now I think the hot new thing is "Orkut."  Well,
+the F<.plan> file will live forever in my heart.
+
+I wanted to provide a suitable tribute to my favorite ancient protocol, and
+what better way than to pair it up with one of the trendy technologies that I
+I<do> enjoy.  L<Git|http://git-scm.com/> might only be relevant for a short
+while, but it's giving us all kinds of good ideas to backport to
+L<Arch|http://en.wikipedia.org/wiki/GNU_arch>.
+
+=head1 Finger My Git
+
+L<Git::Fingerd> is a L<Net::Finger::Server>-powered repository information
+delivery platform that allows you to easily access information about a server's
+git repositories from any finger-enabled operating system like Mac OS X.
+Here you can see the result of fingering one of my git servers:
+
+  ~$ finger @git.codesimply.com
+  [zodiac.codesimply.com]
+  Repository                          Description
+  Acme-Canadian                       Canooks in your code, eh?
+  Acme-Lingua-EN-Inflect-Modern       modernize Lingua::EN::Inflect rule's
+  Acme-ProgressBar                    a simple progress bar for the patient
+  Acme-Studly                         convertBetween various_well_known Id...
+  Amce-CNA                            a moer tolernat verison of mehtod lo...
+  App-Addex                           generate mail tool configuration fro...
+  App-Addex-AddressBook-Abook         use the "abook" program as the addex...
+  [ ... ]
+
+If I want to learn more about a repository, it's easy:
+
+  ~$ finger Acme-ProgressBar@git.codesimply.com
+  [zodiac.codesimply.com]
+  Project  : Acme-ProgressBar
+  Desc.    : a simple progress bar for the patient
+  Clone URL: git://git.codesimply.com/Acme-ProgressBar.git
+  [ ... ]
+
+=head1 The Future!
+
+As time goes on, we can forwardport more ancient protocols into the future,
+making sure that the future is just as technologically advanced as the past!
+Imagine using L<Net::GitHub> and
+L<Gopher::Server|http://search.cpan.org/dist/Gopher-Server/> to create a Gopher
+interface to L<Github|http://github.com/>!  C<git push> via UUCP, or C<git
+clone> across telnet!  The future will be so bright that we'll have to wear
+Wayfarers.
+
+=head1 See Also
+
+=for wikidoc
+* [Git::Fingerd]
+* [Net::Finger::Server]
+* [Net::Finger]
