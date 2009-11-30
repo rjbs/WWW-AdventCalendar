@@ -1,0 +1,62 @@
+Title:   Gimme Everything You Got
+Package: Git::Fingerd
+
+=head1 Priming Your New Workstation's ~/code
+
+...or C<~/src> or whatever you use.  Personally, I have C<~/code/hub/>, in
+which I have a clone of L<all the repositories|http://github.com/rjbs> that I
+host on L<GitHub|http://github.com/>.  If you checked, you'll see that I have a
+lot of repositories there.  This can be a real pain when I set up a new
+workstation.  (That doesn't happen often, but if Santa wants to bring me a
+brand new MacBook, I will leave out extra milk and cookies.)  It's also a big
+pain to get all my repos up to date, which I like to do before travel, or as a
+backup procedure.  I wanted one command that would ensure I had every repo
+cloned and up to date.  That command is C<git megapull>.  When run, it finds
+all your remote repositories and checks whether you have a matching directory
+in F<cwd>.  If you don't, the repository is cloned.  If you do, its origin is
+fetched and the master branch is merged.  It also tells you if you have
+directories lying around that don't correspond to remote repositories.
+
+There are three switches to C<git megapull>.  C<-c> will only clone
+repositories; existing clones will not be updated.  C<-b> will create bare
+repositories when cloning, which is great for making backups.
+
+The third switch is C<-s> or C<--source>.  It tells megapull how to get a
+listing of your remote repositories.  L<Git::Megapull> comes with a source for
+Github, so you can run C<git megapull -s Github> (or put "Github" in the
+C<megapull.source> entry of your F<~/.gitconfig>) to find and clone all your
+repositories from Github using their API.
+
+=head2 Providing Other Sources
+
+Once I had this tool working on my laptop and a few other workstations, I
+wanted it at work, where we use gitosis.  This was pretty easy to throw
+together; a source just needs to return a hashref of names and cloneable URIs.
+
+  #!perl
+  use strict;
+  use warnings;
+  package Git::Megapull::Source::Pobox;
+  use base 'Git::Megapull::Source';
+
+  sub repo_uris {
+    my ($self) = @_;
+
+    my @repos
+      = `ssh git.pobox.com 'gfind ~git/repositories -type d -mindepth 1 -maxdepth 1'`;
+    chomp @repos;
+
+    s/\.git//g for @repos;
+    s{\A.+/repositories/}{}g for @repos;
+
+    my %repo_uri;
+    $repo_uri{ $_ } = "git\@git.pobox.com:$_.git" for @repos;
+    
+    return \%repo_uri;
+  }
+  1;
+
+=head1 See Also
+
+=for wikidoc
+* [Git::Megapull]
