@@ -40,7 +40,7 @@ dt {
   margin: 0.5em 0 0.5em 0;
 }
 
-#content, #note{
+#content, #note {
   font-size: 0.9em;
   padding: 8px 20px;
   margin: 10px;
@@ -109,10 +109,15 @@ pre {
 }
 
 .calendar td.day         { background: #ccc; }
-.calendar td.day.advent    { background: #aea; }
+.calendar td.day.advent  { background: #aea; }
 
 .calendar td.day.advent.today  {
   background: #797;
+}
+
+.calendar td.day a:hover {
+  -moz-border-radius: 0px;
+  -webkit-border-radius: 0px;
 }
 
 .calendar td.day.advent.today a {
@@ -120,7 +125,7 @@ pre {
   color: #fff;
 }
 
-.calendar td.today a:hover {
+.calendar td.day.advent.today a:hover {
   background: #bdb;
   color: #444;
 }
