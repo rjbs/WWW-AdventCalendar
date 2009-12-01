@@ -1,0 +1,106 @@
+Title:   Glory to Pod in the Highest
+Package: Pod::Weaver
+
+=head1 Glory?  To Pod?
+
+Oh, I don't know.  I have really mixed feelings about Pod.  It's really easy to
+write, most of the time, and the toolchain for it is pretty fantastic.  You
+can convert Pod to text, man pages, HTML, LaTeX, PDF, and all kinds of other
+formats.  Then again, there's too much vertical whitespace.  Lists are a
+colossal pain to write.  Beyond the annoyances of Pod itself, the Pod of Perl
+modules uploaded to the CPAN is expected to contain a bunch of boring filler
+that gets copied around.
+
+A number of other documentation systems tempted me with the idea of writing
+less and getting information, like "this bit of documentation associates with
+this method," giving you things like Python's C<help> builtin.  I set about
+finding a way to write a lot less Pod that would tell me a lot more about my
+code and look indistinguishable to consumers.  There were a few stops and
+starts and a lot of spun-off code, and a very motivating grant from The Perl
+Foundation.  The end result was L<Pod::Weaver>, which is something like a
+templating system for Pod.
+
+Like L<Email::MIME::Kit>, though, Pod::Weaver doesn't just take a document and
+fill in strings.  It takes a description of the goal output and tries to build
+something matching that description.  For example, here's roughly the default
+template for Pod::Weaver:
+
+=begin vim dosini
+
+  [@CorePrep]
+
+  [Name]
+  [Version]
+
+  [Region  / prelude]
+
+  [Generic / SYNOPSIS]
+  [Generic / DESCRIPTION]
+  [Generic / OVERVIEW]
+
+  [Collect / ATTRIBUTES]
+  command = attr
+
+  [Collect / METHODS]
+  command = method
+
+  [Leftovers]
+
+  [Region  / postlude]
+
+  [Authors]
+  [Legal]
+
+=end vim
+
+This describes the document to be created; every section of the configuration
+will try to produce a section in the output Pod, except for C<@CorePrep>, which
+is a I<plugin bundle>, which could provide a bunch of sections or other kinds
+of plugins.  In the case of CorePrep, we're adding plugins to ensure that we
+have an object tree that's something like what we expect from a Pod document,
+as Pod::Elemental starts with a very bare-bones structure that can be
+tedious to work with.
+
+After that, we try to make sure there are NAME and VERSION sections, then we
+look for prelude region, and so on.  The input document might look like this:
+
+=begin vim pod
+
+  =begin :prelude
+
+  =head1 WARNING
+
+  Using this code may make your life too easy, and you may find new hobbies,
+  like windsurfing.
+
+  =end :prelude
+
+  =head1 DESCRIPTION
+
+  Pod::Weaver is a system for weaving Pod.
+
+  =method weave_document
+
+  This method...
+
+  =method new
+
+  ...
+
+  =attr plugins
+
+  This is an arrayref of plugins.
+
+=end vim
+
+=head1 See Also
+
+=for wikidoc
+* [Pod::Weaver]
+* [Pod::Elemental] - the Pod object model on which Weaver is built
+* [Pod::Eventual] - the event-based parser behind Pod::Elemental
+* [Dist::Zilla::Plugin::PodWeaver]
+* [Dist::Zilla::Plugin::PodPurler] - a pale imitation/prototype of PodWeaver
+* [Pod::Elemental::PerlMunger] - for writing your own Pod-in-Perl rewriter
+* [Pod::WikiDoc] - David Golden's excellent wiki-like Pod dialect
+* [Pod::Weaver::PluginBundle::RJBS] - how I weave my Pod
