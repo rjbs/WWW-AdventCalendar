@@ -139,11 +139,11 @@ Then we put it to use...
   #!perl
   use Counter
     -counter => {
-      -suffix => '_receipt',
+      -suffix  => '_receipt',
+      callback => sub { print "sending thankyou note for $_[0]\n" },
     },
     -counter => {
       -suffix => '_gift',
-      callback => sub { print "sending thankyou note to $_[0]\n" },
     },
   ;
 
