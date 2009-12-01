@@ -19,13 +19,7 @@ sub build_html {
 
   my $html = "\n" . $vim->html;
 
-  # This should not be needed, because this is a data paragraph, not a
-  # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
-  # and tries to expand format codes. -- rjbs, 2009-11-20
-  # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
-  # working and (B) valid. -- rjbs, 2009-11-26
   $html =~ s/\A\n+//;
-  $html =~ s/^/  /gsm;
   1 while chomp $html;
 
   my @lines = split /\n/, $html;
@@ -56,6 +50,13 @@ sub build_html {
   }
 
   $html = sprintf $fmt, $lines;
+
+  # This should not be needed, because this is a data paragraph, not a
+  # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
+  # and tries to expand format codes. -- rjbs, 2009-11-20
+  # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
+  # working and (B) valid. -- rjbs, 2009-11-26
+  $html =~ s/^/  /gsm;
 
   return $html;
 }
