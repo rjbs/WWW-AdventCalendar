@@ -25,7 +25,7 @@
 %     if ($day) {
     <td id="dec-<% sprintf('%02u', $day->day) %>" class="day <% $class %>">
 %       if ($article) {
-      <a title="<% $article->title |h %> (<% $article->package |h %>)" href="<% $article->date->ymd %>.html"><% $article->date->day %></a>
+      <a class="article" title="<% $article->title |h %> (<% $article->package |h %>)" href="<% $article->date->ymd %>.html"><% $article->date->day %></a>
 %       } else {
       <% $day->day %>
 %       }
