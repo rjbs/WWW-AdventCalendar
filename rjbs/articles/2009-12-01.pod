@@ -4,8 +4,8 @@ Package: Sub::Exporter
 =head1 Exporting
 
 In Perl, we organize our subroutines (and other stuff) into namespaces called
-packages.  This makes it easy to avoid having to think of a unique name for
-functions you write, and it avoids havings L<thousands of core
+packages.  This makes it easy to avoid having to think of unique names for
+functions you write, and it means you don't have L<thousands of core
 functions|http://php.net/quickref.php> to remember.  Traditionally, exports
 were provided by the L<Exporter> module, included with C<perl5> since its first
 release.
@@ -100,7 +100,7 @@ name that we choose.
 
 Over next few weeks, quite a few of the libraries that will be discussed will
 either use Sub::Exporter to provide exported functions or will use
-Sub::Exporter to provide powerful customizeable interfaces.  To really learn
+Sub::Exporter to provide powerful customizable interfaces.  To really learn
 how these work, you should go to the L<Sub::Exporter::Tutorial>, but here's a
 quick non-trivial sample using the canonical closure example of a "counter":
 

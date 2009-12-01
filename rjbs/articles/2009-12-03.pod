@@ -10,8 +10,8 @@ exits with a code that lets the calling program know what happened.  To grossly
 simplify, the possible exit values are:
 
 =for wikidoc
-* 0 - everything is okay; the message has been handled
-* 75 - we couldn't handle the message right now, try again later
+* {0E<nbsp>} - everything is okay; the message has been handled
+* {75} - we couldn't handle the message right now, try again later
 * anything else - something is wrong; report failure and never try again
 
 Why does this matter?  Well, say you're using L<Email::Filter> or

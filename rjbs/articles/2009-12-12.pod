@@ -68,7 +68,7 @@ e-mails, we'll attach a little incentive.
   push @$attach, `cat amazon-giftcert.jpg`;
 
   # then we attach it
-  push @$email, $attach;
+  push @$e_mail, $attach;
 
 =head2 Sending our Message
 

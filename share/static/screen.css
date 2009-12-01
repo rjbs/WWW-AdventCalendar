@@ -169,6 +169,18 @@ a img {
   border: 0;
 }
 
+blockquote {
+  border-left: thick #797 solid;
+  padding-left: 1em;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+h2#See_Also {
+  padding-top: .4em;
+  border-top: 1px solid #e0e0e0;
+}
+
 #pager {
   border-top: 1px solid #e0e0e0;
   list-style-type: none;
