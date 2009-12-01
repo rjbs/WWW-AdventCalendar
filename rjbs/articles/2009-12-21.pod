@@ -1,5 +1,5 @@
 Title:   Gimme Everything You Got
-Package: Git::Fingerd
+Package: Git::Megapull
 
 =head1 Priming Your New Workstation's ~/code
 
