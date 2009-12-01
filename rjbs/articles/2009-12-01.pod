@@ -101,7 +101,7 @@ name that we choose.
 Over next few weeks, quite a few of the libraries that will be discussed will
 either use Sub::Exporter to provide exported functions or will use
 Sub::Exporter to provide powerful customizeable interfaces.  To really learn
-how these work, you should go to the [Sub::Exporter::Tutorial], but here's a
+how these work, you should go to the L<Sub::Exporter::Tutorial>, but here's a
 quick non-trivial sample using the canonical closure example of a "counter":
 
   #!perl
