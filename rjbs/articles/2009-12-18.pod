@@ -20,6 +20,8 @@ starts and a lot of spun-off code, and a very motivating grant from The Perl
 Foundation.  The end result was L<Pod::Weaver>, which is something like a
 templating system for Pod.
 
+=head1 Pod Templates with Pod::Weaver
+
 Like L<Email::MIME::Kit>, though, Pod::Weaver doesn't just take a document and
 fill in strings.  It takes a description of the goal output and tries to build
 something matching that description.  For example, here's roughly the default
@@ -66,20 +68,24 @@ look for prelude region, and so on.  The input document might look like this:
 
 =begin vim pod
 
+  package Tree::Christmas;
+  # ABSTRACT: a binary tree decorated with baubles and popcorn
+
   =begin :prelude
 
   =head1 WARNING
 
-  Using this code may make your life too easy, and you may find new hobbies,
-  like windsurfing.
+  This code may cause your home to smell like pine needles.
 
   =end :prelude
 
   =head1 DESCRIPTION
 
-  Pod::Weaver is a system for weaving Pod.
+  This library provides a framework for hanging tinsel, popcorn, and other
+  forms of garland.  In some locales, pickles may also be nested in a
+  Tree::Christmas.
 
-  =method weave_document
+  =method ignite_lights
 
   This method...
 
@@ -87,11 +93,144 @@ look for prelude region, and so on.  The input document might look like this:
 
   ...
 
-  =attr plugins
+  =attr pickle_jar
 
-  This is an arrayref of plugins.
+  This is an arrayref of pickles.
 
 =end vim
+
+If we want to include things like a name, version, license, and author in the
+output, we'll need to provide those.  We'll do that with something like this:
+
+  #!perl
+  my $input_pod = Pod::Elemental->read_string( $the_sample_above );
+
+  my $weaver = Pod::Weaver->new_with_default_config;
+
+  my $output_pod = $weaver->weave_document({
+    authors => [ 'Ricardo Signes <rjbs@example.com>' ],
+    license => Software::License::Perl_5->new({ ... }),
+    version => '1.234',
+    pod_document => $input_pod,
+    ppi_document => $input_ppi, # (don't worry, keep reading)
+  });
+
+That gets us a new Pod::Elemental::Document which, when turned into a Pod
+stirng, looks something like this:
+
+=begin vim pod
+
+  =head1 NAME
+
+  Tree::Christmas - a binary tree decorated with baubles and popcorn
+
+  =head1 VERSION
+
+  version 1.234
+
+  =head1 WARNING
+
+  This code may cause your home to smell like pine needles.
+
+  =head1 DESCRIPTION
+
+  This library provides a framework for hanging tinsel, popcorn, and other
+  forms of garland.  In some locales, pickles may also be nested in a
+  Tree::Christmas.
+
+  =head1 ATTRIBUTES
+
+  =head2 pickle_jar
+
+  This is an arrayref of pickles.
+
+  =head1 METHODS
+
+  =head2 ignite_lights
+
+  This method...
+
+  =head2 new
+
+  ...
+
+  =head1 AUTHORS
+
+    Ricardo Signes <rjbs@example.com>
+
+  =head1 COPYRIGHT AND LICENSE
+
+  This document is copyright (C) 1991, Ricardo Signes.
+
+  This document is available under the blah blah blah.
+
+=end vim
+
+Not bad!  We avoid typing nearly half of the output document, by lines -- and
+that's only part of the benefit.  If we have five modules in our distribution,
+all that boilerplate is added everywhere for us, so multiply that savings
+across all our modules.  Then, if ever we want to change our license or add an
+author or even change the overall layout of the output document, we only need
+to change our inputs.
+
+If you're wondering about the C<ppi_document> input above, it's because some
+sections can be built by analyzing the Perl content of the document, so you can
+automatically document things like included packages, defined subroutines, and
+so on.  (You could also write something to compile the code and look at the
+symbol table or meta layer, although no one has done that yet!)  Because "load
+a F<.pm> file, break it into Pod and Perl, rewrite the Pod, and write it back
+out" is such a common pattern, there's even L<Pod::Elemental::PerlMunger> that
+takes care of everything but the "rewrite the Pod" step for you, leaving you
+free to focus on configuring your weaver or other rewriting tool.
+
+That's the interface on which L<Dist::Zila::Plugin::PodWeaver> is built.  It
+gets all its inputs from your Dist::Zilla configuration and then rewrites all
+your Perl modules with Pod::Weaver.  If you're using Dist::Zilla, all you need
+to do to get all the rewriting seen above is add the line L<[PodWeaver]> into
+your F<dist.ini>.
+
+=head1 Extending Pod::Weaver
+
+Pod::Weaver tries to make it add new behavior.  For example, a simple plugin to
+add an "Acknowledgements" section is only about a dozen lines of code.  A
+plugin to integrate Pod::Weaver with L<Pod::WikiDoc> is only about six lines of
+code.  This allows the transformation of the easy to type:
+
+=begin vim pod
+
+  =for wikidoc
+  * bell
+  * book
+  * candle
+
+=end vim
+
+...into the grumble-inducing:
+
+=begin vim pod
+
+  =over 2
+
+  =item *
+
+  bell
+
+  =item *
+
+  book
+
+  =item *
+
+  candle
+
+  =back
+
+=end vim
+
+A recurring theme of this set of articles has been my hatred for needless
+typing and boilerplate content, and Pod::Weaver has gone a long way to letting
+me avoid both.  Hopefully you can use it to avoid them now, too, and spend more
+time solving problems.
 
 =head1 See Also
 
