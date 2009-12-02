@@ -117,15 +117,13 @@ pre {
   padding: 0;
 }
 
-.calendar td.day         { background: #ccc; }
-.calendar td.day.advent  { background: #aea; }
-
-.calendar td.day.advent.today  {
-  background: #797;
-  border: 1px solid #575;
+.calendar td.day {
+  background: #ccc;
 }
 
 .calendar td.day a {
+  display: block;
+  color: #444;
   height: 5em;
   padding: 0;
   margin: 0;
@@ -134,44 +132,27 @@ pre {
 }
 
 .calendar td.day a:hover {
-  -moz-border-radius: 0px;
-  -webkit-border-radius: 0px;
-  border: 1px solid #575;
+  background: #f0f0f0;
 }
 
-.calendar td.day.advent.today a {
-  color: #fff;
+.calendar td.day.advent {
+  background: #aea;
 }
+
+.calendar td.day.advent.today {
+  background: #797;
+}
+
+.calendar td.day.advent.today a { color: #fff; }
 
 .calendar td.day.advent.today a:hover {
-  border: none;
   background: #bdb;
   color: #000;
 }
 
-.calendar td.day.advent.missing {
-  background: #000;
-  color: #f00;
-}
-
-.calendar td.day.advent.future {
-  background: #eaa;
-}
-
-.calendar td#dec-25 {
-  background: #ffd700;
-}
-
-.calendar a {
-  display: block;
-  padding: 5px;
-  text-decoration: none;
-  color: #444;
-}
-
-.calendar a:hover {
-  background: #f0f0f0;
-}
+.calendar td.day.advent.missing { background: #000; color: #f00; }
+.calendar td.day.advent.future  { background: #eaa;    }
+.calendar td#dec-25             { background: #ffd700; font-weight: bold; }
 
 #notes {
   border-top: 1px solid #ddd;
@@ -181,11 +162,6 @@ pre {
 #notes h2 {
   margin-top: 0.5em;
   text-align: left;
-}
-
-.rss {
-  font-size: x-small;
-  text-align: right;
 }
 
 a img {
