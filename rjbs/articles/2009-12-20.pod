@@ -14,7 +14,7 @@ Ho ho ho.  Now I have chainsaws, too.
 
 =begin xhtml
 
-  <div style='padding:.25em 0;text-align:center;background: black; color: white;font-size:200%;font-face:monospace'>dD»»» dD»»» dD»»» dD»»»</span>
+  <div style='padding:.25em 0;text-align:center;background: black; color: white;font-size:200%;font-face:monospace'><span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» </span>
 
 =end xhtml
 
