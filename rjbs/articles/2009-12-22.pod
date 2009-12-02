@@ -1,0 +1,18 @@
+Title:   Object Marginalia
+Package: Mixin::ExtraFields
+
+=head1 Scribbling Notes on an Object
+
+Mixin::ExtraFields is hard to summarize, but here's a whack at it:  it's a
+system for storing extra data related to an object and creating methods for
+accessing and altering that state.
+
+Here's a really simple example to start with.  We have an 
+
+=head1 See Also
+
+=for wikidoc
+* [Config::MVP]
+* [App::Addex::Config] - the origin point of MVP
+* [Config::MVP::Assembler::WithBundles] - how plugin bundles work
+* [Config::Any] - yeah, I speak it; it just doesn't do enough for me!
