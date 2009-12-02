@@ -74,10 +74,10 @@ noisy.
 
 Finally, see that message-id in the In-Reply-To header?  That will be the same
 for every job with the same subject on the same host.  That means your cronjob
-reports will form threads, and that means that you can tell C<mutt> to collapse
-all your threads and skim over the different error reports and their counts,
-rather than just seeing and endless stream of the same flapping service over
-and over.
+reports will form threads, and that means that you can tell C<mutt> (or
+Thunderbird or Mail.app, etc) to collapse all your threads and skim over the
+different error reports and their counts, rather than just seeing and endless
+stream of the same flapping service over and over.
 
 That's it!  App::Cronjob can help hide the pain of Solaris cron, but it isn't
 just for Solaris.  After all, cron might be better on most Linux systems than
