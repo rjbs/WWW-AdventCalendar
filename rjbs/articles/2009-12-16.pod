@@ -1,70 +1,76 @@
-Title:   Sorting Automatically, By Hand
-Package: Sort::ByExample
+Title:   More Stuff I Stole from Catalyst (that they stole back)
+Package: String::RewritePrefix
 
-=pod
+=head1 I Hate Typing
 
-Here's a nice easy one:  sorting stuff by providing a pre-sorted set of data.
+It's true.  The only time that I I<like> typing is when I'm playing L<Typing of
+the Dead|http://en.wikipedia.org/wiki/Typing_of_the_Dead>.  (I try to get in a
+big dose of zombie video games every Yuletide; maybe I'll bring the old
+Dreamcast up again this winter.)  Apart from shooting zombies by typing
+quickly, typing stinks.  It hurts my hands, and I live in perpetual dread of
+the day when I must find a new profession because my fingers no longer work.
+That's why most of the code I write is meant to save keystrokes for when I
+write I<other> code.
 
-The problem with custom sort functions is that sometimes it's stupidly easy to
-explain how you want to sort something to a person, but once you try to explain
-it to the computer, it becomes a real chore.  Here's an example:  we've got a
-bunch of presents to delivery, and usually we deliver them by the destination's 
-latitude, northerly destinations first, but we have a few VIP users who always
-get first service.  Their presents get delivered first, then everybody else's.
-
-  #!perl
-  use Sort::ByExample qw(sbe);
-
-  my $sorter = sbe(
-    [ 'Klortho the Magnificent', 'Mrs. Claus', 'Cold Miser' ],
-    {
-      xform    => sub { $_[0]->recipient },
-      fallback => sub { $_[3]->degrees_north <=> $_[2]->degrees_north },
-    }
-  );
-
-  my @jobs = $sorter->( @presents );
-
-Now all deliveries will be sorted by destination, but presents for our three
-VIPs will be pulled out of order: first, all of Klortho's gifts (by submission
-time), then Mrs. Claus's, then Cold Miser's.  The C<xform> callback is used to
-perform a L<Schwartzian
-transform|http://en.wikipedia.org/wiki/Schwartzian_transform>, so that the sort
-routines will see the recipient's name rather than the present object.
-C<fallback> provides a callback to sort items not sorted by the example, or
-that have the same position in the example.  Note that the C<fallback> routine
-looks at the third and fourth elements rather than the first two.  These give
-it access to the value before transformation.
-
-Finally, you can mark items as "ties" in the example sort by using a hashref as
-the example:
+Catalyst lets you write something like this in your config for Holiday::Web:
 
   #!perl
-  my $sorter = sbe(
-    {
-      'Klortho the Magnificent' => 1,
-      'Mrs. Claus' => 2,
-      'Cold Miser' => 3,
-      'Heat Miser' => 4,
+  my $config = {
+    'Model::GreetingCard' => { ... }
+    'View::TextTemplate'  => { ... }
+    '+Catalyst::Plugin::Kwanzaa' => { ... }
+  }
+
+The first two get rewritten to "Holiday::Web::Model::GreetingCard" and
+"Holiday::Web::View::TextTemplate" respectively.  In the third, the C<+> means
+that it should be used literally -- so just the plus sign is dropped.  There's
+also a C<~> prefix for slightly more arcane uses.  Obviously, this can save a
+lot of typing and, just as importantly, a lot of reading.  I liked this!
+
+I really wanted to use this kind of rewriting for L<Dist::Zilla>, and to make
+sure I could re-use this pattern whenever I wanted, I wrote
+String::RewritePrefix.  Catalyst's behavior could be written as:
+
+  #!perl
+  use String::RewritePrefix rewrite => {
+    prefixes => {
+      ''  => 'Holiday::Web::',
+      '+' => ''
     },
-    {
-      xform    => sub { $_[0]->recipient },
-      fallback => sub { $_[3]->degrees_north <=> $_[2]->degrees_north },
-    }
-  );
+  };
 
-Sort::ByExample is not intended to be blazing fast, but it should be fairly
-efficient.  It also isn't L<the Swiss Army chainsaw of
-sorting|http://search.cpan.org/dist/Sort-Maker>.  I tried to use that at first
-before giving up and writing this code.
+That's using L<Sub::Exporter>, of course, so we can import a few rewriting
+strategies:
 
-Sort::ByExample solves a pretty specific problem, and one that could always be
-solved by writing just a few more lines of Perl.  Still, not having to write
-those lines is a pretty nice perk that leaves more time for solving the real
-problem.
+  #!perl
+  use String::RewritePrefix
+    rewrite => { -as => 'holiday_px', prefix => { '' => 'Holiday::Web::', '+' => '' },
+    rewrite => { -as => 'num_px',     prefix => { '-' => 'negative ', '+' => 'positive ' },
+  };
+
+  # to yield (positive 40, negative 10, positive 18, zero)
+  my @numbers = num_px( qw( +40 -10 +18 0 ) );
+
+  # to yield (Holiday::Web::Mode::GreetingCard, Holiday::Web::View::TextTemplate,
+  # Catalyst::Plugin::Kwanzaa)
+  my @plugins = holiday_px( qw(
+    Model::GreetingCard
+    View::TextTemplate
+    +Catalyst::Plugin::Kwanzaa
+  ));
+
+
+There isn't much more to it, apart from one or two weird options.  Still, think
+of all the typing and squinting you save in your config files!
+
+The prefix rewriting in L<Catalyst::Utils>, which inspired me to write
+String::RewritePrefix, now I<uses> String::RewritePrefix!  It's always a joy to
+find out that other people benefit from my attempt to be lazy and type less.
+It means I<they> have more time for Typing of the Dead, too.
 
 =head1 See Also
 
 =for wikidoc
-* [Sort::ByExample]
-* [Sort::Maker]
+* [String::RewritePrefix]
+* [Catalyst::Utils]
+
