@@ -243,3 +243,5 @@ time solving problems.
 * [Pod::Elemental::PerlMunger] - for writing your own Pod-in-Perl rewriter
 * [Pod::WikiDoc] - David Golden's excellent wiki-like Pod dialect
 * [Pod::Weaver::PluginBundle::RJBS] - how I weave my Pod
+* what is pod weaver, [Part 1|http://rjbs.manxome.org/rubric/entry/1808], [Part
+2|http://rjbs.manxome.org/rubric/entry/1809] - blog post about Pod::Weaver

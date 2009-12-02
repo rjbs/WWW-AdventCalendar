@@ -25,13 +25,13 @@ x 14 - App::Cmd
 x 15 - Path::Resolver
 x 16 - Sort::ByExample
 x 17 - MIME::BodyMunger
-  18 - Pod::Weaver
+x 18 - Pod::Weaver
 x 19 - Git::Fingerd
 
   20 - Config::MVP
 x 21 - Git::Megapull
   22 - Mixin::ExtraFields
-  23 - String::RewritePrefix
+x 23 - String::RewritePrefix
   24 - Email::Sender
 
   25 - * WWW::AdventCalendar
