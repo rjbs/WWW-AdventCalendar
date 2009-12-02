@@ -14,18 +14,150 @@ Ho ho ho.  Now I have chainsaws, too.
 
 =begin xhtml
 
-  <div style='padding:.25em 0;text-align:center;background: black; color: white;font-size:200%;font-face:monospace'><span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» </span>
+  <div style='padding:.25em 0;text-align:center;background: black; color: white;font-size:200%;font-face:monospace'><span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» <span style='color:#c6c600'>d&#68;</span>»»» </span>
 
 =end xhtml
+
+=head1 It's Called "Config::MVP"
+
+There are a I<lot> of config-reading libraries.  There are I<hundreds> of them.
+There are even some that I like, so what the heck was I thinking?  I was
+thinking, "using any of those other hundreds of modules is going to suck for
+what I want to do."  What I wanted to do, at the time, was screw around with my
+F<procmail> settings, but that's another story.
+
+I had a few major goals:
+
+=for wikidoc
+* make "configuration for a plugin" also mean "load the plugin"
+* allow plugins to validate their own input
+* allow any given plugin to be loaded multiple times
+* force plugins to be loaded in a specific order
+
+I ended up using the INI format because it was so easy to work with, and
+because I'd already started down that road before formulating what I really
+wanted.  (That's how L<Config::INI> was born, which is also another story.)
+So, here's an example of all of the above features in use:
+
+=begin vim dosini
+
+  [@CorePrep]
+
+  [Name]
+  [Version]
+
+  [Region  / prelude]
+
+  [Generic / SYNOPSIS]
+  [Generic / DESCRIPTION]
+  [Generic / OVERVIEW]
+
+  [Collect / ATTRIBUTES]
+  command = attr
+
+  [Collect / METHODS]
+  command = method
+
+  [Leftovers]
+
+  [Region  / postlude]
+
+  [Authors]
+  [Legal]
+
+=end vim
+
+Hey, look!  It's configuration just like
+L<Pod::Weaver|http://advent.rjbs.manxome.org/2009-12-18.html>!  Dist::Zilla and
+Pod::Weaver both use Config::MVP to great effect.  It works like this:  every
+block of the configuration is associated with a plugin -- we use
+L<String::RewritePrefix|http://advent.rjbs.manxome.org/2009-12-16.html> to
+expand the short form into a package name.  If there's something after the
+slash, we use that as the plugin's name.  That way we can have (for example)
+multiple C<Generic> sections like we see above.  We just can't have two
+sections named C<OVERVIEW>.
+
+Packages can provide methods like C<mvp_multivalue_args> and C<mvp_aliases> to
+tweak how its inputs are handled.  For example, one plugin might let you
+provide multiple entries for C<author> while another would not.  These methods
+aren't required, so any package can be treated as a plugin by Config::MVP.
+
+=head1 The Config Sequence
+
+There are a few ways to read in MVP-style config, but as far as I know,
+everything serious right now uses L<Config::MVP::Reader::INI>.  Any reader,
+though, will return a Config::MVP::Sequence object.  It's easy to deal with --
+it lets you get at your plugin configuration as a list of plugins or by name.
+For example:
+
+  #!perl
+  package Christmas::Todo;
+
+  sub read_plugin_config {
+    my ($self) = @_;
+
+    my $seq = Config::MVP::Reader::Finder->new->read_config({ ... });
+
+    die "you must have a Chimney" unless $seq->section_named('Chimney');
+
+    for my $section ($seq->sections) {
+      my $plugin = $section->package->new(
+        # the payload is a hashref of the actual
+        # vars set in the section
+        $section->payload
+      );
+
+      $self->add_plugin( $section->name => $plugin );
+    }
+  }
+
+  # Later...
+  sub decorate {
+    my ($self) = @_;
+
+    my @plugins = grep { $_->does('Christmas::Todo::Decorations') }
+                  $self->plugins;
+
+    for my $plugin (@plugins) {
+      die "error when decorating " . $plugin->name
+        unless $plugin->string_up and $plugin->plug_in and $plugin->turn_on;
+    }
+  }
+
+By establishing an explicit order, rather than using a hash, the user who
+writes the config file can always know in what order his plugins will act.  By
+requiring unique names, we know that we can always get at any plugin by name
+and that we can identify sources of trouble unambiguously when things go pear
+shaped.
+
+=head1 Reading Configuration
+
+Although the INI file reader is the only serious reader right now, writing more
+is made trivial by using the L<Config::MVP::Assembler> system... but let's not
+focus on that.  INI files are fine.  Still, since there might be other really
+great offerings, there's something like Config::Any for MVP:
+Config::INI::Reader::Finder, which looks for known types of MVP config files
+and tries to read any of them:
+
+  #!perl
+  my $sequence = Config::MVP::Reader::Finder->new->read_config({
+    root     => "$ENV{HOME}/.christmas", # I know, I know, unix-o-centric
+    basename => 'config',
+  });
+
+This will look for any kind of plugin it knows how, using the associated
+extensions.  It will look for F<config.ini>, but it could also look for
+F<config.json> or F<config.pl> if readers were written.
+
+Config::MVP doesn't make sense when a simple hashref is really all you need,
+but for many more complex systems it can save lots of time and make plugins
+much easier to manage.  I'm looking forward to hearing about other people
+making MVP an important asset in their applications in the coming year.
 
 =head1 See Also
 
 =for wikidoc
-* [Pod::Weaver]
-* [Pod::Elemental] - the Pod object model on which Weaver is built
-* [Pod::Eventual] - the event-based parser behind Pod::Elemental
-* [Dist::Zilla::Plugin::PodWeaver]
-* [Dist::Zilla::Plugin::PodPurler] - a pale imitation/prototype of PodWeaver
-* [Pod::Elemental::PerlMunger] - for writing your own Pod-in-Perl rewriter
-* [Pod::WikiDoc] - David Golden's excellent wiki-like Pod dialect
-* [Pod::Weaver::PluginBundle::RJBS] - how I weave my Pod
+* [Config::MVP]
+* [App::Addex::Config] - the origin point of MVP
+* [Config::MVP::Assembler::WithBundles] - how plugin bundles work
+* [Config::Any] - yeah, I speak it; it just doesn't do enough for me!
