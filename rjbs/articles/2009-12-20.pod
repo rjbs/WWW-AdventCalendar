@@ -1,0 +1,31 @@
+Title:   ...aka Config::RJBS::AndNobodyElse::KnowsWTFItDoes
+Package: Config::MVP
+
+=head1 I'm not apologizing!
+
+This is L<Advent|http://en.wikipedia.org/wiki/Advent>, not
+L<Lent|http://en.wikipedia.org/wiki/Lent>!  It's a time for giving wonderful
+things, not for feeling stupid about the dumb things we did.  I've published
+plenty of stupid unneeded code, and maybe someday I'll make a L<big list of my
+screwups|http://lent.rjbs.manxome.org>, but for now it's not happening.  I'm
+gonna shove this present down your throat and you're gonna love it.
+
+Ho ho ho.  Now I have chainsaws, too.
+
+=begin xhtml
+
+  <div style='padding:.25em 0;text-align:center;background: black; color: white;font-size:200%;font-face:monospace'>dD»»» dD»»» dD»»» dD»»»</span>
+
+=end xhtml
+
+=head1 See Also
+
+=for wikidoc
+* [Pod::Weaver]
+* [Pod::Elemental] - the Pod object model on which Weaver is built
+* [Pod::Eventual] - the event-based parser behind Pod::Elemental
+* [Dist::Zilla::Plugin::PodWeaver]
+* [Dist::Zilla::Plugin::PodPurler] - a pale imitation/prototype of PodWeaver
+* [Pod::Elemental::PerlMunger] - for writing your own Pod-in-Perl rewriter
+* [Pod::WikiDoc] - David Golden's excellent wiki-like Pod dialect
+* [Pod::Weaver::PluginBundle::RJBS] - how I weave my Pod
