@@ -150,9 +150,20 @@ pre {
   color: #000;
 }
 
-.calendar td.day.advent.missing { background: #000; color: #f00; }
-.calendar td.day.advent.future  { background: #eaa;    }
-.calendar td#dec-25             { background: #ffd700; font-weight: bold; }
+.calendar td.day.advent.missing,
+.calendar td.day.missing#dec-25,
+.calendar td.day.missing#dec-26 {
+  background: #000;
+  color: #f00;
+}
+
+.calendar td.day.advent.future {
+  background: #eaa;
+}
+.calendar td#dec-25 {
+  background: #ffd700;
+  font-weight: bold;
+}
 
 #notes {
   border-top: 1px solid #ddd;

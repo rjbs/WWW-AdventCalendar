@@ -30,7 +30,7 @@ x 19 - Git::Fingerd
 
 x 20 - Config::MVP
 x 21 - Git::Megapull
-  22 - Mixin::ExtraFields
+x 22 - Mixin::ExtraFields
 x 23 - Sort::ByExample
   24 - Email::Sender
 

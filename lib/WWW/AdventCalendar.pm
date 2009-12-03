@@ -140,7 +140,7 @@ sub build {
   {
     my $d = $dec{1};
     while (
-      $d->ymd le (sort { $a cmp $b } ($dec{25}->ymd, $self->today->ymd))[0]
+      $d->ymd le (sort { $a cmp $b } ($dec{26}->ymd, $self->today->ymd))[0]
     ) {
       warn "no article written for " . $d->ymd . "!\n"
         unless $article->{ $d->ymd };
