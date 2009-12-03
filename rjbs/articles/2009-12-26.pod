@@ -1,0 +1,83 @@
+Title:   One Last Present, All Boxed Up
+Package: Task::BeLike::RJBS
+
+=head1 It's Boxing Day!
+
+Boxing day, the day after Christmas, is so called because it is the time of
+year when you take all the gifts you received I<and liked> and put them in a
+box to keep.  The rest you give to someone who couldn't be bothered to show up
+for Christmas with the rest of the family.  It is also known as St. Stephen's
+day, in honor of my brother.
+
+=head1 What's in Ricardo's Box?
+
+I maintain a box of my favorite presents from the CPAN.  Some of them are my
+own donations, already mentioned this month.  Plenty of them were shared with
+the CPAN by other contributors.  This box is L<Task::BeLike::RJBS>.  It's a
+L<Task> distribution, which means that it doesn't actually do anything on its
+own.  It's just a pile of prerequisites.  Instead of installing each one, you
+can install the task and the rest are installed for you.
+
+When I set up a new workstation, the first thing I do is compile my own recent
+F<perl> to avoid any weird vendor packaging issues.  The next thing I do is
+install Task::BeLike::RJBS.  Whether or not I<you> want to be like me, I'm
+stuck with it, so I try to do it as efficiently as possible.
+
+If you're interested in the modules that I consider essential to getting work
+done, check out the task and its contents.
+
+=head1 Building Your Own Box
+
+Task::BeLike::RJBS is built with Dist::Zilla -- specifically with
+L<Dist::Zilla::Plugin::TaskWeaver>, a plugin for building tasks.  To use
+TaskWeaver, you just write a module with some Pod like this:
+
+=begin vim pod
+
+  =pkgroup Simple Modules (Wednesdays)
+
+  =pkg Number::Nary 0.108 has robust unique-decodability detection
+
+  =pkg Data::Section
+
+  =pkg String::RewritePrefix 0.005 provides "rewrite" export
+
+  =pkg Sort::ByExample
+
+=end vim
+
+You'll get output Pod like this:
+
+=begin vim pod
+
+  =head1 TASK CONTENTS
+
+  =head2 Simple Modules (Wednesdays)
+
+  =head3 Number::Nary 0.108
+
+  Version 1.08 is required because: has robust unique-decodability detection
+
+  =head3 Data Section
+
+  =head3 String::RewritePrefix 0.005
+
+  Version 0.005 is required because: provides "rewrite" export
+
+  =head3 Sort::ByExample
+
+=end vim
+
+You'll also get all those packages, with the versions given (if any) listed as
+prerequisites, so installing your task will get all those prerequisites as
+well.
+
+Have fun, make some bundles, share, and enjoy.
+
+=head1 See Also
+
+=for wikidoc
+* [Task::BeLike::RJBS] - my box
+* [Task::BeLike::BINGOS], [Task::BeLike::hanekomu], [Task::BeLike::YANICK]
+* [Bundle::Ovid], [Bundle::Theory], and many more
+* [Dist::Zilla::Plugin::TaskWeaver]
