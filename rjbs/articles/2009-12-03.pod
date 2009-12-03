@@ -5,9 +5,9 @@ Package: Email::Pipemailer::DieHandler
 
 I write a whole lot of code that takes a piece of mail and does something with
 it.  Some of these are SMTP servers, some process mailboxes on disk, but at
-least half of them a I<pipemailers>.  A pipemailer reads a message on STDIN and
-exits with a code that lets the calling program know what happened.  To grossly
-simplify, the possible exit values are:
+least half of them are I<pipemailers>.  A pipemailer reads a message on STDIN
+and exits with a code that lets the calling program know what happened.  To
+grossly simplify, the possible exit values are:
 
 =for wikidoc
 * {0E<nbsp>} - everything is okay; the message has been handled
