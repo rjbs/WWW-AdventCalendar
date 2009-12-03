@@ -48,16 +48,16 @@ strategies:
     rewrite => { -as => 'num_px',     prefix => { '-' => 'negative ', '+' => 'positive ' },
   };
 
-  # to yield (positive 40, negative 10, positive 18, zero)
   my @numbers = num_px( qw( +40 -10 +18 0 ) );
+  # ==> (positive 40, negative 10, positive 18, zero)
 
-  # to yield (Holiday::Web::Mode::GreetingCard, Holiday::Web::View::TextTemplate,
-  # Catalyst::Plugin::Kwanzaa)
   my @plugins = holiday_px( qw(
     Model::GreetingCard
     View::TextTemplate
     +Catalyst::Plugin::Kwanzaa
   ));
+  # ==> (Holiday::Web::Mode::GreetingCard,
+  #      Holiday::Web::View::TextTemplate, Catalyst::Plugin::Kwanzaa)
 
 
 There isn't much more to it, apart from one or two weird options.  Still, think
