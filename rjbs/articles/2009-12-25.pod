@@ -79,10 +79,13 @@ semantics for everything.  For example, I could write:
 
   =end vim
 
-...and get some nicely colorized Lisp code.  That uses L<Vim|Text::VimColor>
-(the editor) to colorize my code, but for Perl I decided to use L<PPI::HTML>,
-which was faster and had a bit more control.  I could just write L<=begin perl>
-but that got tedious, so I added another transformation so that by writing...
+...and get some nicely colorized Lisp code.  (The color scheme, by the way, is
+based on L<my Vim
+colorscheme|http://www.vim.org/scripts/script.php?script_id=260>.  The code
+uses L<Vim|Text::VimColor> (the editor) to colorize my code, but for Perl I
+decided to use L<PPI::HTML>, which was faster and had a bit more control.  I
+could just write L<=begin perl> but that got tedious, so I added another
+transformation so that by writing...
 
 =begin vim text
 
