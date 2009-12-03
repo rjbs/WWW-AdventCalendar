@@ -15,7 +15,7 @@ simplify, the possible exit values are:
 * anything else - something is wrong; report failure and never try again
 
 Why does this matter?  Well, say you're using L<Email::Filter> or
-L<Mail::Audit> or some other Perl library for deliverying your mail.  I mean,
+L<Mail::Audit> or some other Perl library for delivering your mail.  I mean,
 you're not using I<L<procmail|http://www.procmail.org/>> are you?  One day you
 decide you're going to start checking your mail with SpamAssassin, so you copy
 this blurb from the documentation:
