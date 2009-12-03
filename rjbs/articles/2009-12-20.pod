@@ -32,7 +32,7 @@ I had a few major goals:
 * make "configuration for a plugin" also mean "load the plugin"
 * allow plugins to validate their own input
 * allow any given plugin to be loaded multiple times
-* force plugins to be loaded in a specific order
+* force plugins to be kept in a specific order
 
 I ended up using the INI format because it was so easy to work with, and
 because I'd already started down that road before formulating what I really
