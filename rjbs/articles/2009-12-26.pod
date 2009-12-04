@@ -9,7 +9,7 @@ box to keep.  The rest you give to someone who couldn't be bothered to show up
 for Christmas with the rest of the family.  It is also known as St. Stephen's
 day, in honor of my brother.
 
-=head1 What's in Ricardo's Box?
+=head1 Perl!  Perl is in the box!
 
 I maintain a box of my favorite presents from the CPAN.  Some of them are my
 own donations, already mentioned this month.  Plenty of them were shared with
