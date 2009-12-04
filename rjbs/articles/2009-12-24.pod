@@ -1,0 +1,160 @@
+Title:   Sending Email Simply
+Package: Email::Sender::Simple
+
+=head1 The Biggest Box Under the Tree
+
+Of everything I did in 2009, I think Email::Sender is the most important and
+the one I most hope to see adopted.  For better or worse, I often found myself
+looked at as "that guy who does the email code," and people ask me what library
+they should use for this or that.  I end up shrugging, most of the time, and
+saying, "What I look for in an email module is not the same as what you will
+care about.  I'm a wonk.  I have very peculiar needs."
+
+Email::Sender is not like that.  If you are going to send email from any code
+that matters, you should use Email::Sender.  Let's see why.
+
+=head1 Sending Email Simply
+
+  #!perl
+  use Email::Sender::Simple qw(sendmail);
+
+  sendmail($email);
+
+That's it.  For most values that you're likely to throw into C<$email>, that
+will work.  Either it will be delivered for all recipients, or it will throw an
+exception.  It will decide whether to use F<sendmail> or SMTP based on your
+operating system and the availability of the F<sendmail> program.  It will
+decide on the envelope sender and recipient based on the message headers.  If
+you don't know what an envelope is, you don't have to.  It will do what you
+expect.
+
+If you I<do> know what the envelope is, you know how important it is to be able
+to control it.  It lets you manage bounces, perform BCC or blind distribution
+list, and do all sorts of other really important things.  It's easy:
+
+  #!perl
+  sendmail( $email, { to => \@recipients, from => $sender } );
+
+The success value returned or the failure exception thrown both can be
+inspected for more information, but that's rarely useful for common cases; you
+just want to know if it worked or not.
+
+=head1 Specifying a Transport
+
+Normally, Email::Sender::Simple can pick what transport to use for you.  You
+can always specify one by hand, though.
+
+  #!perl
+  my $transport = Email::Sender::Transport::SMTP->new({
+    host => 'smtp.pobox.com',
+    ssl  => 1,
+    sasl_username => $username,
+    sasl_password => $password,
+  });
+
+  sendmail(
+    $email,
+    {
+      from => $sender,
+      to   => \@recipients,
+      transport => $transport,
+    },
+  );
+
+Now we'll send that message through the configured SMTP relay.  This can be
+useful for unusual cases, but the same kind of feature can be vastly more
+useful in testing your code.  You can override the transport with the
+environment (C<%ENV>), and that will affect every use of Email::Sender::Simple,
+whether or not an override is given in the call to C<sendmail> itself.  That
+means you can very easily test every email your program will send like this:
+
+  #!perl
+  $ENV{EMAIL_SENDER_TRANSPORT} = 'Test';
+
+  test_app(MyAppCmd => [ sendreports => @args ]);
+
+  my @deliveries = Email::Sender::Simple->default_transport->deliveries;
+
+  # ...and now we inspect the mail we would have sent out...
+
+This works very well for testing things.  I have I<many times> turned up
+unexpected emails from some deep subsystem by using this.  Sometime's they've
+been reports of encountered but handled exceptions going to the admin staff --
+so by consistently testing all the email we'd send, I could find all kinds of
+weird problems.
+
+This is great for those tests, but lots of our tests fork.  Once our test
+process forks, storing all its deliveries in what is effectively a global
+variable isn't very useful.  Instead, we test like this:
+
+  #!perl
+  $ENV{EMAIL_SENDER_TRANSPORT} = 'SQLite';
+
+  test_app(MyAppCmd => [ sendreports => @args ]); # here there be forks
+
+  my $rows = Email::Sender::Simple->default_transport->dbh->selectall_arrayref(
+    # ...
+  );
+
+  # ...and now we inspect the mail we would have sent out...
+
+We've trivially collected all the mail sent by any forked child -- and by any
+spawned subprocess that uses Email::Sender.  Hopefully that's all of them!
+
+=head1 More Testing Tools
+
+Want to run your program and look at the results yourself?  You can set the
+environment to send all the output mail to your mailbox.  You can send it all
+to an F<mbox> or F<Maildir> on disk.  You can route it all to F</dev/null> or
+to the screen.  These things are all easy.  Really, they're trivial.  You just
+set the C<EMAIL_SENDER_TRANSPORT> environment variable and exactly what you
+want happens.
+
+What's less trivial -- but immensely powerful for testing -- is the Failable
+transport wrapper.
+
+  my $sender = Email::Sender::Transport::Test->new;
+  my $failer = Email::Sender::Transport::Failable->new({ transport => $sender });
+
+  my $i = 0;
+  $failer->fail_if(sub {
+    return "failing half of all mail to test" if $i++ % 2;
+    return;
+  });
+
+  {
+    my $result = eval { $failer->send($message, { to => [ qw(ok@ok.ok) ] }) };
+    ok($result, 'success');
+  }
+
+  {
+    eval { my $result = $failer->send($message, { to => [ qw(ok@ok.ok) ] }) };
+    isa_ok($@, 'Email::Sender::Failure', "we died");
+  }
+
+See what we did there?  We told our program to send mail through a transport
+that is guaranteed to fail every other delivery.  We could also have failed on
+deliveries to specific domains, over a given size, or almost anything else.
+This makes it easy to test how our program behaves when its email-sending
+routines fail, which is an often ignored code branch -- because it's
+traditionally been so hard to test.  Making all your mail go through that kind
+of transport is easy: you throw the failure conditions in a package and set
+your environment variables accordingly.
+
+=head1 Seriously, Use It
+
+Because of the global effects of the testing environment settings (and other
+related tools not seen here), the more code that uses Email::Sender::Simple,
+the more testable everything becomes.  It's easy to extend to new kinds of
+transports and messages.  Even if you don't plan on testing your code's email
+sending, by using Email::Sender::Simple, you'll make it possible for anyone
+else to do so second-hand.  That can be your gift to them: an application
+that's easier to maintain and test.
+
+=head1 See Also
+
+=for wikidoc
+* [Email::Sender::Manual::QuickStart]
+* [Email::Sender::Simple]
+* [Email::Sender]
+* [Email::Sender::Transport::SQLite]
