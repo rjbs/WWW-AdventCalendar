@@ -243,8 +243,10 @@ h2#See_Also {
   margin-right: 1em;
 }
 
-.rss {
+.feed {
   float: right;
+  color: #ff0;
+  padding-right: 1em;
   vertical-align: middle;
 }
 

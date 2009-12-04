@@ -21,7 +21,7 @@
         </div>
 
         <p id="note">24 days of Perl modules from RJBS!
-          <a href="atom.xml"><img class='rss' src='feedicon.png' /></a>
+          <a class='feed' href="atom.xml">Feed</a>
         </p>
 
         <div id="content">
