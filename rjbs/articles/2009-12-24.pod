@@ -77,8 +77,12 @@ means you can very easily test every email your program will send like this:
 
   # ...and now we inspect the mail we would have sent out...
 
+Setting that environment variable behaves as if you'd created a single instance
+of Email::Sender::Transport::Test and passed it as the C<transport> parameter
+for every call to C<sendmail> everywhere.
+
 This works very well for testing things.  I have I<many times> turned up
-unexpected emails from some deep subsystem by using this.  Sometime's they've
+unexpected emails from some deep subsystem by using this.  Sometimes they've
 been reports of encountered but handled exceptions going to the admin staff --
 so by consistently testing all the email we'd send, I could find all kinds of
 weird problems.
