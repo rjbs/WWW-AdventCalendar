@@ -32,10 +32,10 @@ x 20 - Config::MVP
 x 21 - Git::Megapull
 x 22 - Mixin::ExtraFields
 x 23 - Sort::ByExample
-  24 - Email::Sender
+x 24 - Email::Sender
 
-  25 - * WWW::AdventCalendar
-  26 - * Task::BeLike::RJBS and TaskWeaver
+x 25 - * WWW::AdventCalendar
+x 26 - * Task::BeLike::RJBS and TaskWeaver
 
 ___[ backups.txt ]___
 App::Addex
