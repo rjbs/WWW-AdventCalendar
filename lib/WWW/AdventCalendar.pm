@@ -150,7 +150,7 @@ sub build {
   }
 
   $self->output_dir->file('index.html')->openw->print(
-    $self->_masonize('/month.mhtml', {
+    $self->_masonize('/calendar.mhtml', {
       today  => $self->today,
       year   => 2009,
       month  => \%dec,

@@ -1,3 +1,4 @@
+<%flags>inherit => '/page.mhtml'</%flags>
 <h1 class='title'><% $article->title |h %></h1>
 <div class='subtitle'><% $article->package |h %> - <% $article->date->ymd %></div>
 
