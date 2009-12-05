@@ -99,7 +99,7 @@ So, always write this F<t/pod-coverage.t>
 
   #!perl
   use Test::More;
-  plan skip_all => "author test only" unless $ENV{AUTHOR_TESTING};
+  plan skip_all => "author test only" unless $ENV{RELEASE_TESTING};
   plan skip_all => "Test::Pod::Coverage 1.08 required for this test"
     unless eval "use Test::Pod::Coverage 1.08; 1";
 
