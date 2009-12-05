@@ -1,4 +1,19 @@
 <%flags>inherit => '/page.mhtml'</%flags>
+
+<%method subtitle>
+<%args>
+$article
+</%args>
+<% $article->title |h %>
+</%method>
+
+<%method content>
+<%args>
+$article
+$prev => undef
+$next => undef
+</%args>
+
 <h1 class='title'><% $article->title |h %></h1>
 <div class='subtitle'><% $article->package |h %> - <% $article->date->ymd %></div>
 
@@ -18,9 +33,4 @@
 % }
 </ul>
 <div style="clear: both"></div>
-
-<%args>
-$article
-$prev => undef
-$next  => undef
-</%args>
+</%method>

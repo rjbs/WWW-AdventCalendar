@@ -8,11 +8,7 @@
     <link rel="stylesheet" href="screen.css" type="text/css" />
     <link rel="stylesheet" href="ppi-html.css" type="text/css" />
     <link rel="stylesheet" href="vim-html.css" type="text/css" />
-    <title>RJBS Advent Calendar
-% if ($article) {
-    - <% $article->title |h %> (<% $article->date->ymd |h %>)
-% }
-    </title>
+    <title><& SELF:title, %ARGS &></title>
 </head>
 <body>
     <div id="contentwrapper">
@@ -25,7 +21,7 @@
         </p>
 
         <div id="content">
-          <% $m->call_next %>
+          <& SELF:content, %ARGS &>
         </div>
     </div>
 % if ($tracker_id) {
@@ -41,6 +37,14 @@ pageTracker._trackPageview();
 % }
 </body>
 </html>
+
+<%method title>
+% my $subtitle = $m->scomp('SELF:subtitle', %ARGS);
+% $subtitle = " - $subtitle" if ($subtitle||'') =~ /\S/;
+RJBS Advent Calendar<% $subtitle %>
+</%method>
+
+<%method subtitle></%method>
 
 <%args>
 $article    => undef
