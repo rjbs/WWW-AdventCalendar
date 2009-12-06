@@ -40,7 +40,7 @@ Here's some code I have written longhand way too many times:
 Except when I wrote it the first way too many times, each implementation was a
 little different.  Sometimes I forgot to check the result of opening a file.
 Sometimes I duplicated bits of code and only fixed bugs in one or the other.
-In the one above, I builed everything down to working on a string, which is
+In the one above, I boiled everything down to working on a string, which is
 going to stink if my input is really big and now I'm holding it all in memory
 at once and copying it around... and all that boilerplate for just two useful
 lines of code!
