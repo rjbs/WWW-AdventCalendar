@@ -16,9 +16,9 @@ In reality, Solaris is fine.  It almost never gets in my way, and that's
 because one of the first things that happens to every new Solaris box we build
 is the installation of the GNU tools.  I mean, ZFS and DTrace and zones are
 great, but Solaris grep is like a trip back to 1982.  The one tool that just
-wasn't quite easy enough to replace, though, was Solaris cron.  As we got more
-and more servers on to Solaris, in the beginning, more and more of my C<cron>
-mailbox started to look like this:
+wasn't quite easy enough to replace, though, was Solaris cron.  In the
+beginning, as we got more and more servers onto Solaris, more and more of my
+C<cron> mailbox started to look like this:
 
   Subject: Output from "cron" command
   Subject: Output from "cron" command
@@ -29,7 +29,7 @@ mailbox started to look like this:
   Subject: Output from "cron" command
   Subject: Output from "cron" command
 
-Yeah.  That's just great.  Thanks.
+Yeah.  That's just fantastic.  Thanks.
 
 =head1 Keep the crond, just add more Perl
 
@@ -54,6 +54,8 @@ exits with an error condition.
 In addition to sending you the output of the command, it will include a summary
 of how the job went:
 
+=begin vim mail
+
   From: "cron/lambda.example.com" <cron@lambda.example.com>
   To: root@lambda.example.com
   Date: Thu, 19 Nov 2009 03:00:09 -0500
@@ -68,6 +70,8 @@ of how the job went:
 
   rm: cannot remove `/var/ram/foo@example_com_.3H6D8RyK': No such file or directory
 
+=end vim
+
 We can see how long it took, what happened, and its output.  The "FAIL" in the
 subject also lets us pick out jobs that failed from jobs that were merely
 noisy.
@@ -81,7 +85,7 @@ stream of the same flapping service over and over.
 
 That's it!  App::Cronjob can help hide the pain of Solaris cron, but it isn't
 just for Solaris.  After all, cron might be better on most Linux systems than
-on Solaris, but its reports still can't compare with App::Cronjob's.
+on Solaris, but its reports still can't compare with App::Cronjob's!
 
 =head1 See Also
 
