@@ -33,7 +33,7 @@ guy who defended C<format>:
   format STDOUT_TOP =
                           Passwd File
   Name                Login    Office   Uid   Gid Home
-  −−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−−
+  ------------------------------------------------------------------
   .
 
   format STDOUT =
