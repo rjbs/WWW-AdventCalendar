@@ -227,20 +227,14 @@ h2#See_Also {
   width: 100%;
 }
 
-.code-listing tr.line td { padding: 0; margin: 0 }
+.code-listing td { padding: 0; margin: 0 }
 
-.line {
-  margin: 0;
-  padding: 0;
-  line-height: auto;
-}
-
-.line_number {
+.line-numbers {
   background-color: #797;
   color: #fff;
   border-right: 2px #b00 solid;
-  padding-left: .5em;
-  margin-right: 1em;
+  width: 3em;
+  text-align: center;
 }
 
 .feed {

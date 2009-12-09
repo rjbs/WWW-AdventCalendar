@@ -23,33 +23,16 @@ sub build_html {
   1 while chomp $html;
 
   my @lines = split /\n/, $html;
-  my $count = @lines;
-  my $line  = 0;
 
-  my $space_count = 2 + length scalar @lines;
-  my $spc = ' ' x $space_count;
+  my $numbers = join "\n",
+                map {; $_ = sprintf "%2s:&nbsp;", $_; s/ /&nbsp;/g; $_ }
+                (1 .. @lines);
+  my $code    = join "\n", @lines;
 
-  my $fmt
-    = "<table class='code-listing'>"
-    . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
-    . "%s"
-    . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
-    . "</table>";
-
-  my $lines = '';
-  my $width = $space_count - 2;
-  for (0 .. $#lines) {
-    my $line = $lines[ $_ ];
-    $line =~ s/^  //;
-    $lines .= sprintf(
-      "<tr class='line'><td><span class='line_number'>%${width}s: </span>"
-      . "%s</td></tr>\n",
-      $_ + 1,
-      $line,
-    );
-  }
-
-  $html = sprintf $fmt, $lines;
+  $html = "<table class='code-listing'><tr>"
+        . "<td class='line-numbers'>\n$numbers\n</td>"
+        . "<td class='code'>\n$code\n</td>"
+        . "</table>";
 
   # This should not be needed, because this is a data paragraph, not a
   # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference

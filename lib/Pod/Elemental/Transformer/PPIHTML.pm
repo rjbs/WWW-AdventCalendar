@@ -15,21 +15,22 @@ sub build_html {
   $perl =~ s/^  //gms;
 
   my $ppi_doc = PPI::Document->new(\$perl);
-  my $ppihtml = PPI::HTML->new( line_numbers => 1 );
+  my $ppihtml = PPI::HTML->new;
   my $html    = $ppihtml->html( $ppi_doc );
 
   my @lines = split m{<br>\n?}, $html;
 
-  my $space_count = 2 + length scalar @lines;
-  my $spc = ' ' x $space_count;
-
   $opt =~ /stupid-hyphen/ and s/-/−/g for @lines;
 
-  $html = "<table class='code-listing'>"
-        . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
-        . (join q{}, map {; "<tr class='line'><td>$_</td></tr>\n" } @lines)
-        . "<tr class='line'><td><span class='line_number'>$spc</span>&nbsp;</td></tr>\n"
-        . "</table>";
+  my $numbers = join "\n",
+                map {; $_ = sprintf "%2s:&nbsp;", $_; s/ /&nbsp;/g; $_ }
+                (1 .. @lines);
+  my $code    = join "\n", @lines;
+
+  $html = "<table class='code-listing'><tr>"
+        . "<td class='line-numbers'>\n$numbers\n</td>"
+        . "<td class='code'>\n$code\n</td>"
+        . "</tr></table>";
 
   # This should not be needed, because this is a data paragraph, not a
   # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
