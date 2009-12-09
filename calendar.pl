@@ -29,19 +29,32 @@ use lib '/Users/rjbs/code/hub/list-cell/lib';
     my $first = $self->first_cell;
 
     while ($first->day_of_week != 0) {
-      my $prev_date = $first->date - DateTime::Duration->new(days => 1);
-      my $prev_cell = Calendar::Cell->new({ date => $prev_date });
+      my $prev_cell = Calendar::Cell->new({
+        date => $first->date - DateTime::Duration->new(days => 1)
+      });
 
-      say "moving " . $prev_cell->date->ymd . " to head";
       $first->replace_prev($prev_cell);
 
-      $first = $first->first;
+      $first = $prev_cell;
     }
 
     $self->_set_first_cell($first) if $first != $self->first_cell;
   }
 
   sub _ensure_end_saturday {
+    my ($self) = @_;
+
+    my $last = $self->first_cell->last;
+
+    while ($last->day_of_week != 7) {
+      my $next_cell = Calendar::Cell->new({
+        date => $first->date + DateTime::Duration->new(days => 1)
+      });
+
+      $last->replace_next($next_cell);
+
+      $last = $next_cell;
+    }
   }
 }
 
