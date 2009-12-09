@@ -17,31 +17,7 @@ sub build_html {
     filetype => $syntax,
   );
 
-  my $html = "\n" . $vim->html;
-
-  $html =~ s/\A\n+//;
-  1 while chomp $html;
-
-  my @lines = split /\n/, $html;
-
-  my $numbers = join "\n",
-                map {; $_ = sprintf "%2s:&nbsp;", $_; s/ /&nbsp;/g; $_ }
-                (1 .. @lines);
-  my $code    = join "\n", @lines;
-
-  $html = "<table class='code-listing'><tr>"
-        . "<td class='line-numbers'>\n$numbers\n</td>"
-        . "<td class='code'>\n$code\n</td>"
-        . "</table>";
-
-  # This should not be needed, because this is a data paragraph, not a
-  # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
-  # and tries to expand format codes. -- rjbs, 2009-11-20
-  # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
-  # working and (B) valid. -- rjbs, 2009-11-26
-  $html =~ s/^/  /gsm;
-
-  return $html;
+  return $self->standard_code_block( $vim->html );
 }
 
 sub synhi_params_for_para {
