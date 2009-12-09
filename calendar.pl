@@ -46,9 +46,9 @@ use lib '/Users/rjbs/code/hub/list-cell/lib';
 
     my $last = $self->first_cell->last;
 
-    while ($last->day_of_week != 7) {
+    while ($last->day_of_week != 6) {
       my $next_cell = Calendar::Cell->new({
-        date => $first->date + DateTime::Duration->new(days => 1)
+        date => $last->date + DateTime::Duration->new(days => 1)
       });
 
       $last->replace_next($next_cell);
