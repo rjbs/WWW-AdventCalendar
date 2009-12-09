@@ -181,7 +181,7 @@ sub build {
     my $article = $article->{ $date };
 
     $feed->add_entry(
-      title     => $article->title,
+      title     => HTML::Entities::encode_entities($article->title),
       link      => $self->uri . "$date.html",
       id        => $article->fake_guid,
       summary   => Encode::decode('utf-8', $article->body_xhtml),
