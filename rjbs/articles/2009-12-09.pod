@@ -14,7 +14,7 @@ warning:
 
 =begin xhtml
 
-  <!-- This should really work with =over, but doesn't. -- rjbs, 2009-11-23 --><blockquote> It is possible that this module may overwrite the source code in files that use it. To protect yourself against this possibility, you are strongly advised to use the -backup option described in "Safety first".  </blockquote>
+  <!-- This should really work with =over, but doesn't. - rjbs, 2009-11-23 --><blockquote> It is possible that this module may overwrite the source code in files that use it. To protect yourself against this possibility, you are strongly advised to use the -backup option described in "Safety first".  </blockquote>
 
 =end xhtml
 
