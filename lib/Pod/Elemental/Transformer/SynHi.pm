@@ -30,9 +30,7 @@ sub standard_code_block {
 
   my @lines = split /\n/, $html;
 
-  my $numbers = join "\n",
-                map {; $_ = sprintf "%2s:&nbsp;", $_; s/ /&nbsp;/g; $_ }
-                (1 .. @lines);
+  my $numbers = join "\n", map {; "$_:&nbsp;" } (1 .. @lines);
   my $code    = join "\n", @lines;
 
   $html = "<table class='code-listing'><tr>"

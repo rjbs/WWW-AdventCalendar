@@ -38,18 +38,37 @@ sub _build_body_xhtml {
   my $linkparser = Pod::Hyperlink::BounceURL->new;
   $linkparser->configure(URL => 'http://search.cpan.org/perldoc?%s');
 
-  my $px = Pod::Xhtml->new(
-    FragmentOnly => 1,
-    LinkParser   => $linkparser,
-    MakeIndex    => 0,
-    MakeMeta     => 0,
-    StringMode   => 1,
-    TopHeading   => 2,
-    TopLinks     => 0,
-  );
-  $px->parse_from_filehandle($fh);
+  my $string;
 
-  my $string = $px->asString;
+  if (0) {
+    # use Pod::Simple::XHTML;
+    # my $parser = Pod::Simple::XHTML->new;
+    # $parser->output_string(\$string);
+    # $parser->parse_file($fh);
+    # sub Pod::Simple::XHTML::_end_head {
+    #   my $h = delete $_[0]{in_head};
+    #   $h++;
+    #   my $id = $_[0]->idify($_[0]{scratch});
+    #   my $text = $_[0]{scratch};
+    #   $_[0]{'scratch'} = qq{<h$h id="$id">$text</h$h>};
+    #   $_[0]->emit;
+    #   push @{ $_[0]{'to_index'} }, [$h, $id, $text];
+    # }
+    # $string = "<div class='pod'>$string</div>";
+  } else {
+     my $px = Pod::Xhtml->new(
+       FragmentOnly => 1,
+       LinkParser   => $linkparser,
+       MakeIndex    => 0,
+       MakeMeta     => 0,
+       StringMode   => 1,
+       TopHeading   => 2,
+       TopLinks     => 0,
+     );
+     $px->parse_from_filehandle($fh);
+
+     $string = $px->asString;
+  }
 
   $string =~ s{
     \s*<pre>\s*
