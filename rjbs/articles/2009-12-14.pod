@@ -53,7 +53,9 @@ F<./lib/Christmas/App.pm>:
     my ($self, $opt, $args) = @_;
 
     my @presents = Christmas::Presents->get(
-      # ... args based on opts
+      # In other words: use switches to build query:
+      ($opt->all  ? () : (done => 0),
+      ($opt->nice ? (nice => 1) : ()),
     );
     
     print $self->_list_presents(@presents); # implementation left to imagination
