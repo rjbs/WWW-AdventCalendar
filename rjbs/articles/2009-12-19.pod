@@ -75,3 +75,4 @@ Wayfarers.
 * [Git::Fingerd]
 * [Net::Finger::Server]
 * [Net::Finger]
+* [Git::PurePerl]
