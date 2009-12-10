@@ -90,6 +90,10 @@ h2 {
   color: #b00;
 }
 
+.pod ul li p {
+  display: inline;
+}
+
 pre {
   padding-top: 1em;
   padding-bottom: 1em;
