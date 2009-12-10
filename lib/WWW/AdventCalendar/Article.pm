@@ -67,7 +67,7 @@ sub _build_body_xhtml {
     \s*(<pre>)\s*
     (<table\sclass='code-listing'>.+?
     \s*</table>)\s*(?:<!--\shack\s-->)?\s*(</pre>)\s*
-  }{my $str = $2; $str =~ s/\G^\s\s[^\$]*$//gm; "$1$str$3"}gesmx;
+  }{my $str = $2; $str =~ s/\G^\s\s[^\$]*$//gm; $str}gesmx;
 
   return $string;
 }
