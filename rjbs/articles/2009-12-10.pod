@@ -39,7 +39,7 @@ straightforward.  Frustratingly, this is about as simple as it gets:
       To   => $customer->realname . " <" . $customer->email . ">",
       Subject => 'Welcome to Yoyodyne!',
     ],
-    { attributes => { content_type => 'multipart/alternative' },
+    { attributes => { content_type => 'multipart/alternative' } },
     parts => [
       Email::MIME->create(
         attributes => { content_type => { 'text/plain' } },
