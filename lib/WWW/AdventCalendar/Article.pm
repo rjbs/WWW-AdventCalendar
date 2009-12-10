@@ -8,7 +8,6 @@ use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::WikiDoc;
 use Pod::Hyperlink::BounceURL;
-use Pod::Simple::XHTML;
 use Pod::AdventXHTML;
 use Pod::Xhtml;
 
@@ -42,10 +41,14 @@ sub _build_body_xhtml {
 
   my $string;
 
-  if (0) {
+  if (1) {
     my $parser = Pod::AdventXHTML->new;
     $parser->output_string(\$string);
-    $parser->accept_targets_as_text('xhtml');
+
+    # my $b = $body;
+    # $b =~ s/^/***> /sgm;
+    # print STDOUT "---------\n$b\n---------\n";
+
     $parser->parse_file($fh);
     $string = "<div class='pod'>$string</div>";
   } else {
