@@ -8,6 +8,8 @@ use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::WikiDoc;
 use Pod::Hyperlink::BounceURL;
+use Pod::Simple::XHTML;
+use Pod::AdventXHTML;
 use Pod::Xhtml;
 
 has date => (is => 'ro', isa => 'DateTime', required => 1);
@@ -41,20 +43,11 @@ sub _build_body_xhtml {
   my $string;
 
   if (0) {
-    # use Pod::Simple::XHTML;
-    # my $parser = Pod::Simple::XHTML->new;
-    # $parser->output_string(\$string);
-    # $parser->parse_file($fh);
-    # sub Pod::Simple::XHTML::_end_head {
-    #   my $h = delete $_[0]{in_head};
-    #   $h++;
-    #   my $id = $_[0]->idify($_[0]{scratch});
-    #   my $text = $_[0]{scratch};
-    #   $_[0]{'scratch'} = qq{<h$h id="$id">$text</h$h>};
-    #   $_[0]->emit;
-    #   push @{ $_[0]{'to_index'} }, [$h, $id, $text];
-    # }
-    # $string = "<div class='pod'>$string</div>";
+    my $parser = Pod::AdventXHTML->new;
+    $parser->output_string(\$string);
+    $parser->accept_targets_as_text('xhtml');
+    $parser->parse_file($fh);
+    $string = "<div class='pod'>$string</div>";
   } else {
      my $px = Pod::Xhtml->new(
        FragmentOnly => 1,
