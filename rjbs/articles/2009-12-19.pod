@@ -43,12 +43,21 @@ Here you can see the result of fingering one of my git servers:
 
 If I want to learn more about a repository, it's easy:
 
-  ~$ finger Acme-ProgressBar@git.codesimply.com
+  ~$ finger Rx@git.codesimply.com
   [zodiac.codesimply.com]
-  Project  : Acme-ProgressBar
-  Desc.    : a simple progress bar for the patient
-  Clone URL: git://git.codesimply.com/Acme-ProgressBar.git
-  [ ... ]
+  Project  : Rx
+  Desc.    : simple, extensible schemata
+  Clone URL: git://git.codesimply.com/Rx.git
+
+  [heads]
+  master          = 38633c138f2c149ccbb7434a711975173f51a6ca
+  struct-fail     = 4c8449e0693c4bac3033c8f093be6bf26a54ac34
+
+  [tags]
+  0.003           = b0ecc50fed4e6e84c6350cd12d9be33de926bebb
+  0.004           = e625d75cfae4f43f51e43491b2b184a8396b8d50
+  perl-0.001      = 602b746868d227e0a72144e6677b0d4a14a668cd
+  perl-0.002      = 4b3102379609957b0ca2202f47a7a050ad6c42ee
 
 =head1 The Future!
 
