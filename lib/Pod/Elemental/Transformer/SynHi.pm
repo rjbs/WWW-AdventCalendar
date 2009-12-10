@@ -10,10 +10,9 @@ sub build_html_para {
 
   my $new = Pod::Elemental::Element::Pod5::Region->new({
     format_name => 'xhtml',
-    is_pod      => 1,
     content     => '',
     children    => [
-      Pod::Elemental::Element::Pod5::Verbatim->new({
+      Pod::Elemental::Element::Pod5::Data->new({
         content => $self->build_html($arg),
       }),
     ],
