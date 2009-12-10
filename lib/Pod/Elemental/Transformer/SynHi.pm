@@ -29,8 +29,9 @@ sub standard_code_block {
 
   my @lines = split /\n/, $html;
 
-  my $numbers = join "\n", map {; "$_:&nbsp;" } (1 .. @lines);
-  my $code    = join "\n", @lines;
+  my $numbers = join "<br />", map {; "$_:&nbsp;" } (1 .. @lines);
+  my $code    = join "<br />", map {; s/^(\s+)/'&nbsp;' x length $1/me; $_ }
+                @lines;
 
   $html = "<table class='code-listing'><tr>"
         . "<td class='line-numbers'>\n$numbers\n</td>"
@@ -43,6 +44,7 @@ sub standard_code_block {
   # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
   # working and (B) valid. -- rjbs, 2009-11-26
   $html =~ s/^/  /gsm;
+  $html =~ s/(<br \/>)/$1  /gsm;
 
   return $html;
 }

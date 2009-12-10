@@ -64,12 +64,10 @@ sub _build_body_xhtml {
   }
 
   $string =~ s{
-    \s*<pre>\s*
+    \s*(<pre>)\s*
     (<table\sclass='code-listing'>.+?
-    \s*</table>)\s*(?:<!--\shack\s-->)?\s*</pre>\s*
-  }{my $str = $1; $str =~ s/\G^\s\s[^\$]*$//gm; $str}gesmx;
-
-  $string =~ s{<pre>}{<pre>&nbsp;\n}g;
+    \s*</table>)\s*(?:<!--\shack\s-->)?\s*(</pre>)\s*
+  }{my $str = $2; $str =~ s/\G^\s\s[^\$]*$//gm; "$1$str$3"}gesmx;
 
   return $string;
 }
