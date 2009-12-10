@@ -25,26 +25,31 @@ sub standard_code_block {
   my ($self, $html) = @_;
 
   $html =~ s/\A\n+//;
-  1 while chomp $html;
+  $html =~ s/\n+\z//;
 
   my @lines = split /\n/, $html;
 
-  my $numbers = join "<br />", map {; "$_:&nbsp;" } (1 .. @lines);
-  my $code    = join "<br />", map {; s/^(\s+)/'&nbsp;' x length $1/me; $_ }
-                @lines;
+  # The leading nbsp below, in generating $code, is to try to get indentation
+  # to appear in feed readers, which to not respect white-space:pre or the pre
+  # element. The use of <br> instead of newlines is for the same reason.
+  # -- rjbs, 2009-12-10
+  my $nums  = join "<br />", map {; "$_:&nbsp;" } (1 .. @lines);
+  my $code  = join "<br />",
+              map {; s/^(\s+)/'&nbsp;' x length $1/me; $_ }
+              @lines;
 
+  # Another stupid hack: the <code> blocks below force monospace font.  It
+  # can't wrap the whole table, though, because it would cause styling issues
+  # in the rendered XHTML. -- rjbs, 2009-12-10
   $html = "<table class='code-listing'><tr>"
-        . "<td class='line-numbers'>\n$numbers\n</td>"
-        . "<td class='code'>\n$code\n</td>"
+        . "<td class='line-numbers'><br /><code>$nums</code><br />&nbsp;</td>"
+        . "<td class='code'><br /><code>$code</code><br />&nbsp;</td>"
         . "</table>";
 
   # This should not be needed, because this is a data paragraph, not a
   # ordinary paragraph, but Pod::Xhtml doesn't seem to know the difference
   # and tries to expand format codes. -- rjbs, 2009-11-20
-  # ...and now we emit as a verbatim paragraph explicitly to remain (A) still
-  # working and (B) valid. -- rjbs, 2009-11-26
   $html =~ s/^/  /gsm;
-  $html =~ s/(<br \/>)/$1  /gsm;
 
   return $html;
 }
