@@ -7,9 +7,7 @@ use Pod::Elemental::Transformer::Pod5;
 use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::WikiDoc;
-use Pod::Hyperlink::BounceURL;
-use Pod::AdventXHTML;
-use Pod::Xhtml;
+use Pod::Simple::XHTML::WithXHTMLRegions;
 
 has date => (is => 'ro', isa => 'DateTime', required => 1);
 has [ qw(title package body) ] => (is => 'ro', isa => 'Str', required => 1);
@@ -36,35 +34,14 @@ sub _build_body_xhtml {
 
   open my $fh, '<', \$body;
 
-  my $linkparser = Pod::Hyperlink::BounceURL->new;
-  $linkparser->configure(URL => 'http://search.cpan.org/perldoc?%s');
-
   my $string;
 
-  if (1) {
-    my $parser = Pod::AdventXHTML->new;
-    $parser->output_string(\$string);
+  my $parser = Pod::Simple::XHTML::WithXHTMLRegions->new;
+  $parser->output_string(\$string);
+  $parser->header_level(2);
 
-    # my $b = $body;
-    # $b =~ s/^/***> /sgm;
-    # print STDOUT "---------\n$b\n---------\n";
-
-    $parser->parse_file($fh);
-    $string = "<div class='pod'>$string</div>";
-  } else {
-     my $px = Pod::Xhtml->new(
-       FragmentOnly => 1,
-       LinkParser   => $linkparser,
-       MakeIndex    => 0,
-       MakeMeta     => 0,
-       StringMode   => 1,
-       TopHeading   => 2,
-       TopLinks     => 0,
-     );
-     $px->parse_from_filehandle($fh);
-
-     $string = $px->asString;
-  }
+  $parser->parse_file($fh);
+  $string = "<div class='pod'>$string</div>";
 
   $string =~ s{
     \s*(<pre>)\s*
