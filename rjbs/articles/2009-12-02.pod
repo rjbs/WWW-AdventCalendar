@@ -73,7 +73,6 @@ Finally, here's a quick bit of Christmas spirit:
       my $s = lc shift;
       $s =~ s/\Amerry christmas, //;
       $s =~ s/!\z/ /;
-      warn ">> $s <<";
       $s;
     },
   };
