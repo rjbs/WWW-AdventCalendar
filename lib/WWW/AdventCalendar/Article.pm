@@ -8,7 +8,7 @@ use Pod::Elemental::Transformer::Pod5;
 use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::WikiDoc;
-use Pod::Simple::XHTML::WithXHTMLRegions;
+use Pod::Simple::XHTML;
 
 has date => (is => 'ro', isa => 'DateTime', required => 1);
 has [ qw(title package body) ] => (is => 'ro', isa => 'Str', required => 1);
@@ -33,11 +33,12 @@ sub _build_body_xhtml {
 
   $body = $document->as_pod_string;
 
-  my $parser = Pod::Simple::XHTML::WithXHTMLRegions->new;
+  my $parser = Pod::Simple::XHTML->new;
   $parser->output_string(\my $html);
   $parser->html_h_level(2);
   $parser->html_header('');
   $parser->html_footer('');
+
   $parser->parse_string_document( Encode::encode('utf-8', $body) );
 
   $html = "<div class='pod'>$html</div>";
