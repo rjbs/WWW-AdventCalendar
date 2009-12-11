@@ -90,6 +90,10 @@ h2 {
   color: #b00;
 }
 
+.pod ul li {
+  margin: .25em 0;
+}
+
 .pod ul li p {
   display: inline;
 }
