@@ -20,7 +20,11 @@ article, but just to write articles.  I would steal someone else's code!
 First, I looked for whatever powered the L<Perl Advent
 Calendar|http://perladvent.org>.  I figured with new CSS it would be fine.  I
 found L<Pod::Advent>, but something about it made me decide to keep looking.  I
-have no idea what anymore.  Then I went to CatalystAdvent, which powers the L<Catalyst Advent Calendar|http://www.catalystframework.org/calendar>.  I liked its look out of the box, so I started to install it, but it needed things no longer on CPAN.  I hacked around that and then started to wonder whether I wouldn't be happier just publishing static files.  Why?  Who knows.
+have no idea what anymore.  Then I went to CatalystAdvent, which powers the
+L<Catalyst Advent Calendar|http://www.catalystframework.org/calendar>.  I liked
+its look out of the box, so I started to install it, but it needed things no
+longer on CPAN.  I hacked around that and then started to wonder whether I
+wouldn't be happier just publishing static files.  Why?  Who knows.
 
 I try pretty hard not to re-invent solutions to solved problems, and (believe
 it or not) I succeed more often than not in quashing my urge to rewrite
