@@ -1,5 +1,6 @@
 package WWW::AdventCalendar;
 use Moose;
+# ABSTRACT: a calendar for a month of articles (on the web)
 
 use autodie;
 use Calendar::Simple;

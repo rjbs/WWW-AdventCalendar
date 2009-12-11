@@ -1,5 +1,6 @@
 package WWW::AdventCalendar::Article;
 use Moose;
+# ABSTRACT: one article in an advent calendar
 
 use autodie;
 use Pod::Elemental;
