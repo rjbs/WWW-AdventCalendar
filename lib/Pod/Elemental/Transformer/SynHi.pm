@@ -25,9 +25,6 @@ sub build_html_para {
 sub standard_code_block {
   my ($self, $html) = @_;
 
-  $html =~ s/\A\n+//;
-  $html =~ s/\n+\z//;
-
   my @lines = split /\n/, $html;
 
   # The leading nbsp below, in generating $code, is to try to get indentation
