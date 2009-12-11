@@ -108,11 +108,15 @@ advent calendar just like me.  For now they're being released with
 WWW::AdventCalendar, because they're just a bit too hacky to be for general use
 yet, I think.  Still, here's what they do:
 
-I'm using L<Pod::Xhtml> to convert from Pod to HTML.  It's not bad, although
-I'll probably switch to L<Pod::Simple::XHTML> in the future.  Either way, I can
-have a C<=begin xhtml> block that lets me provide literal XHTML rather than
-Pod.  This is perfect for providing marked up, colorized code blocks.  All I
-had to do was get those XHTML blocks produced before Pod::Xhtml did its thing.
+I'm using L<Pod::Simple::XHTML> to convert from Pod to HTML.  Actually, I'm
+using L<Pod::Simple::XHTML::WithXHTMLRegions>, which is a subclass I wrote for
+the calendar.  I'd started with L<Pod::Xhtml>, but it was buggy and
+unmaintained.  Pod::Simple, on the other hand, is buggy and maintained.  Or, at
+least, it's maintained.  It can be hard to tell whether it's buggy or just
+incomprehensible.  Anyway, I can have a C<=begin xhtml> block that lets me
+provide literal XHTML rather than Pod.  This is perfect for providing marked
+up, colorized code blocks.  All I had to do was get those XHTML blocks produced
+before Pod::Simple::XHTML did its thing.
 
 Obviously, this was a job for L<Pod::Elemental>, the engine behind
 L<Pod::Weaver>!  I wrote two libraries, L<Pod::Elemental::Transformer::PPIHTML>
@@ -144,3 +148,4 @@ Until then... Merry Christmas!
 * [CatalystAdvent|http://dev.catalyst.perl.org/repos/Catalyst/trunk/examples/CatalystAdvent/] - the Catalyst Advent Calendar, whose CSS I stole
 * [Text::VimColor] - colorize any syntax type that Vim understands
 * [PPI::HTML] - turn Perl into syntax marked HTML with [PPI]
+* [Pod::Simple] - the most commonly-used Pod parser
