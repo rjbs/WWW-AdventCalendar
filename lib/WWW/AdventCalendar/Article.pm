@@ -32,26 +32,22 @@ sub _build_body_xhtml {
 
   $body = $document->as_pod_string;
 
-  open my $fh, '<', \$body;
-
-  my $string;
-
   my $parser = Pod::Simple::XHTML::WithXHTMLRegions->new;
-  $parser->output_string(\$string);
+  $parser->output_string(\my $html);
   $parser->html_h_level(2);
   $parser->html_header('');
   $parser->html_footer('');
+  $parser->parse_string_document( Encode::encode('utf-8', $body) );
 
-  $parser->parse_file($fh);
-  $string = "<div class='pod'>$string</div>";
+  $html = "<div class='pod'>$html</div>";
 
-  $string =~ s{
+  $html =~ s{
     \s*(<pre>)\s*
     (<table\sclass='code-listing'>.+?
     \s*</table>)\s*(?:<!--\shack\s-->)?\s*(</pre>)\s*
   }{my $str = $2; $str =~ s/\G^\s\s[^\$]*$//gm; $str}gesmx;
 
-  return $string;
+  return $html;
 }
 
 sub fake_guid {
