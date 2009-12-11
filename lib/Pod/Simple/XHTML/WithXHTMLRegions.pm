@@ -2,8 +2,6 @@ use strict;
 package Pod::Simple::XHTML::WithXHTMLRegions;
 use base 'Pod::Simple::XHTML';
 
-__PACKAGE__->_accessorize('header_level');
-
 sub new {
   my $class = shift;
   my $self  = $class->SUPER::new(@_);
@@ -51,14 +49,6 @@ sub end_for {
 
   pop @{ $self->{__region_targets} };
   return $self->SUPER::start_for($flags)
-}
-
-sub _end_head {
-  my ($self) = @_;
-  my $add = $self->header_level;
-  $add = 1 unless defined $add;
-  $_[0]{in_head} += $add - 1;
-  return $_[0]->SUPER::_end_head;
 }
 
 1;

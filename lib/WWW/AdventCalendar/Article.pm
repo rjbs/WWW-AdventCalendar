@@ -38,7 +38,7 @@ sub _build_body_xhtml {
 
   my $parser = Pod::Simple::XHTML::WithXHTMLRegions->new;
   $parser->output_string(\$string);
-  $parser->header_level(2);
+  $parser->html_h_level(2);
 
   $parser->parse_file($fh);
   $string = "<div class='pod'>$string</div>";
