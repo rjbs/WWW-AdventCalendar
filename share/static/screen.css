@@ -31,6 +31,11 @@ h1.title {
   color: #b00;
 }
 
+h2 {
+  text-align: center;
+  color: #b00;
+}
+
 .subtitle {
   text-align: right;
   border-top: 1px black solid;
@@ -83,11 +88,6 @@ a:not(.article) {
   background: #ffc;
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
-}
-
-h2 {
-  text-align: center;
-  color: #b00;
 }
 
 .pod ul li {
