@@ -78,8 +78,8 @@ F<lib/My/Project.pm>.  My module might look something like this:
   package My::Project;
   # ABSTRACT: our top-secret project for playing bowling against WOPR
 
-  use Games::Bolwing::Scorecard;
-  use Games::War::Nuclear::Thermonuclear::Gobal;
+  use Games::Bowling::Scorecard;
+  use Games::War::Nuclear::Thermonuclear::Global;
   use Path::Resolver 2.012;
 
   =method play_a_game
