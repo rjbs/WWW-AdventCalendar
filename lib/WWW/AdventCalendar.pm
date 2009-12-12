@@ -16,16 +16,17 @@ use Path::Class ();
 use XML::Atom::SimpleFeed;
 use WWW::AdventCalendar::Article;
 
-has title  => (is => 'ro', default => 'RJBS Advent Calendar');
-has uri    => (is => 'ro', default => 'http://advent.rjbs.manxome.org/');
-has editor => (is => 'ro', default => 'Ricardo Signes');
-has categories => (is => 'ro', default => sub { [ qw(Perl RJBS) ] });
+has title  => (is => 'ro', required => 1);
+has uri    => (is => 'ro', required => 1);
+has editor => (is => 'ro', required => 1);
+has year   => (is => 'ro', required => 1);
+has categories => (is => 'ro', default => sub { [ qw() ] });
 
 has article_dir => (is => 'rw', required => 1);
 has share_dir   => (is => 'rw', required => 1);
 has output_dir  => (is => 'rw', required => 1);
 
-has today  => (is => 'rw');
+has today      => (is => 'rw');
 
 has tracker_id => (is => 'ro');
 
@@ -102,7 +103,7 @@ sub build {
   my %dec;
   for (1 .. 31) {
     $dec{$_} = DateTime->new(
-      year  => 2009,
+      year  => $self->year,
       month => 12,
       day   => $_,
       time_zone => 'local',
@@ -153,7 +154,7 @@ sub build {
   $self->output_dir->file('index.html')->openw->print(
     $self->_masonize('/calendar.mhtml', {
       today  => $self->today,
-      year   => 2009,
+      year   => $self->year,
       month  => \%dec,
       calendar => scalar calendar(12, $self->today->year),
       articles => $article,

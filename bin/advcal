@@ -1,15 +1,31 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+# ABSTRACT: build an advent calendar
 
 use lib 'lib';
 
 use WWW::AdventCalendar;
 use WWW::AdventCalendar::Article;
+use WWW::AdventCalendar::Config;
 use Getopt::Long::Descriptive;
+
+=head1 USAGE
+
+  advcal [-aot] [long options...]
+    -c --config       the ini file to read for configuration
+    -a --articles     the root of articles
+    --share           the root of shared files
+    -o --output       output directory
+    --today           the day we treat as "today"; default to today
+                    
+    -t --tracker      include Google Analytics; -t TRACKER-ID
+
+=cut
 
 my ($opt, $usage) = describe_options(
   '%c %o',
+  [ 'config|c=s',   'the ini file to read for configuration'                 ],
   [ 'articles|a=s', 'the root of articles',      { default => './articles' } ],
   [ 'share=s',      'the root of shared files',  { default => './share'    } ],
   [ 'output|o=s',   'output directory',          { default => './out'      } ],
@@ -18,12 +34,25 @@ my ($opt, $usage) = describe_options(
   [ 'tracker|t=s',  'include Google Analytics; -t TRACKER-ID' ],
 );
 
+my $arg = {};
+if (my $file = $opt->config) {
+  my $config = WWW::AdventCalendar::Config->new->read_config({
+    filename => $file,
+    root     => '.',
+  });
+
+  my $root = $config->section_named('_');
+  $arg = $root->payload;
+}
+
+
 my $cal = WWW::AdventCalendar->new({
-  article_dir => $opt->{articles},
-  share_dir   => $opt->{share},
-  output_dir  => $opt->{output},
-  today       => $opt->{today},
-  tracker_id  => $opt->{tracker},
+  %$arg,
+  article_dir => $opt->articles,
+  share_dir   => $opt->share,
+  output_dir  => $opt->output,
+  today       => $opt->today,
+  tracker_id  => $opt->tracker,
 });
 
 $cal->build;
