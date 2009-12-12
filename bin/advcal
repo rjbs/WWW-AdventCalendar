@@ -8,15 +8,15 @@ use lib 'lib';
 use WWW::AdventCalendar;
 use WWW::AdventCalendar::Article;
 use WWW::AdventCalendar::Config;
-use Getopt::Long::Descriptive;
+use Getopt::Long::Descriptive 0.083;
 
 =head1 USAGE
 
   advcal [-aot] [long options...]
     -c --config       the ini file to read for configuration
-    -a --articles     the root of articles
-    --share           the root of shared files
-    -o --output       output directory
+    -a --article-dir  the root of articles
+    --share-dir       the root of shared files
+    -o --output-dir   output directory
     --today           the day we treat as "today"; default to today
                     
     -t --tracker      include Google Analytics; -t TRACKER-ID
@@ -25,11 +25,11 @@ use Getopt::Long::Descriptive;
 
 my ($opt, $usage) = describe_options(
   '%c %o',
-  [ 'config|c=s',   'the ini file to read for configuration'                 ],
-  [ 'articles|a=s', 'the root of articles',      { default => './articles' } ],
-  [ 'share=s',      'the root of shared files',  { default => './share'    } ],
-  [ 'output|o=s',   'output directory',          { default => './out'      } ],
-  [ 'today=s',      'the day we treat as "today"; default to today'          ],
+  [ 'config|c=s',      'the ini file to read for configuration'            ],
+  [ 'article-dir|a=s', 'root of articles',     { default => './articles' } ],
+  [ 'share-dir=s',     'root of shared files', { default => './share'    } ],
+  [ 'output-dir|o=s',  'output directory',     { default => './out'      } ],
+  [ 'today=s',         'the day we treat as "today"; default to today'     ],
   [],
   [ 'tracker|t=s',  'include Google Analytics; -t TRACKER-ID' ],
 );
@@ -45,14 +45,10 @@ if (my $file = $opt->config) {
   $arg = $root->payload;
 }
 
-
 my $cal = WWW::AdventCalendar->new({
+  %{ $opt },
   %$arg,
-  (defined $opt->articles ? (article_dir => $opt->articles) : ()),
-  (defined $opt->share    ? (share_dir   => $opt->share) : ()),
-  (defined $opt->output   ? (output_dir  => $opt->output) : ()),
-  (defined $opt->today    ? (today       => $opt->today) : ()),
-  (defined $opt->tracker  ? (tracker_id  => $opt->tracker) : ()),
+  %{ $opt->_specified_opts },
 });
 
 $cal->build;
