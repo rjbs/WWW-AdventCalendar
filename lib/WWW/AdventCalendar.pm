@@ -2,6 +2,21 @@ package WWW::AdventCalendar;
 use Moose;
 # ABSTRACT: a calendar for a month of articles (on the web)
 
+=head1 DESCRIPTION
+
+This is a library for producing Advent calendar websites.  In other words, it
+makes four things:
+
+=for wikidoc
+* a page saying "first door opens in X days" until Dec 1
+* a calendar page on and after Dec 1
+* a page for each day in December with an article
+* an Atom feed
+
+This library may be generalized somewhat in the future.
+
+=cut
+
 use autodie;
 use Calendar::Simple;
 use DateTime;
