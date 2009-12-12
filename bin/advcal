@@ -5,9 +5,6 @@ use warnings;
 
 use lib 'lib';
 
-use WWW::AdventCalendar;
-use WWW::AdventCalendar::Article;
-use WWW::AdventCalendar::Config;
 use Getopt::Long::Descriptive 0.083;
 
 =head1 USAGE
@@ -36,6 +33,9 @@ my ($opt, $usage) = describe_options(
 
 my $arg = {};
 if (my $file = $opt->config) {
+  die "configuration file '$file' does not exist\n" unless -f $file;
+  require WWW::AdventCalendar::Config;
+
   my $config = WWW::AdventCalendar::Config->new->read_config({
     filename => $file,
     root     => '.',
@@ -45,10 +45,13 @@ if (my $file = $opt->config) {
   $arg = $root->payload;
 }
 
+require WWW::AdventCalendar;
+require WWW::AdventCalendar::Article;
+
 my $cal = WWW::AdventCalendar->new({
-  %{ $opt },
-  %$arg,
-  %{ $opt->_specified_opts },
+  %{ $opt },  # even command line defaults
+  %$arg,      # but those are overridden by configuration
+  %{ $opt->_specified_opts }, # which is overridden by *explicit* switches
 });
 
 $cal->build;
