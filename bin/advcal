@@ -48,11 +48,11 @@ if (my $file = $opt->config) {
 
 my $cal = WWW::AdventCalendar->new({
   %$arg,
-  article_dir => $opt->articles,
-  share_dir   => $opt->share,
-  output_dir  => $opt->output,
-  today       => $opt->today,
-  tracker_id  => $opt->tracker,
+  (defined $opt->articles ? (article_dir => $opt->articles) : ()),
+  (defined $opt->share    ? (share_dir   => $opt->share) : ()),
+  (defined $opt->output   ? (output_dir  => $opt->output) : ()),
+  (defined $opt->today    ? (today       => $opt->today) : ()),
+  (defined $opt->tracker  ? (tracker_id  => $opt->tracker) : ()),
 });
 
 $cal->build;
