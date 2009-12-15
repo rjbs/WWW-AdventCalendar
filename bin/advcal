@@ -28,7 +28,7 @@ my ($opt, $usage) = describe_options(
   [ 'output-dir|o=s',  'output directory',     { default => './out'      } ],
   [ 'today=s',         'the day we treat as "today"; default to today'     ],
   [],
-  [ 'tracker|t=s',  'include Google Analytics; -t TRACKER-ID' ],
+  [ 'tracker-id|t=s',  'include Google Analytics; -t TRACKER-ID' ],
 );
 
 my $arg = {};
