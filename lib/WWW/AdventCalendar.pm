@@ -7,7 +7,7 @@ use Moose;
 This is a library for producing Advent calendar websites.  In other words, it
 makes four things:
 
-=for wikidoc
+=for :list
 * a page saying "first door opens in X days" until Dec 1
 * a calendar page on and after Dec 1
 * a page for each day in December with an article
