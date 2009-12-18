@@ -5,6 +5,7 @@ use Moose;
 use autodie;
 use Pod::Elemental;
 use Pod::Elemental::Transformer::Pod5;
+use Pod::Elemental::Transformer::Codebox;
 use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::List;
@@ -34,6 +35,7 @@ sub _build_body_xhtml {
 
   Pod::Elemental::Transformer::Pod5->new->transform_node($document);
   Pod::Elemental::Transformer::List->new->transform_node($document);
+  Pod::Elemental::Transformer::Codebox->new->transform_node($document);
   Pod::Elemental::Transformer::PPIHTML->new->transform_node($document);
   Pod::Elemental::Transformer::VimHTML->new->transform_node($document);
 
