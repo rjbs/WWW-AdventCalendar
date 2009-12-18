@@ -7,7 +7,7 @@ use Pod::Elemental;
 use Pod::Elemental::Transformer::Pod5;
 use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
-use Pod::Elemental::Transformer::WikiDoc;
+use Pod::Elemental::Transformer::List;
 use Pod::Simple::XHTML 3.11;
 
 BEGIN { 
@@ -33,9 +33,9 @@ sub _build_body_xhtml {
   my $document = Pod::Elemental->read_string($body);
 
   Pod::Elemental::Transformer::Pod5->new->transform_node($document);
+  Pod::Elemental::Transformer::List->new->transform_node($document);
   Pod::Elemental::Transformer::PPIHTML->new->transform_node($document);
   Pod::Elemental::Transformer::VimHTML->new->transform_node($document);
-  Pod::Elemental::Transformer::WikiDoc->new->transform_node($document);
 
   $body = $document->as_pod_string;
 
