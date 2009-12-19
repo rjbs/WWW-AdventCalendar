@@ -5,17 +5,12 @@ use Moose;
 use autodie;
 use Pod::Elemental;
 use Pod::Elemental::Transformer::Pod5;
+use Pod::Elemental::Transformer::SynMux;
 use Pod::Elemental::Transformer::Codebox;
 use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::List;
-use Pod::Simple::XHTML 3.11;
-
-BEGIN { 
-  # Will be 3.12 when that is released -- rjbs, 2009-12-11
-  die "Pod::Simple::XHTML with html_h_level support required"
-    unless Pod::Simple::XHTML->can('html_h_level');
-}
+use Pod::Simple::XHTML 3.13;
 
 has date => (is => 'ro', isa => 'DateTime', required => 1);
 has [ qw(title package body) ] => (is => 'ro', isa => 'Str', required => 1);
