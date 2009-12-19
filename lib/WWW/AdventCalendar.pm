@@ -140,7 +140,7 @@ sub build {
     $feed->add_entry(
       title     => $self->title . " is Coming",
       link      => $self->uri,
-      id        => 'urn:uuid:5fe50e6e-d862-11de-8370-7b1cadc4aa0b',
+      id        => $self->uri,
       summary   => "The first door opens in $str...\n",
       updated   => $self->_w3cdtf($self->today),
 
@@ -200,8 +200,8 @@ sub build {
     $feed->add_entry(
       title     => HTML::Entities::encode_entities($article->title),
       link      => $self->uri . "$date.html",
-      id        => $article->fake_guid,
-      summary   => Encode::decode('utf-8', $article->body_xhtml),
+      id        => $article->atom_id,
+      summary   => Encode::decode('utf-8', $article->body_html),
       updated   => $self->_w3cdtf($article->date),
       (map {; category => $_ } @{ $self->categories }),
     );
@@ -232,7 +232,8 @@ sub read_articles {
       body  => $document->body,
       date  => _parse_isodate($isodate),
       title => $document->header('title'),
-      package => $document->header('package'),
+      package  => $document->header('package'),
+      calendar => $self,
     );
 
     next unless $article->date < $self->today;

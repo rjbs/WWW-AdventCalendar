@@ -17,7 +17,7 @@ $next => undef
 <h1 class='title'><% $article->title |h %></h1>
 <div class='subtitle'><% $article->package |h %> - <% $article->date->ymd %></div>
 
-<% $article->body_xhtml %>
+<% $article->body_html %>
 
 <ul id="pager">
 % if ($prev) {

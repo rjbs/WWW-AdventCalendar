@@ -1,6 +1,17 @@
 package WWW::AdventCalendar::Config;
 use Moose;
 extends 'Config::MVP::Reader::INI';
+# Config::MVP-based configuration reader for WWW::AdventCalendar
+
+=head1 DESCRIPTION
+
+This is just a L<Config::MVP::Reader::INI> subclass that will begin its
+assembler in a section named "C<_>" with a few multivalue args and aliases
+pre-configured.
+
+Apart from that, there is nothing to say.
+
+=cut
 
 use Config::MVP::Assembler;
 
