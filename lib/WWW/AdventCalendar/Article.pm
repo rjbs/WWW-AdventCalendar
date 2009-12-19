@@ -30,9 +30,16 @@ sub _build_body_xhtml {
 
   Pod::Elemental::Transformer::Pod5->new->transform_node($document);
   Pod::Elemental::Transformer::List->new->transform_node($document);
-  Pod::Elemental::Transformer::Codebox->new->transform_node($document);
-  Pod::Elemental::Transformer::PPIHTML->new->transform_node($document);
-  Pod::Elemental::Transformer::VimHTML->new->transform_node($document);
+
+  my $mux = Pod::Elemental::Transformer::SynMux->new({
+    transformers => [
+      Pod::Elemental::Transformer::Codebox->new,
+      Pod::Elemental::Transformer::PPIHTML->new,
+      Pod::Elemental::Transformer::VimHTML->new,
+    ],
+  });
+
+  $mux->transform_node($document);
 
   $body = $document->as_pod_string;
 
