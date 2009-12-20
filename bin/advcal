@@ -18,6 +18,8 @@ use Getopt::Long::Descriptive 0.083;
 
     -t --tracker      include Google Analytics; -t TRACKER-ID
 
+For more detailed information, see L<WWW::AdventCalendar>.
+
 =cut
 
 my ($opt, $usage) = describe_options(
