@@ -15,7 +15,7 @@ use Getopt::Long::Descriptive 0.083;
     --share-dir       the root of shared files
     -o --output-dir   output directory
     --today           the day we treat as "today"; default to today
-                    
+
     -t --tracker      include Google Analytics; -t TRACKER-ID
 
 =cut

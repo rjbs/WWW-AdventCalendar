@@ -2,21 +2,6 @@ package WWW::AdventCalendar;
 use Moose;
 # ABSTRACT: a calendar for a month of articles (on the web)
 
-=head1 DESCRIPTION
-
-This is a library for producing Advent calendar websites.  In other words, it
-makes four things:
-
-=for :list
-* a page saying "first door opens in X days" until Dec 1
-* a calendar page on and after Dec 1
-* a page for each day in December with an article
-* an Atom feed
-
-This library may be generalized somewhat in the future.
-
-=cut
-
 use autodie;
 use Calendar::Simple;
 use DateTime;
@@ -30,6 +15,107 @@ use HTML::Mason::Interp;
 use Path::Class ();
 use XML::Atom::SimpleFeed;
 use WWW::AdventCalendar::Article;
+
+=head1 DESCRIPTION
+
+This is a library for producing Advent calendar websites.  In other words, it
+makes four things:
+
+=for :list
+* a page saying "first door opens in X days" until Dec 1
+* a calendar page on and after Dec 1
+* a page for each day in December with an article
+* an Atom feed
+
+This library may be generalized somewhat in the future.  Until then, it should
+work for at least December for every year.  It has only been tested for 2009,
+which may be of limited utility going forward.
+
+=head1 OVERVIEW
+
+To build an Advent calendar:
+
+=for :list
+1. create an advent.ini configuration file
+2. write articles and put them in a directory
+3. schedule F<advcal> to run nightly
+
+F<advent.ini> is easy to produce.  Here's the one used for the original RJBS
+Advent Calendar:
+
+  title  = RJBS Advent Calendar
+  year   = 2009
+  uri    = http://advent.rjbs.manxome.org/
+  editor = Ricardo Signes
+  category = Perl
+  category = RJBS
+
+  article_dir = rjbs/articles
+  share_dir   = share
+
+These should all be self-explanatory.  Only C<category> can be provided more
+than once, and is used for the category listing in the Atom feed.
+
+These settings all correspond to L<calendar attributes/ATTRIBUTES> described
+below.
+
+Articles are easy, too.  They're just files in the C<article_dir>.  They begin
+with an email-like set of headers, followed by a body written in Pod.  For
+example, here's the beginning of the first article in the original calendar:
+
+  Title:  Built in Our Workshop, Delivered in Your Package
+  Package: Sub::Exporter
+
+  =head1 Exporting
+
+  In Perl, we organize our subroutines (and other stuff) into namespaces called
+  packages.  This makes it easy to avoid having to think of unique names for
+
+The two headers seen above, title and package, are the only headers required,
+and correspond to those attributes in the L<WWW::AdventCalendar::Article>
+object created from the article file.
+
+Finally, running L<advcal> is easy, too.  Here is its usage:
+
+  advcal [-aot] [long options...]
+    -c --config       the ini file to read for configuration
+    -a --article-dir  the root of articles
+    --share-dir       the root of shared files
+    -o --output-dir   output directory
+    --today           the day we treat as "today"; default to today
+
+    -t --tracker      include Google Analytics; -t TRACKER-ID
+
+Options given on the command line override those loaded form configuration.  By
+running this program every day, we cause the calendar to be rebuilt, adding any
+new articles that have become available.
+
+=head1 ATTRIBUTES
+
+=for :list
+= title
+The title of the calendar, to be used in headers, the feed, and so on.
+= uri
+The base URI of the calendar, including trailing slash.
+= editor
+The name of the calendar's editor, used in the feed.
+= year
+The year being calendared.
+= categories
+An arrayref of category names for use in the feed.
+= article_dir
+The directory in which articles can be found, with names like
+F<YYYY-MM-DD.html>.
+= share_dir
+The directory for templates, stylesheets, and other static content.
+= output_dir
+The directory into which output files will be written.
+= today
+The date to treat as "today" when deciding how much of the calendar to publish.
+= tracker_id
+A Google Analytics tracker id.  If given, each page will include analytics.
+
+=cut
 
 has title  => (is => 'ro', required => 1);
 has uri    => (is => 'ro', required => 1);
@@ -92,6 +178,15 @@ sub BUILD {
     $self->$_( Path::Class::Dir->new($self->$_) );
   }
 }
+
+=method build
+
+  $calendar->build;
+
+This method does all the work: it reads in the articles, decides how many to
+show, writes out the rendered pages, the index, and the atom feed.
+
+=cut
 
 sub build {
   my ($self) = @_;
@@ -214,6 +309,16 @@ sub _w3cdtf {
   my ($self, $datetime) = @_;
   DateTime::Format::W3CDTF->new->format_datetime($datetime);
 }
+
+=method read_articles
+
+  my $article = $calendar->read_articles;
+
+This method reads in all the articles for the calendar and returns a hashref.
+The keys are dates (in the format C<YYYY-MM-DD>) and the values are
+L<WWW::AdventCalendar::Article> objects.
+
+=cut
 
 sub read_articles {
   my ($self) = @_;
