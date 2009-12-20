@@ -327,8 +327,11 @@ sub read_articles {
   for my $file (grep { ! $_->is_dir } $self->article_dir->children) {
     my ($name, $path) = fileparse($file);
     $name =~ s{\..+\z}{}; # remove extension
-    my $document = Email::Simple->new(scalar `cat $file`);
-    my $isodate  = $document->header('Date') || $name;
+
+    open my $fh, '<', $file;
+    my $content = do { local $/; <$fh> };
+    my $document = Email::Simple->new($content);
+    my $isodate  = $name;
 
     die "no title set in $file\n" unless $document->header('title');
 
