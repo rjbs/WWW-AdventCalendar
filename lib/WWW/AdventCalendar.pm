@@ -200,14 +200,13 @@ sub build {
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => $self->title,
-    link    => $self->uri,
+    id      => $self->uri,
     link    => {
       rel  => 'self',
       href => $self->uri . 'atom.xml',
     },
     updated => $self->_w3cdtf($self->today),
     author  => $self->editor,
-    id      => 'urn:uuid:0984725a-d60d-11de-b491-d317acc4aa0b',
   );
 
   my %dec;
