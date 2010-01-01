@@ -8,7 +8,7 @@ use DateTime;
 use DateTime::Format::W3CDTF;
 use Email::Simple;
 use File::Copy qw(copy);
-use File::Path qw(remove_tree);
+use File::Path 2 qw(remove_tree);
 use DateTime;
 use File::Basename;
 use HTML::Mason::Interp;
