@@ -2,5 +2,7 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.100010  2010-01-01 18:29:55 America/New_York
+
 0.093580  2009-12-24 21:24:48 America/New_York
           first release!
