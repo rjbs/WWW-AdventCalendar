@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.100080  2010-01-08 07:41:51 America/New_York
           require File::Path 2.07 (thanks, ANDK)
 
 0.100010  2010-01-01 18:29:55 America/New_York
