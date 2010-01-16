@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          add configure_requires needed to build!
 
 0.100080  2010-01-08 07:41:51 America/New_York
           require File::Path 2.07 (thanks, ANDK)
