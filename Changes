@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.100160  2010-01-16 15:39:53 America/New_York
           add configure_requires needed to build!
 
 0.100080  2010-01-08 07:41:51 America/New_York
