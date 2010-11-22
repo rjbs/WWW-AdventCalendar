@@ -1,6 +1,9 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          updated for Config::MVP v2
+
+          fix bugs that prevent rebuilding of last year's calendar
 
 0.100160  2010-01-16 15:39:53 America/New_York
           add configure_requires needed to build!

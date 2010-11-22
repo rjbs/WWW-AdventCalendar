@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 # ABSTRACT: build an advent calendar
+# PODNAME:  advcal
 
 use lib 'lib';
 
@@ -38,10 +39,7 @@ if (my $file = $opt->config) {
   die "configuration file '$file' does not exist\n" unless -f $file;
   require WWW::AdventCalendar::Config;
 
-  my $config = WWW::AdventCalendar::Config->new->read_config({
-    filename => $file,
-    root     => '.',
-  });
+  my $config = WWW::AdventCalendar::Config->new->read_config($file);
 
   my $root = $config->section_named('_');
   $arg = $root->payload;

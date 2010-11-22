@@ -227,7 +227,7 @@ sub build {
     $self->output_dir->file("index.html")->openw->print(
       $self->_masonize('/patience.mhtml', {
         days => $str,
-        year => $self->today->year,
+        year => $self->year,
       }),
     );
 
@@ -265,7 +265,7 @@ sub build {
       today  => $self->today,
       year   => $self->year,
       month  => \%dec,
-      calendar => scalar calendar(12, $self->today->year),
+      calendar => scalar calendar(12, $self->year),
       articles => $article,
     }),
   );
@@ -283,7 +283,7 @@ sub build {
         date    => $date,
         next    => ($i < $#dates ? $article->{ $dates[ $i + 1 ] } : undef),
         prev    => ($i > 0       ? $article->{ $dates[ $i - 1 ] } : undef),
-        year    => $self->today->year,
+        year    => $self->year,
       }),
     );
   }
