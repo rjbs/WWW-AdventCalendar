@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.000     2010-11-22 18:29:22 America/New_York
           updated for Config::MVP v2
 
           fix bugs that prevent rebuilding of last year's calendar
