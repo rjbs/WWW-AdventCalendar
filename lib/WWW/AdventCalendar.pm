@@ -328,7 +328,7 @@ sub read_articles {
     my ($name, $path) = fileparse($file);
     $name =~ s{\..+\z}{}; # remove extension
 
-    open my $fh, '<', $file;
+    open my $fh, '<:encoding(utf-8)', $file;
     my $content = do { local $/; <$fh> };
     my $document = Email::Simple->new($content);
     my $isodate  = $name;

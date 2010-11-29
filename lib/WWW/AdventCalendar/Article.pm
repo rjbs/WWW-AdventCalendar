@@ -74,6 +74,8 @@ sub _build_body_html {
 
   my $body = $self->body;
 
+  $body = "\n=encoding utf-8\n\n$body" unless $body =~ /^=encoding/s;
+
   my $document = Pod::Elemental->read_string($body);
 
   Pod::Elemental::Transformer::Pod5->new->transform_node($document);
