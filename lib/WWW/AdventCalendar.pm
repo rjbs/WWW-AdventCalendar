@@ -277,15 +277,16 @@ sub build {
     my $output;
 
     print "processing article for $date...\n";
-    $self->output_dir->file("$date.html")->openw->print(
-      $self->_masonize('/article.mhtml', {
-        article => $article->{ $date },
-        date    => $date,
-        next    => ($i < $#dates ? $article->{ $dates[ $i + 1 ] } : undef),
-        prev    => ($i > 0       ? $article->{ $dates[ $i - 1 ] } : undef),
-        year    => $self->year,
-      }),
-    );
+    my $txt = $self->_masonize('/article.mhtml', {
+      article => $article->{ $date },
+      date    => $date,
+      next    => ($i < $#dates ? $article->{ $dates[ $i + 1 ] } : undef),
+      prev    => ($i > 0       ? $article->{ $dates[ $i - 1 ] } : undef),
+      year    => $self->year,
+    });
+
+    my $bytes = Encode::encode('utf-8', $txt);
+    $self->output_dir->file("$date.html")->openw->print($bytes);
   }
 
   for my $date (reverse @dates){
@@ -295,7 +296,7 @@ sub build {
       title     => HTML::Entities::encode_entities($article->title),
       link      => $self->uri . "$date.html",
       id        => $article->atom_id,
-      summary   => Encode::decode('utf-8', $article->body_html),
+      summary   => $article->body_html,
       updated   => $self->_w3cdtf($article->date),
       (map {; category => $_ } @{ $self->categories }),
     );
