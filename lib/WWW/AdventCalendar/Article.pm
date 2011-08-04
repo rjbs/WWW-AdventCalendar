@@ -94,6 +94,7 @@ sub _build_body_html {
   $body = $document->as_pod_string;
 
   my $parser = Pod::Simple::XHTML->new;
+  $parser->perldoc_url_prefix('https://metacpan.org/module/');
   $parser->output_string(\my $html);
   $parser->html_h_level(2);
   $parser->html_header('');
