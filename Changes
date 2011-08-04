@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.002     2011-08-04 10:13:00 America/New_York
           L<> links now go to metacpan by default
 
 1.001     2010-12-08 09:21:11 America/New_York
