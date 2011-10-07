@@ -175,9 +175,15 @@ sub _masonize {
   my $interp = HTML::Mason::Interp->new(
     comp_root  => $self->share_dir->subdir('templates')->absolute->stringify,
     out_method => \$str,
+    allow_globals => [ '$calendar' ],
   );
 
-  $interp->exec($comp, tracker_id => $self->tracker_id, %$args);
+  $interp->set_global('$calendar', $self);
+
+  $interp->exec($comp,
+    tracker_id => $self->tracker_id,
+    %$args
+  );
 
   return $str;
 }
