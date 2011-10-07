@@ -14,6 +14,9 @@ Revision history for {{$dist->name}}
           The default templates no longer have "RJBS Advent Calendar"
           hardcoded.
 
+          The default favicon is no longer "rjbs."  Instead, it's a nice little
+          Christmas tree from http://www.favicon.cc/?action=icon&file_id=11923
+
           The default calendar template no longer displays a year and month
           label.
 
