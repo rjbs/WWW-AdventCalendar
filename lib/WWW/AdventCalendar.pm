@@ -220,8 +220,8 @@ sub build {
   }
 
   if ($dec{1} > $self->today) {
-    my $dur  = $dec{1} - $self->today;
-    my $days = $dur->delta_days + 1;
+    my $dur  = $dec{1}->subtract_datetime_absolute( $self->today );
+    my $days = int($dur->delta_seconds / 86_400  +  1);
     my $str  = $days != 1 ? "$days days" : "1 day";
 
     $self->output_dir->file("index.html")->openw->print(
