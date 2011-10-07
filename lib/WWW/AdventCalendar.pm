@@ -227,6 +227,9 @@ sub BUILD {
     unless $self->year == $self->start_date->year
     and    $self->year == $self->end_date->year;
 
+  confess "range from start_date to end_date must not cross a month boundary"
+    if $self->start_date->month != $self->end_date->month;
+
   for (map { "$_\_dir" } qw(article output share)) {
     $self->$_( Path::Class::Dir->new($self->$_) );
   }
