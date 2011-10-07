@@ -27,7 +27,8 @@ $year
 %     if ($day) {
 %       $class{today}  = $day->ymd eq $today->ymd;
 %       $class{future} = $day > $today;
-%       $class{advent} = $day < $month{25};
+%       $class{advent} = $day >= $calendar->start_date
+%                     && $day <= $calendar->end_date;
 %     }
 %     $class{missing} = ! $class{future} && ! $article;
 %     my $class = join q{ }, grep { $class{$_} } keys %class;
