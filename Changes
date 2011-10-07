@@ -1,6 +1,28 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          The start_date and end_date parameters can be provided for periods
+          other than Advent.  This feature is still young and has a bunch of
+          arbitrary restrictions.  Among other things, the date range may not
+          cross a month boundary.
+
+          A "subtitle" option has been added for the text in the bar below the
+          main title.
+
+          The default templates will be used if custom templates are not found.
+
+          The default templates no longer have "RJBS Advent Calendar"
+          hardcoded.
+
+          The default calendar template no longer displays a year and month
+          label.
+
+          The templates can now access the WWW::AdventCalendar object as
+          $calendar.
+
+          Like everybody else, I used DateTime math incorrectly.  The "days
+          until the first door" only worked accurately if there was less than a
+          month to go.  This has been fixed.
 
 1.002     2011-08-04 10:13:00 America/New_York
           L<> links now go to metacpan by default
