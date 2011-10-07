@@ -123,6 +123,7 @@ A Google Analytics tracker id.  If given, each page will include analytics.
 has title  => (is => 'ro', required => 1);
 has uri    => (is => 'ro', required => 1);
 has editor => (is => 'ro', required => 1);
+has subtitle   => (is => 'ro', predicate => 'has_subtitle');
 has categories => (is => 'ro', default => sub { [ qw() ] });
 
 has article_dir => (is => 'rw', required => 1);
