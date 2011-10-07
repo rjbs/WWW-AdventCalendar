@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Language" content="en" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel="alternate" title="Advent Calendar RSS feed" href="atom.xml" type="application/atom+xml" />
+    <link rel="alternate" title="<% $calendar->title |h %> RSS feed" href="atom.xml" type="application/atom+xml" />
     <link rel="shortcut icon" href="favicon.ico" />
     <link rel="stylesheet" href="screen.css" type="text/css" />
     <link rel="stylesheet" href="ppi-html.css" type="text/css" />
@@ -13,10 +13,10 @@
 <body>
     <div id="contentwrapper">
         <div id="header">
-            <h1><a href="index.html">RJBS Advent Calendar</a></h1>
+            <h1><a href="index.html"><% $calendar->title |h %></a></h1>
         </div>
 
-        <p id="note">24 days of Perl modules from RJBS!
+        <p id="note"><% $calendar->subtitle // '' |h %>
           <a class='feed' href="atom.xml">Feed</a>
         </p>
 
@@ -41,7 +41,7 @@ pageTracker._trackPageview();
 <%method title>
 % my $subtitle = $m->scomp('SELF:subtitle', %ARGS);
 % $subtitle = " - $subtitle" if ($subtitle||'') =~ /\S/;
-RJBS Advent Calendar<% $subtitle %>
+<% $calendar->title |h %><% $subtitle %>
 </%method>
 
 <%method subtitle></%method>

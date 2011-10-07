@@ -5,6 +5,6 @@
 $days
 </%args>
 
-<b>Patience!</b>  It's only <% $days %> until the RJBS Advent Calendar's first
-door opens!
+<b>Patience!</b>  It's only <% $days %> until the first door opens on <%
+$calendar->title |h%>!
 </%method>
