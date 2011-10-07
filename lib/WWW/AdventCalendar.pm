@@ -9,6 +9,7 @@ use DateTime::Format::W3CDTF;
 use Email::Simple;
 use File::Copy qw(copy);
 use File::Path 2.07 qw(remove_tree);
+use File::ShareDir;
 use DateTime;
 use File::Basename;
 use HTML::Mason::Interp;
@@ -173,7 +174,13 @@ sub _masonize {
   my $str = '';
 
   my $interp = HTML::Mason::Interp->new(
-    comp_root  => $self->share_dir->subdir('templates')->absolute->stringify,
+    comp_root  => [
+      [ user  => $self->share_dir->subdir('templates')->absolute->stringify ],
+      [ stock => Path::Class::dir(
+          File::ShareDir::dist_dir('WWW-AdventCalendar') )
+          ->subdir('templates')->absolute->stringify
+      ],
+    ],
     out_method => \$str,
     allow_globals => [ '$calendar' ],
   );
