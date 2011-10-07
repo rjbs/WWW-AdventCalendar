@@ -223,6 +223,10 @@ sub BUILD {
     : DateTime->now(time_zone => 'local')
   );
 
+  confess "start_date, end_date, and year do not all agree"
+    unless $self->year == $self->start_date->year
+    and    $self->year == $self->end_date->year;
+
   for (map { "$_\_dir" } qw(article output share)) {
     $self->$_( Path::Class::Dir->new($self->$_) );
   }
