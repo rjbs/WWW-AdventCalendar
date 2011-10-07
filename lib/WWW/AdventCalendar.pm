@@ -12,9 +12,12 @@ use File::Path 2.07 qw(remove_tree);
 use DateTime;
 use File::Basename;
 use HTML::Mason::Interp;
+use Moose::Util::TypeConstraints;
 use Path::Class ();
 use XML::Atom::SimpleFeed;
 use WWW::AdventCalendar::Article;
+
+use namespace::autoclean;
 
 =head1 DESCRIPTION
 
@@ -120,12 +123,44 @@ A Google Analytics tracker id.  If given, each page will include analytics.
 has title  => (is => 'ro', required => 1);
 has uri    => (is => 'ro', required => 1);
 has editor => (is => 'ro', required => 1);
-has year   => (is => 'ro', required => 1);
 has categories => (is => 'ro', default => sub { [ qw() ] });
 
 has article_dir => (is => 'rw', required => 1);
 has share_dir   => (is => 'rw', required => 1);
 has output_dir  => (is => 'rw', required => 1);
+
+has year       => (
+  is   => 'ro',
+  lazy => 1,
+  default => sub {
+    my ($self) = @_;
+    return $self->start_date->year if $self->_has_start_date;
+    return $self->end_date->year   if $self->_has_end_date;
+
+    return (localtime)[5] + 1900;
+  },
+);
+
+class_type('DateTimeObject', { class => 'DateTime' });
+coerce  'DateTimeObject', from 'Str', via \&_parse_isodate;
+
+has start_date => (
+  is   => 'ro',
+  isa  => 'DateTimeObject',
+  lazy => 1,
+  coerce  => 1,
+  default => sub { DateTime->new(year => $_[0]->year, month => 12, day => 1) },
+  predicate => '_has_start_date',
+);
+
+has end_date => (
+  is   => 'ro',
+  isa  => 'DateTimeObject',
+  lazy => 1,
+  coerce  => 1,
+  default => sub { DateTime->new(year => $_[0]->year, month => 12, day => 24) },
+  predicate => '_has_end_date',
+);
 
 has today      => (is => 'rw');
 
@@ -209,18 +244,23 @@ sub build {
     author  => $self->editor,
   );
 
-  my %dec;
-  for (1 .. 31) {
-    $dec{$_} = DateTime->new(
+  my %month;
+  for (
+    1 .. DateTime->last_day_of_month(
       year  => $self->year,
-      month => 12,
+      month => $self->start_date->month
+    )->day
+  ) {
+    $month{$_} = DateTime->new(
+      year  => $self->year,
+      month => $self->start_date->month,
       day   => $_,
       time_zone => 'local',
     );
   }
 
-  if ($dec{1} > $self->today) {
-    my $dur  = $dec{1}->subtract_datetime_absolute( $self->today );
+  if ($self->start_date > $self->today) {
+    my $dur  = $self->start_date->subtract_datetime_absolute( $self->today );
     my $days = int($dur->delta_seconds / 86_400  +  1);
     my $str  = $days != 1 ? "$days days" : "1 day";
 
@@ -249,9 +289,9 @@ sub build {
   my $article = $self->read_articles;
 
   {
-    my $d = $dec{1};
+    my $d = $month{1};
     while (
-      $d->ymd le (sort { $a cmp $b } ($dec{26}->ymd, $self->today->ymd))[0]
+      $d->ymd le (sort { $a cmp $b } ($self->end_date->ymd, $self->today->ymd))[0]
     ) {
       warn "no article written for " . $d->ymd . "!\n"
         unless $article->{ $d->ymd };
@@ -264,7 +304,7 @@ sub build {
     $self->_masonize('/calendar.mhtml', {
       today  => $self->today,
       year   => $self->year,
-      month  => \%dec,
+      month  => \%month,
       calendar => scalar calendar(12, $self->year),
       articles => $article,
     }),
