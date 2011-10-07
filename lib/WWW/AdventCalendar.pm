@@ -4,19 +4,19 @@ use Moose;
 
 use autodie;
 use Calendar::Simple;
-use DateTime;
 use DateTime::Format::W3CDTF;
+use DateTime;
+use DateTime;
 use Email::Simple;
+use File::Basename;
 use File::Copy qw(copy);
 use File::Path 2.07 qw(remove_tree);
 use File::ShareDir;
-use DateTime;
-use File::Basename;
 use HTML::Mason::Interp;
 use Moose::Util::TypeConstraints;
 use Path::Class ();
-use XML::Atom::SimpleFeed;
 use WWW::AdventCalendar::Article;
+use XML::Atom::SimpleFeed;
 
 use namespace::autoclean;
 
