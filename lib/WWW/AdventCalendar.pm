@@ -26,14 +26,16 @@ This is a library for producing Advent calendar websites.  In other words, it
 makes four things:
 
 =for :list
-* a page saying "first door opens in X days" until Dec 1
-* a calendar page on and after Dec 1
-* a page for each day in December with an article
+* a page saying "first door opens in X days" the calendar starts
+* a calendar page on and after the calendar starts
+* a page for each day in the month with an article
 * an Atom feed
 
-This library may be generalized somewhat in the future.  Until then, it should
-work for at least December for every year.  It has only been tested for 2009,
-which may be of limited utility going forward.
+This library was originally written just for RJBS's Perl Advent Calendar, so it
+assumed you'd always be publishing from Dec 1 to Dec 24 or so.  It has recently
+been retooled to work across arbitrary ranges, as long as they're within one
+month.  This feature isn't well tested.  Neither is the rest of the code, to be
+perfectly honest, though...
 
 =head1 OVERVIEW
 
@@ -61,7 +63,7 @@ These should all be self-explanatory.  Only C<category> can be provided more
 than once, and is used for the category listing in the Atom feed.
 
 These settings all correspond to L<calendar attributes/ATTRIBUTES> described
-below.
+below.  A few settings below are not given above.
 
 Articles are easy, too.  They're just files in the C<article_dir>.  They begin
 with an email-like set of headers, followed by a body written in Pod.  For
@@ -99,12 +101,18 @@ new articles that have become available.
 =for :list
 = title
 The title of the calendar, to be used in headers, the feed, and so on.
+= subtitle
+A sub-title for the calendar, used in some templates.  Optional.
 = uri
 The base URI of the calendar, including trailing slash.
 = editor
 The name of the calendar's editor, used in the feed.
 = year
-The year being calendared.
+The calendar year.  Optional, if you provide C<start_date> and C<end_date>.
+= start_date
+The start of the article-containing period.  Defaults to Dec 1 of the year.
+= end_date
+The end of the article-containing period.  Defaults to Dec 24 of the year.
 = categories
 An arrayref of category names for use in the feed.
 = article_dir
