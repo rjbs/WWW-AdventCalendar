@@ -8,7 +8,6 @@ $year
 %month
 </%args>
 
-<h2><% $month{1}->month_name %> <% $month{1}->year %></h2>
 <table class="calendar">
 <tr>
   <th>Sun</th>
