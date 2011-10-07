@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.100     2011-10-07 18:58:51 America/New_York
           The start_date and end_date parameters can be provided for periods
           other than Advent.  This feature is still young and has a bunch of
           arbitrary restrictions.  Among other things, the date range may not
