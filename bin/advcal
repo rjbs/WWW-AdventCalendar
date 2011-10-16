@@ -35,6 +35,8 @@ my ($opt, $usage) = describe_options(
 );
 
 my $arg = {};
+my $colors = {};
+
 if (my $file = $opt->config) {
   die "configuration file '$file' does not exist\n" unless -f $file;
   require WWW::AdventCalendar::Config;
@@ -43,14 +45,19 @@ if (my $file = $opt->config) {
 
   my $root = $config->section_named('_');
   $arg = $root->payload;
+
+  my $palette_section = $config->section_named('palette');
+  $colors = $palette_section->payload if $palette_section;
 }
 
+require Color::Palette;
 require WWW::AdventCalendar;
 require WWW::AdventCalendar::Article;
 
 my $cal = WWW::AdventCalendar->new({
   %{ $opt },  # even command line defaults
   %$arg,      # but those are overridden by configuration
+  color_palette => Color::Palette->new({ colors => $colors }),
   %{ $opt->_specified_opts }, # which is overridden by *explicit* switches
 });
 

@@ -151,12 +151,12 @@ has year       => (
   },
 );
 
-class_type('DateTimeObject', { class => 'DateTime' });
-coerce  'DateTimeObject', from 'Str', via \&_parse_isodate;
+class_type('DateTime', { class => 'DateTime' });
+coerce  'DateTime', from 'Str', via \&_parse_isodate;
 
 has start_date => (
   is   => 'ro',
-  isa  => 'DateTimeObject',
+  isa  => 'DateTime',
   lazy => 1,
   coerce  => 1,
   default => sub { DateTime->new(year => $_[0]->year, month => 12, day => 1) },
@@ -165,7 +165,7 @@ has start_date => (
 
 has end_date => (
   is   => 'ro',
-  isa  => 'DateTimeObject',
+  isa  => 'DateTime',
   lazy => 1,
   coerce  => 1,
   default => sub { DateTime->new(year => $_[0]->year, month => 12, day => 24) },
@@ -175,6 +175,14 @@ has end_date => (
 has today      => (is => 'rw');
 
 has tracker_id => (is => 'ro');
+
+class_type('Color::Palette', { class => 'Color::Palette' });
+
+has color_palette => (
+  is  => 'ro',
+  isa => 'Color::Palette',
+  required => 1,
+);
 
 sub _masonize {
   my ($self, $comp, $args) = @_;
@@ -261,6 +269,12 @@ sub build {
   my $share = $self->share_dir;
   copy "$_" => $self->output_dir
     for grep { ! $_->is_dir } $self->share_dir->subdir('static')->children;
+
+  $self->output_dir->file("style.css")->openw->print(
+    $self->_masonize('/style.css', {
+      color => $self->color_palette->as_css_hash,
+    }),
+  );
 
   my $feed = XML::Atom::SimpleFeed->new(
     title   => $self->title,

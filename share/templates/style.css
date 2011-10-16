@@ -131,7 +131,11 @@ pre {
   background: #ccc;
 }
 
-.calendar td.day a {
+.calendar td.day.advent {
+  background: #aea;
+}
+
+.calendar td.day.advent a {
   display: block;
   color: #444;
   height: 5em;
@@ -141,12 +145,8 @@ pre {
   line-height: 5em;
 }
 
-.calendar td.day a:hover {
+.calendar td.day.advent a:hover {
   background: #f0f0f0;
-}
-
-.calendar td.day.advent {
-  background: #aea;
 }
 
 .calendar td.day.advent.today {
@@ -160,29 +160,8 @@ pre {
   color: #000;
 }
 
-.calendar td.day.advent.missing,
-.calendar td.day.missing#dec-25,
-.calendar td.day.missing#dec-26 {
-  background: #000;
-  color: #f00;
-}
-
 .calendar td.day.advent.future {
   background: #eaa;
-}
-.calendar td#dec-25 {
-  background: #ffd700;
-  font-weight: bold;
-}
-
-#notes {
-  border-top: 1px solid #ddd;
-  clear: both;
-}
-
-#notes h2 {
-  margin-top: 0.5em;
-  text-align: left;
 }
 
 a img {
@@ -261,3 +240,46 @@ h2#See-Also {
   vertical-align: middle;
 }
 
+/* PPI HTML Style */
+
+.code-listing .keyword   { color: #89f;    }
+.code-listing .symbol    { color: #00cccc; }
+.code-listing .operator  { color: #fff;    }
+.code-listing .structure { color: #bf0;    }
+.code-listing .word      { color: #dd8;    }
+.code-listing .comment   { color: #0f0;    }
+.code-listing .pod       { color: #0f0;    }
+.code-listing .match     { color: #ff0;    }
+.code-listing .readline  { color: #caa;    }
+.code-listing .single,
+.code-listing .double    { color: #0cf }
+
+/* Vim Syntax Style */
+
+.code-listing .synComment    { color: #00ff00; }
+.code-listing .synConstant   { color: #00ffff; }
+.code-listing .synIdentifier { color: #8899ff; }
+.code-listing .synStatement  { color: #00aaaa; }
+.code-listing .synPreProc    { color: #ffffff; }
+.code-listing .synType       { color: #00aaaa; }
+.code-listing .synSpecial    { color: #ffffff; }
+.code-listing .synUnderlined { color: #00aa00; }
+.code-listing .synIgnore     { color: #aaaaaa; }
+.code-listing .synError      { color: #ff0000; }
+.code-listing .synTodo       { color: #aaaa00; }
+
+/* BEGIN CHRISTMAS:  Move to "extra CSS" */
+
+.calendar td.day.advent.missing,
+.calendar td.day.missing#dec-25,
+.calendar td.day.missing#dec-26 {
+  background: #000;
+  color: #f00;
+}
+
+.calendar td#dec-25 {
+  background: #ffd700;
+  font-weight: bold;
+}
+
+/* END CHRISTMAS:  Move to "extra CSS" */
