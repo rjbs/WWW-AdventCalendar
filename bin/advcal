@@ -36,8 +36,68 @@ my ($opt, $usage) = describe_options(
 
 my $arg = {};
 my $colors = {
-  body_fg => '#000',
-  body_bg => '#977',
+  genericBlack   => '#000',
+  genericWhite   => '#fff',
+  generic00      => '#977',
+  generic01      => '#d9d9d9',
+  generic02      => '#b00',
+  generic03      => '#c0c0c0',
+  generic04      => '#797',
+
+  bodyBG         => 'generic00',
+  bodyFG         => 'genericBlack',
+
+  blotterBG      => 'generic01',
+  blotterBorder  => '#aaa',
+
+  contentBG      => 'genericWhite',
+  contentBorder  => '#aaa',
+
+  feedLinkFG     => '#ff0',
+
+  headerFG       => 'generic02',
+
+  linkFG         => 'generic02',
+
+  linkDisabledFG => 'generic03',
+
+  linkHoverFG    => '#d00',
+  linkHoverBG    => '#ffc',
+
+  quoteBorder    => 'generic04',
+
+  sectionBorder  => 'generic03',
+
+  subtitleBG     => 'generic04',
+  subtitleFG     => 'genericWhite',
+  subtitleBorder => '#575',
+
+  calendarHeaderCellBorder => '#ddd',
+  calendarHeaderCellBG     => '#f0f0f0',
+
+  calendarIgnoredDayBG  => '#ccc',
+
+  calendarPastDayBG    => '#aea',
+  calendarPastDayFG    => 'genericBlack',
+
+  calendarPastDayHoverBG    => '#f0f0f0',
+  calendarPastDayHoverFG    => 'genericBlack',
+
+  calendarTodayBG => 'generic04',
+  calendarTodayFG => 'genericWhite',
+
+  calendarTodayHoverBG => '#bdb',
+  calendarTodayHoverFG => 'genericBlack',
+
+  calendarFutureDayBG => '#eaa',
+  calendarFutureDayFG => 'genericBlack',
+
+  codeBG => '#222',
+  codeFG => '#ddd',
+
+  codeNumbersBG => 'generic04',
+  codeNumbersFG => 'genericWhite',
+  codeNumbersBorder => 'generic02',
 };
 
 if (my $file = $opt->config) {

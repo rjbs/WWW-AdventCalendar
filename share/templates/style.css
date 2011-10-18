@@ -3,8 +3,8 @@
 %color
 </%args>
 body {
-  color: <% $color{body_fg} %>;
-  background: <% $color{body_bg} %>;
+  color: <% $color{bodyFG} %>;
+  background: <% $color{bodyBG} %>;
   font-family: verdana, tahoma, sans-serif;
 }
 
@@ -15,8 +15,8 @@ body {
   margin-right: auto;
   margin-top: 10px auto;
   margin-bottom: 10px;
-  background: #d9d9d9;
-  border: 1px solid #aaa;
+  background: <% $color{blotterBG} %>;
+  border: 1px solid <% $color{blotterBorder} %>;
   -moz-border-radius: 10px;
   -webkit-border-radius: 10px;
 }
@@ -27,17 +27,17 @@ h1 {
   font-weight: bold;
   font-size: 1.6em;
   text-align: center;
+  color: <% $color{headerFG} %>;
 }
 
 h1.title {
   text-align: left;
   margin-bottom: 0;
-  color: #b00;
 }
 
 h2 {
   text-align: center;
-  color: #b00;
+  color: <% $color{headerFG} %>;
 }
 
 .subtitle {
@@ -45,11 +45,18 @@ h2 {
   border-top: 1px black solid;
 }
 
+.feed {
+  float: right;
+  color: <% $color{feedLinkFG} %>;
+  padding-right: 1em;
+  vertical-align: middle;
+}
+
 dt {
   margin: 0.5em 0 0.5em 0;
 }
 
-#content, #note {
+#content, #subtitle {
   font-size: 0.9em;
   padding: 8px 20px;
   margin: 10px;
@@ -58,23 +65,23 @@ dt {
 }
 
 #content {
-  border: 1px solid #aaa;
-  background: #fff;
+  border: 1px solid <% $color{contentBorder} %>;
+  background: <% $color{contentBG} %>;
 }
 
-#note {
-  background: #797;
-  border: 1px solid #575;
-  color: #fff;
+#subtitle {
+  background: <% $color{subtitleBG} %>;
+  border: 1px solid <% $color{subtitleBorder} %>;
+  color: <% $color{subtitleFG} %>;
 }
 
 .pod h1, .pod h2 {
   text-align: left;
-  color: #b00;
+  color: <% $color{headerFG} %>;
 }
 
 a {
-  color: #b00;
+  color: <% $color{linkFG} %>;
   text-decoration: none;
 }
 
@@ -88,8 +95,8 @@ a:not(.article) {
 #header a:hover,
 .pod    a:hover
 {
-  color: #d00;
-  background: #ffc;
+  color: <% $color{linkHoverFG} %>;
+  background: <% $color{linkHoverBG} %>;
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
 }
@@ -102,16 +109,6 @@ a:not(.article) {
   display: inline;
 }
 
-pre {
-  padding-top: 1em;
-  padding-bottom: 1em;
-  background-color: #222;
-  color: #ddd;
-  font-size: 1em;
-  font-family: monospace;
-  width: 100%;
-}
-
 .calendar {
   margin-left: auto;
   margin-right: auto;
@@ -120,8 +117,8 @@ pre {
 
 .calendar th {
   padding: 5px;
-  border: 1px solid #ddd;
-  background: #f0f0f0;
+  border: 1px solid <% $color{calendarHeaderCellBorder} %>;
+  background-color: <% $color{calendarHeaderCellBG} %>;
 }
 
 .calendar td {
@@ -132,16 +129,16 @@ pre {
 }
 
 .calendar td.day {
-  background: #ccc;
+  background: <% $color{calendarIgnoredDayBG} %>;
 }
 
 .calendar td.day.advent {
-  background: #aea;
+  background: <% $color{calendarPastDayBG} %>;
 }
 
 .calendar td.day.advent a {
   display: block;
-  color: #444;
+  color: <% $color{calendarPastDayFG} %>;
   height: 5em;
   padding: 0;
   margin: 0;
@@ -150,22 +147,26 @@ pre {
 }
 
 .calendar td.day.advent a:hover {
-  background: #f0f0f0;
+  background: <% $color{calendarPastDayHoverBG} %>;
+  color: <% $color{calendarPastDayHoverFG} %>;
 }
 
 .calendar td.day.advent.today {
-  background: #797;
+  background: <% $color{calendarTodayBG} %>;
 }
 
-.calendar td.day.advent.today a { color: #fff; }
+.calendar td.day.advent.today a {
+  color: <% $color{calendarTodayFG} %>;
+}
 
 .calendar td.day.advent.today a:hover {
-  background: #bdb;
-  color: #000;
+  background: <% $color{calendarTodayHoverBG} %>;
+  color: <% $color{calendarTodayFG} %>;
 }
 
 .calendar td.day.advent.future {
-  background: #eaa;
+  background: <% $color{calendarFutureDayBG} %>;
+  color: <% $color{calendarFutureDayFG} %>;
 }
 
 a img {
@@ -173,7 +174,7 @@ a img {
 }
 
 blockquote {
-  border-left: thick #797 solid;
+  border-left: thick <% $color{quoteBorder} %> solid;
   padding-left: 1em;
   margin-left: 1em;
   margin-right: 1em;
@@ -181,11 +182,11 @@ blockquote {
 
 h2#See-Also {
   padding-top: .4em;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid <% $color{sectionBorder} %>;
 }
 
 #pager {
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid <% $color{sectionBorder} %>;
   list-style-type: none;
   margin-left: 0;
   padding: 0.4em;
@@ -194,7 +195,7 @@ h2#See-Also {
 }
 
 #pager li {
-  color: #c0c0c0;
+  color: <% $color{linkDisabledFG} %>;
 }
 
 #pager .next {
@@ -210,9 +211,21 @@ h2#See-Also {
   width: 33%;
 }
 
+/* verbatim text and code listings */
+
+pre {
+  padding-top: 1em;
+  padding-bottom: 1em;
+  background-color: <% $color{codeBG} %>;
+  color: <% $color{codeFG} %>;
+  font-size: 1em;
+  font-family: monospace;
+  width: 100%;
+}
+
 .code-listing {
-  background-color: #222;
-  color: #ddd;
+  background-color: <% $color{codeBG} %>;
+  color: <% $color{codeFG} %>;
   font-size: 1em;
   font-family: monospace;
   white-space: pre;
@@ -226,22 +239,15 @@ h2#See-Also {
 }
 
 .code-listing .line-numbers {
-  background-color: #797;
-  color: #fff;
-  border-right: 2px #b00 solid;
+  background-color: <% $color{codeNumbersBG} %>;
+  color: <% $color{codeNumbersFG} %>;
+  border-right: 2px <% $color{codeNumbersBorder} %> solid;
   width: 3.5em;
   text-align: right;
 }
 
 .code-listing .code {
   padding-left: 1em;
-}
-
-.feed {
-  float: right;
-  color: #ff0;
-  padding-right: 1em;
-  vertical-align: middle;
 }
 
 /* PPI HTML Style */
