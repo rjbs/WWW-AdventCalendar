@@ -35,7 +35,10 @@ my ($opt, $usage) = describe_options(
 );
 
 my $arg = {};
-my $colors = {};
+my $colors = {
+  body_fg => '#000',
+  body_bg => '#977',
+};
 
 if (my $file = $opt->config) {
   die "configuration file '$file' does not exist\n" unless -f $file;
@@ -47,7 +50,7 @@ if (my $file = $opt->config) {
   $arg = $root->payload;
 
   my $palette_section = $config->section_named('palette');
-  $colors = $palette_section->payload if $palette_section;
+  %$colors = (%$colors, %{ $palette_section->payload }) if $palette_section;
 }
 
 require Color::Palette;

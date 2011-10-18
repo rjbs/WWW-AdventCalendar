@@ -1,6 +1,10 @@
+%# vim:set ft=mason:
+<%args>
+%color
+</%args>
 body {
-  color: #000;
-  background: #977;
+  color: <% $color{body_fg} %>;
+  background: <% $color{body_bg} %>;
   font-family: verdana, tahoma, sans-serif;
 }
 
@@ -242,31 +246,31 @@ h2#See-Also {
 
 /* PPI HTML Style */
 
-.code-listing .keyword   { color: #89f;    }
-.code-listing .symbol    { color: #00cccc; }
-.code-listing .operator  { color: #fff;    }
-.code-listing .structure { color: #bf0;    }
-.code-listing .word      { color: #dd8;    }
-.code-listing .comment   { color: #0f0;    }
-.code-listing .pod       { color: #0f0;    }
-.code-listing .match     { color: #ff0;    }
-.code-listing .readline  { color: #caa;    }
+.code-listing .keyword   { color: #89f; }
+.code-listing .symbol    { color: #0cc; }
+.code-listing .operator  { color: #fff; }
+.code-listing .structure { color: #bf0; }
+.code-listing .word      { color: #dd8; }
+.code-listing .comment   { color: #0f0; }
+.code-listing .pod       { color: #0f0; }
+.code-listing .match     { color: #ff0; }
+.code-listing .readline  { color: #caa; }
 .code-listing .single,
-.code-listing .double    { color: #0cf }
+.code-listing .double    { color: #0cf; }
 
 /* Vim Syntax Style */
 
-.code-listing .synComment    { color: #00ff00; }
-.code-listing .synConstant   { color: #00ffff; }
-.code-listing .synIdentifier { color: #8899ff; }
-.code-listing .synStatement  { color: #00aaaa; }
-.code-listing .synPreProc    { color: #ffffff; }
-.code-listing .synType       { color: #00aaaa; }
-.code-listing .synSpecial    { color: #ffffff; }
-.code-listing .synUnderlined { color: #00aa00; }
-.code-listing .synIgnore     { color: #aaaaaa; }
-.code-listing .synError      { color: #ff0000; }
-.code-listing .synTodo       { color: #aaaa00; }
+.code-listing .synComment    { color: #0f0; }
+.code-listing .synConstant   { color: #0ff; }
+.code-listing .synIdentifier { color: #89f; }
+.code-listing .synStatement  { color: #0aa; }
+.code-listing .synPreProc    { color: #fff; }
+.code-listing .synType       { color: #0aa; }
+.code-listing .synSpecial    { color: #fff; }
+.code-listing .synUnderlined { color: #0a0; }
+.code-listing .synIgnore     { color: #aaa; }
+.code-listing .synError      { color: #f00; }
+.code-listing .synTodo       { color: #aa0; }
 
 /* BEGIN CHRISTMAS:  Move to "extra CSS" */
 
