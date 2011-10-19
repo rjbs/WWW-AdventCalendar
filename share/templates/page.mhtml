@@ -14,7 +14,7 @@
             <h1><a href="index.html"><% $calendar->title |h %></a></h1>
         </div>
 
-        <p id="subtitle"><% $calendar->subtitle // '' |h %>
+        <p id="tagline"><% $calendar->tagline // '' |h %>
           <a class='feed' href="atom.xml">Feed</a>
         </p>
 

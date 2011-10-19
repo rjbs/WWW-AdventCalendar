@@ -30,6 +30,10 @@ h1 {
   color: <% $color{headerFG} %>;
 }
 
+#header h1 a {
+  color: <% $color{titleFG} %>;
+}
+
 h1.title {
   text-align: left;
   margin-bottom: 0;
@@ -50,13 +54,14 @@ h2 {
   color: <% $color{feedLinkFG} %>;
   padding-right: 1em;
   vertical-align: middle;
+  font-weight: bold;
 }
 
 dt {
   margin: 0.5em 0 0.5em 0;
 }
 
-#content, #subtitle {
+#content, #tagline {
   font-size: 0.9em;
   padding: 8px 20px;
   margin: 10px;
@@ -69,10 +74,10 @@ dt {
   background: <% $color{contentBG} %>;
 }
 
-#subtitle {
-  background: <% $color{subtitleBG} %>;
-  border: 1px solid <% $color{subtitleBorder} %>;
-  color: <% $color{subtitleFG} %>;
+#tagline {
+  background: <% $color{taglineBG} %>;
+  border: 1px solid <% $color{taglineBorder} %>;
+  color: <% $color{taglineFG} %>;
 }
 
 .pod h1, .pod h2 {
@@ -167,6 +172,11 @@ a:not(.article) {
 .calendar td.day.advent.future {
   background: <% $color{calendarFutureDayBG} %>;
   color: <% $color{calendarFutureDayFG} %>;
+}
+
+.calendar td.day.advent.missing {
+  color: <% $color{calendarMissingDayFG} %>;
+  background-color: <% $color{calendarMissingDayBG} %>;
 }
 
 a img {
