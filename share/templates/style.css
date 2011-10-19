@@ -134,6 +134,8 @@ a:not(.article) {
 }
 
 .calendar td.day {
+  font-size: xx-large;
+  height: 2.5em;
   background: <% $color{calendarIgnoredDayBG} %>;
 }
 
@@ -144,11 +146,11 @@ a:not(.article) {
 .calendar td.day.advent a {
   display: block;
   color: <% $color{calendarPastDayFG} %>;
-  height: 5em;
+  height: 2.5em;
   padding: 0;
   margin: 0;
   vertical-align: middle;
-  line-height: 5em;
+  line-height: 2.5em;
 }
 
 .calendar td.day.advent a:hover {
