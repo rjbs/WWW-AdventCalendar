@@ -3,6 +3,8 @@ use Moose;
 extends 'Config::MVP::Reader::INI';
 # ABSTRACT: Config::MVP-based configuration reader for WWW::AdventCalendar
 
+use namespace::autoclean;
+
 =head1 DESCRIPTION
 
 You probably want to read about L<WWW::AdventCalendar> or L<Config::MVP>.
@@ -17,8 +19,23 @@ Apart from that, there is nothing to say.
 
 use Config::MVP::Assembler;
 
+{
+  package
+    WWW::AdventCalendar::Config::Assembler;
+  use Moose;
+  extends 'Config::MVP::Assembler';
+  use namespace::autoclean;
+  sub expand_package { return undef }
+}
+
+{
+  package
+    WWW::AdventCalendar::Config::Palette;
+  $INC{'WWW/AdventCalendar/Config/Palette.pm'} = 1;
+}
+
 sub build_assembler {
-  my $assembler = Config::MVP::Assembler->new;
+  my $assembler = WWW::AdventCalendar::Config::Assembler->new;
 
   my $section = $assembler->section_class->new({
     name => '_',
