@@ -68,9 +68,11 @@ my $colors = {
 
   sectionBorder  => 'generic03',
 
-  subtitleBG     => 'generic04',
-  subtitleFG     => 'genericWhite',
-  subtitleBorder => '#575',
+  taglineBG      => 'generic04',
+  taglineFG      => 'genericWhite',
+  taglineBorder  => '#575',
+
+  titleFG        => 'headerFG',
 
   calendarHeaderCellBorder => '#ddd',
   calendarHeaderCellBG     => '#f0f0f0',
@@ -91,6 +93,9 @@ my $colors = {
 
   calendarFutureDayBG => '#eaa',
   calendarFutureDayFG => 'genericBlack',
+
+  calendarMissingDayFG => '#f00',
+  calendarMissingDayBG => 'genericBlack',
 
   codeBG => '#222',
   codeFG => '#ddd',
