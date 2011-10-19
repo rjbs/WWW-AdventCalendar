@@ -2,6 +2,8 @@ package WWW::AdventCalendar;
 use Moose;
 # ABSTRACT: a calendar for a month of articles (on the web)
 
+use MooseX::StrictConstructor;
+
 use autodie;
 use Calendar::Simple;
 use DateTime::Format::W3CDTF;
@@ -101,8 +103,8 @@ new articles that have become available.
 =for :list
 = title
 The title of the calendar, to be used in headers, the feed, and so on.
-= subtitle
-A sub-title for the calendar, used in some templates.  Optional.
+= tagline
+A tagline for the calendar, used in some templates.  Optional.
 = uri
 The base URI of the calendar, including trailing slash.
 = editor
@@ -132,7 +134,7 @@ A Google Analytics tracker id.  If given, each page will include analytics.
 has title  => (is => 'ro', required => 1);
 has uri    => (is => 'ro', required => 1);
 has editor => (is => 'ro', required => 1);
-has subtitle   => (is => 'ro', predicate => 'has_subtitle');
+has tagline => (is => 'ro', predicate => 'has_tagline');
 has categories => (is => 'ro', default => sub { [ qw() ] });
 
 has article_dir => (is => 'rw', required => 1);
@@ -337,7 +339,7 @@ sub build {
       $d->ymd le (sort { $a cmp $b } ($self->end_date->ymd, $self->today->ymd))[0]
     ) {
       warn "no article written for " . $d->ymd . "!\n"
-        unless $article->{ $d->ymd };
+        if $d >= $self->start_date && ! $article->{ $d->ymd };
 
       $d = $d + DateTime::Duration->new(days => 1 );
     }
