@@ -114,7 +114,7 @@ if (my $file = $opt->config) {
   my $root = $config->section_named('_');
   $arg = $root->payload;
 
-  my $palette_section = $config->section_named('palette');
+  my $palette_section = $config->section_named('Palette');
   %$colors = (%$colors, %{ $palette_section->payload }) if $palette_section;
 }
 
@@ -122,11 +122,16 @@ require Color::Palette;
 require WWW::AdventCalendar;
 require WWW::AdventCalendar::Article;
 
+my %default_opt = %$opt;
+my %specified_opt;
+
+delete $_->{config} for \(%default_opt, %specified_opt);
+
 my $cal = WWW::AdventCalendar->new({
-  %{ $opt },  # even command line defaults
-  %$arg,      # but those are overridden by configuration
+  %default_opt,   # even command line defaults
+  %$arg,          # but those are overridden by configuration
+  %specified_opt, # which is overridden by *explicit* switches
   color_palette => Color::Palette->new({ colors => $colors }),
-  %{ $opt->_specified_opts }, # which is overridden by *explicit* switches
 });
 
 $cal->build;
