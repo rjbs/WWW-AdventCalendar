@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.101     2011-11-02 14:03:13 America/New_York
           The style sheet is now a template, using Color::Palette for picking
           colors to use.  The default color palette was imported from the 2009
           RJBS Advent Calendar.  A new palette can be provided in the [Palette]
