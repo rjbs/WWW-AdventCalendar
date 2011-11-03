@@ -28,10 +28,10 @@ This is the date (a DateTime object) on which the article is to be published.
 
 This is the title of the article.
 
-=attr package
+=attr topic
 
-This is the Perl package that the article describes.  This attribute is
-required, for now, but may become optional in the future.
+This is the topic of the article.  This attribute is required, for now, but may
+become optional in the future.
 
 =attr body
 
@@ -40,7 +40,7 @@ This is the body of the document, as a string.  It is expected to be Pod.
 =cut
 
 has date => (is => 'ro', isa => 'DateTime', required => 1);
-has [ qw(title package body) ] => (is => 'ro', isa => 'Str', required => 1);
+has [ qw(title topic body) ] => (is => 'ro', isa => 'Str', required => 1);
 
 =attr calendar
 

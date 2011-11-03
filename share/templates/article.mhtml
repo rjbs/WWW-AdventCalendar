@@ -15,7 +15,7 @@ $next => undef
 </%args>
 
 <h1 class='title'><% $article->title |h %></h1>
-<div class='subtitle'><% $article->package |h %> - <% $article->date->ymd %></div>
+<div class='subtitle'><% $article->topic |h %> - <% $article->date->ymd %></div>
 
 <% $article->body_html %>
 

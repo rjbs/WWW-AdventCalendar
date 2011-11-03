@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          an article's "package" is now called its "topic" -- this will break
+          your advent calendar, if you exist and have written one
 
 1.101     2011-11-02 14:03:13 America/New_York
           The style sheet is now a template, using Color::Palette for picking

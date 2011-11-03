@@ -72,14 +72,14 @@ with an email-like set of headers, followed by a body written in Pod.  For
 example, here's the beginning of the first article in the original calendar:
 
   Title:  Built in Our Workshop, Delivered in Your Package
-  Package: Sub::Exporter
+  Topic: Sub::Exporter
 
   =head1 Exporting
 
   In Perl, we organize our subroutines (and other stuff) into namespaces called
   packages.  This makes it easy to avoid having to think of unique names for
 
-The two headers seen above, title and package, are the only headers required,
+The two headers seen above, title and topic, are the only headers required,
 and correspond to those attributes in the L<WWW::AdventCalendar::Article>
 object created from the article file.
 
@@ -425,7 +425,7 @@ sub read_articles {
       body  => $document->body,
       date  => _parse_isodate($isodate),
       title => $document->header('title'),
-      package  => $document->header('package'),
+      topic    => $document->header('topic'),
       calendar => $self,
     );
 
