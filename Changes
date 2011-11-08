@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.103     2011-11-08 10:56:49 America/New_York
           added article author and calendar's default_author
 
 1.102     2011-11-03 10:50:59 America/New_York
