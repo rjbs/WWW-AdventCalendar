@@ -33,6 +33,10 @@ This is the title of the article.
 This is the topic of the article.  This attribute is required, for now, but may
 become optional in the future.
 
+=attr author
+
+This is the author of the article.  This attribute is required.
+
 =attr body
 
 This is the body of the document, as a string.  It is expected to be Pod.
@@ -40,7 +44,11 @@ This is the body of the document, as a string.  It is expected to be Pod.
 =cut
 
 has date => (is => 'ro', isa => 'DateTime', required => 1);
-has [ qw(title topic body) ] => (is => 'ro', isa => 'Str', required => 1);
+has [ qw(author title topic body) ] => (
+  is  => 'ro',
+  isa => 'Str',
+  required => 1,
+);
 
 =attr calendar
 

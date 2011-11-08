@@ -19,6 +19,10 @@ $next => undef
 
 <% $article->body_html %>
 
+<div id='author'>
+This article contributed by: <% $article->author |h %>
+</div>
+
 <ul id="pager">
 % if ($prev) {
     <li class="previous"><a title="<% $prev->title |h %>" href="<% $prev->date->ymd %>.html">Previous</a></li>

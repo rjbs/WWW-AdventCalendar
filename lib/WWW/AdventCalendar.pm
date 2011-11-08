@@ -109,6 +109,8 @@ A tagline for the calendar, used in some templates.  Optional.
 The base URI of the calendar, including trailing slash.
 = editor
 The name of the calendar's editor, used in the feed.
+= default_author
+The name of the calendar's default author, used for articles that provide none.
 = year
 The calendar year.  Optional, if you provide C<start_date> and C<end_date>.
 = start_date
@@ -140,6 +142,12 @@ has categories => (is => 'ro', default => sub { [ qw() ] });
 has article_dir => (is => 'rw', required => 1);
 has share_dir   => (is => 'rw', required => 1);
 has output_dir  => (is => 'rw', required => 1);
+
+has default_author => (
+  is  => 'ro',
+  isa => 'Maybe[Str]', # should be using UndefTolerant instead!
+                       # -- rjbs, 2011-11-08
+);
 
 has year       => (
   is   => 'ro',
@@ -384,6 +392,8 @@ sub build {
       summary   => $article->body_html,
       updated   => $self->_w3cdtf($article->date),
       (map {; category => $_ } @{ $self->categories }),
+
+      contributor => { name => $article->author },
     );
   }
 
@@ -422,10 +432,12 @@ sub read_articles {
     die "no title set in $file\n" unless $document->header('title');
 
     my $article  = WWW::AdventCalendar::Article->new(
-      body  => $document->body,
-      date  => _parse_isodate($isodate),
-      title => $document->header('title'),
-      topic    => $document->header('topic'),
+      body   => $document->body,
+      date   => _parse_isodate($isodate),
+      title  => $document->header('title'),
+      topic  => $document->header('topic'),
+      author => $document->header('author')
+             // scalar $self->default_author,
       calendar => $self,
     );
 

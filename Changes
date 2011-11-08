@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          added article author and calendar's default_author
 
 1.102     2011-11-03 10:50:59 America/New_York
           an article's "package" is now called its "topic" -- this will break

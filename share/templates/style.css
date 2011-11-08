@@ -193,8 +193,14 @@ blockquote {
 }
 
 h2#See-Also {
-  padding-top: .4em;
+  padding-top: 0.4em;
   border-top: 1px solid <% $color{sectionBorder} %>;
+}
+
+#author {
+  border-top: 1px solid <% $color{sectionBorder} %>;
+  padding-top: 0.4em;
+  text-align: center;
 }
 
 #pager {
@@ -210,16 +216,16 @@ h2#See-Also {
   color: <% $color{linkDisabledFG} %>;
 }
 
+#pager .previous {
+  left: 0.4em;
+  position: absolute;
+  width: 33%;
+}
+
 #pager .next {
   position: absolute;
   right: 0.4em;
   text-align: right;
-  width: 33%;
-}
-
-#pager .previous {
-  left: 0.4em;
-  position: absolute;
   width: 33%;
 }
 
