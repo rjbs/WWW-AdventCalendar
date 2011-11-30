@@ -11,6 +11,8 @@ the production of an HTML version of the article's body.
 =cut
 
 use autodie;
+use Digest::MD5 qw(md5_hex);
+use Email::Address;
 use Pod::Elemental;
 use Pod::Elemental::Transformer::Pod5;
 use Pod::Elemental::Transformer::SynMux;
@@ -19,6 +21,8 @@ use Pod::Elemental::Transformer::PPIHTML;
 use Pod::Elemental::Transformer::VimHTML;
 use Pod::Elemental::Transformer::List;
 use Pod::Simple::XHTML 3.13;
+
+use namespace::autoclean;
 
 =attr date
 
@@ -35,7 +39,10 @@ become optional in the future.
 
 =attr author
 
-This is the author of the article.  This attribute is required.
+This is the author of the article.  This attribute is required.  It should be
+given in mailbox format:
+
+  John Smith <jsmith@example.com>
 
 =attr body
 
@@ -49,6 +56,21 @@ has [ qw(author title topic body) ] => (
   isa => 'Str',
   required => 1,
 );
+
+=method author_email
+
+This returns the email portion of the author.  If none is present, it returns
+an email-like string unique to the author's name.
+
+=cut
+
+sub author_email {
+  my ($self) = @_;
+  my ($addr) = Email::Address->parse($self->author);
+  return($addr
+        ? $addr->address
+        : md5_hex($self->author) . q{@advcal.example.com});
+}
 
 =attr calendar
 

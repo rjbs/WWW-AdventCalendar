@@ -14,6 +14,7 @@ use File::Basename;
 use File::Copy qw(copy);
 use File::Path 2.07 qw(remove_tree);
 use File::ShareDir;
+use Gravatar::URL ();
 use HTML::Mason::Interp;
 use Moose::Util::TypeConstraints;
 use Path::Class ();
