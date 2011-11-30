@@ -232,19 +232,19 @@ h2#See-Also {
 /* verbatim text and code listings */
 
 pre {
+  line-height: 120%;
   padding-top: 1em;
   padding-bottom: 1em;
   background-color: <% $color{codeBG} %>;
   color: <% $color{codeFG} %>;
-  font-size: 1em;
   font-family: monospace;
   width: 100%;
 }
 
 .code-listing {
+  line-height: 120%;
   background-color: <% $color{codeBG} %>;
   color: <% $color{codeFG} %>;
-  font-size: 1em;
   font-family: monospace;
   white-space: pre;
   border-collapse: collapse;

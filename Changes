@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          minor tweaks to global CSS
 
 1.103     2011-11-08 10:56:49 America/New_York
           added article author and calendar's default_author
