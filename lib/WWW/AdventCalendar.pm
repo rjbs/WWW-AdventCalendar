@@ -195,6 +195,12 @@ has color_palette => (
   required => 1,
 );
 
+has css_hrefs => (
+  traits  => [ 'Array' ],
+  handles => { css_hrefs => 'elements' },
+  default => sub { [] },
+);
+
 sub _masonize {
   my ($self, $comp, $args) = @_;
 

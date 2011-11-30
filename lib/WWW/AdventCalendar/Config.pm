@@ -39,8 +39,11 @@ sub build_assembler {
 
   my $section = $assembler->section_class->new({
     name => '_',
-    aliases => { category => 'categories' },
-    multivalue_args => [ qw( categories ) ],
+    aliases => {
+      category => 'categories',
+      css_href => 'css_hrefs',
+    },
+    multivalue_args => [ qw( categories css_hrefs ) ],
   });
   $assembler->sequence->add_section($section);
 
