@@ -1,6 +1,10 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          css_href config option allows extra CSS hrefs to be added to output
+
+          author gravatars are now included by default
+
           minor tweaks to global CSS
 
 1.103     2011-11-08 10:56:49 America/New_York
