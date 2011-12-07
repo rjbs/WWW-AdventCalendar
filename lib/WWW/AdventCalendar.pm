@@ -400,7 +400,7 @@ sub build {
       updated   => $self->_w3cdtf($article->date),
       (map {; category => $_ } @{ $self->categories }),
 
-      contributor => { name => $article->author },
+      contributor => { name => $article->author_name },
     );
   }
 

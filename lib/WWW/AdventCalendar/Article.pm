@@ -72,6 +72,20 @@ sub author_email {
         : md5_hex($self->author) . q{@advcal.example.com});
 }
 
+=method author_name
+
+This returns the name portion of the author.  If the author value doesn't
+appear to be a mailbox string, the whole value is returned.
+
+=cut
+
+sub author_name {
+  my ($self) = @_;
+  my ($addr) = Email::Address->parse($self->author);
+  return($addr ? $addr->name : $self->author);
+}
+
+
 =attr calendar
 
 This is the WWW::AdventCalendar object in which the article is found.
