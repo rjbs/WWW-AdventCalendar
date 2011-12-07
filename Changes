@@ -2,6 +2,13 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+1.105     2011-12-07 08:54:55 America/New_York
+          only put the author's name in the feed, not email address
+
+          include an HTML comment with the generating version in output
+
+          don't call our Atom feed an RSS feed
+
 1.104     2011-11-30 17:39:06 America/New_York
           css_href config option allows extra CSS hrefs to be added to output
 
