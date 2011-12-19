@@ -6,6 +6,8 @@ use MooseX::StrictConstructor;
 
 use autodie;
 use Calendar::Simple;
+use Color::Palette 0.100002; # optimized_for, as_strict_css_hash
+use Color::Palette::Schema;
 use DateTime::Format::W3CDTF;
 use DateTime;
 use DateTime;
@@ -277,6 +279,68 @@ show, writes out the rendered pages, the index, and the atom feed.
 
 =cut
 
+my $SCHEMA = Color::Palette::Schema->new({
+  required_colors => [ qw(
+    bodyBG
+    bodyFG
+    blotterBG
+    blotterBorder
+    contentBG
+    contentBorder
+
+    feedLinkFG
+
+    headerFG
+
+    linkFG
+
+    linkDisabledFG
+
+    linkHoverFG
+    linkHoverBG
+
+    quoteBorder
+
+    sectionBorder
+
+    taglineBG
+    taglineFG
+    taglineBorder
+
+    titleFG
+
+    calendarHeaderCellBorder
+    calendarHeaderCellBG
+
+    calendarIgnoredDayBG
+
+    calendarPastDayBG
+    calendarPastDayFG
+
+    calendarPastDayHoverBG
+    calendarPastDayHoverFG
+
+    calendarTodayBG
+    calendarTodayFG
+
+    calendarTodayHoverBG
+    calendarTodayHoverFG
+
+    calendarFutureDayBG
+    calendarFutureDayFG
+
+    calendarMissingDayFG
+    calendarMissingDayBG
+
+    codeBG
+    codeFG
+
+    codeNumbersBG
+    codeNumbersFG
+    codeNumbersBorder
+  ) ],
+});
+
 sub build {
   my ($self) = @_;
 
@@ -287,9 +351,11 @@ sub build {
   copy "$_" => $self->output_dir
     for grep { ! $_->is_dir } $self->share_dir->subdir('static')->children;
 
+  my $opt_palette = $self->color_palette->optimized_for($SCHEMA);
+
   $self->output_dir->file("style.css")->openw->print(
     $self->_masonize('/style.css', {
-      color => $self->color_palette->as_css_hash,
+      color => $opt_palette->as_strict_css_hash,
     }),
   );
 

@@ -3,6 +3,8 @@ Revision history for {{$dist->name}}
 {{$NEXT}}
           call article authors "authors" in the Atom, not "contributors"
 
+          use a strict, optimized %color hash for the color palette
+
 1.105     2011-12-07 08:54:55 America/New_York
           only put the author's name in the feed, not email address
 
