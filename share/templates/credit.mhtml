@@ -1,3 +1,4 @@
+<%args>$article</%args>
 <div id='author'>
 <img alt='Gravatar Image' style='vertical-align:middle' src=<% Gravatar::URL::gravatar_url(
   email  => $article->author_email,
