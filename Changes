@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          make "credit.mhtml" its own template
 
 1.106     2011-12-19 16:45:30 America/New_York
           call article authors "authors" in the Atom, not "contributors"
