@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.107     2011-12-21 08:00:23 America/New_York
           make "credit.mhtml" its own template
 
 1.106     2011-12-19 16:45:30 America/New_York
