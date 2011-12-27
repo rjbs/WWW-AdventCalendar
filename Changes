@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          do not consider days "missing" unless they're in the calendar period
 
 1.107     2011-12-21 08:00:23 America/New_York
           make "credit.mhtml" its own template
