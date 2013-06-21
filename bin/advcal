@@ -1,4 +1,4 @@
-#!perl
+#!/usr/bin/env perl
 use strict;
 use warnings;
 # ABSTRACT: build an advent calendar
@@ -31,8 +31,9 @@ my ($opt, $usage) = describe_options(
   [ 'output-dir|o=s',  'output directory',     { default => './out'      } ],
   [ 'today=s',         'the day we treat as "today"; default to today'     ],
   [],
-  [ 'tracker-id|t=s',  'include Google Analytics; -t TRACKER-ID' ],
+  [ 'tracker-id|t=s',  'include Google Analytics; -t TRACKER-ID'           ],
   [ 'uri=s',           'The base URI of the calendar, including trailing slash'     ],  
+  [ 'year-links',      'add year links to bottom of index.html'            ],
 );
 
 my $arg = {};
