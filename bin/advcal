@@ -32,6 +32,7 @@ my ($opt, $usage) = describe_options(
   [ 'today=s',         'the day we treat as "today"; default to today'     ],
   [],
   [ 'tracker-id|t=s',  'include Google Analytics; -t TRACKER-ID' ],
+  [ 'uri=s',           'The base URI of the calendar, including trailing slash'     ],  
 );
 
 my $arg = {};
