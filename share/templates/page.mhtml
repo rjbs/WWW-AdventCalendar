@@ -24,29 +24,29 @@
         <div id="content">
           <& SELF:content, %ARGS &>
         </div>
-
-% my $year = $calendar->year;
-% my $last_year  = $year - 1;
-% my $next_year  = $year + 1;
-% my ($last_year_span, $next_year_span) = ($last_year, $next_year);
-% my ($last_year_dir,  $next_year_dir);
-% if ($calendar->output_dir =~ /$year$/ ) {
-%   ($last_year_dir  = $calendar->output_dir) =~ s/${year}$/$last_year/;
-%   ($next_year_dir  = $calendar->output_dir) =~ s/${year}$/$next_year/;
+% if ($year_links) {
+%   my $year = $calendar->year;
+%   my $last_year  = $year - 1;
+%   my $next_year  = $year + 1;
+%   my ($last_year_link, $next_year_link);
+%   my ($last_year_dir,  $next_year_dir);
+%   if ($calendar->output_dir =~ /$year$/ ) {
+%     ($last_year_dir  = $calendar->output_dir) =~ s/${year}$/$last_year/;
+%     ($next_year_dir  = $calendar->output_dir) =~ s/${year}$/$next_year/;
 %
-%   if (-d $last_year_dir) {
-%     $last_year_span = qq{<a href="../$last_year" title="$last_year">$last_year</a>};      
-%   }
+%     if (-d $last_year_dir) {
+%       $last_year_link = qq{<a href="../$last_year" title="$last_year">$last_year</a>};
+%     }
 %
-%   if (-d $next_year_dir) {
-%     $next_year_span = qq{<a href="../$next_year" title="$next_year">$next_year</a>};      
+%     if (-d $next_year_dir) {
+%       $next_year_link = qq{<a href="../$next_year" title="$next_year">$next_year</a>};
+%     }
 %   }
-% }
-
         <p id="feedline">
-          <span><% $last_year_span %></span> :: <span><% $next_year_span %></span>
+          <span><% $last_year_link %></span> :: <span><% $next_year_link %></span>
           <a class='feed' href="atom.xml">Feed</a>
         </p>
+% }
     </div>
 % if ($tracker_id) {
 <script type="text/javascript">
