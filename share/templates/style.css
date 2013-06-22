@@ -61,7 +61,7 @@ dt {
   margin: 0.5em 0 0.5em 0;
 }
 
-#content, #tagline, #feedline {
+#content, #tagline, #yearline {
   font-size: 0.9em;
   padding: 8px 20px;
   margin: 10px;
@@ -74,7 +74,7 @@ dt {
   background: <% $color{contentBG} %>;
 }
 
-#tagline, #feedline {
+#tagline, #yearline {
   background: <% $color{taglineBG} %>;
   border: 1px solid <% $color{taglineBorder} %>;
   color: <% $color{taglineFG} %>;

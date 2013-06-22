@@ -226,6 +226,7 @@ sub _masonize {
 
   $interp->exec($comp,
     tracker_id => $self->tracker_id,
+    year_links => $self->year_links,
     %$args
   );
 
