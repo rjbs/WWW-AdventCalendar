@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.110     2013-12-19 22:34:26-0500 America/New_York
           fix encoding problem introduced by bugfix in Mixin::Linewise
 
 1.109     2013-10-21 22:19:50 America/New_York
