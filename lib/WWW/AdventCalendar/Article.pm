@@ -117,6 +117,7 @@ sub _build_body_html {
   my ($self) = @_;
 
   my $body = $self->body;
+  $body = Encode::encode('utf-8', $body);
 
   $body = "\n=encoding utf-8\n\n$body" unless $body =~ /^=encoding/s;
 

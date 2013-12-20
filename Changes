@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+          fix encoding problem introduced by bugfix in Mixin::Linewise
 
 1.109     2013-10-21 22:19:50 America/New_York
           update bugtracker and repo metadata
