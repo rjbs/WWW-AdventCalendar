@@ -34,7 +34,7 @@ my ($opt, $usage) = describe_options(
   [],
   [ 'tracker-id|t=s',  'include Google Analytics; -t TRACKER-ID'           ],
   [ 'uri=s',           'base URI of the calendar, including trailing slash' ],
-  [ 'year-links',      'add year links to bottom of index.html'            ],
+  [ 'year-links|y',    'add year links to bottom of index.html'            ],
 );
 
 my $arg = {};
