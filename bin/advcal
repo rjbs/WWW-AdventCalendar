@@ -19,6 +19,7 @@ use Getopt::Long::Descriptive 0.083;
     --today           the day we treat as "today"; default to today
 
     -t --tracker      include Google Analytics; -t TRACKER-ID
+    -y --year-links   place year links at the bottom of the page
 
 For more detailed information, see L<WWW::AdventCalendar>.
 
