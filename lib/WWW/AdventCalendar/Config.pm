@@ -1,7 +1,8 @@
 package WWW::AdventCalendar::Config;
+# ABSTRACT: Config::MVP-based configuration reader for WWW::AdventCalendar
+
 use Moose;
 extends 'Config::MVP::Reader::INI';
-# ABSTRACT: Config::MVP-based configuration reader for WWW::AdventCalendar
 
 use namespace::autoclean;
 

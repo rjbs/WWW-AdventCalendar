@@ -1,6 +1,7 @@
 package WWW::AdventCalendar::Article;
-use Moose;
 # ABSTRACT: one article in an advent calendar
+
+use Moose;
 
 =head1 DESCRIPTION
 
