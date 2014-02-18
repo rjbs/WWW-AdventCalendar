@@ -2,6 +2,10 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+1.111     2014-02-18 07:50:05-05:00 America/New_York
+        - add --year-links to add links to prev/next years' calendars
+          (thanks, Len Jaffe!)
+
 1.110     2013-12-19 22:34:26-0500 America/New_York
           fix encoding problem introduced by bugfix in Mixin::Linewise
 
