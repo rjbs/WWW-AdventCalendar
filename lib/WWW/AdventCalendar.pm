@@ -97,6 +97,7 @@ Finally, running L<advcal> is easy, too.  Here is its usage:
     --today           the day we treat as "today"; default to today
 
     -t --tracker      include Google Analytics; -t TRACKER-ID
+    -y --year-links   place year links at the bottom of the page
 
 Options given on the command line override those loaded form configuration.  By
 running this program every day, we cause the calendar to be rebuilt, adding any
@@ -146,6 +147,7 @@ has categories => (is => 'ro', default => sub { [ qw() ] });
 has article_dir => (is => 'rw', required => 1);
 has share_dir   => (is => 'rw', required => 1);
 has output_dir  => (is => 'rw', required => 1);
+has year_links  => (is => 'rw', required => 1, default => 0);
 
 has default_author => (
   is  => 'ro',
@@ -225,6 +227,7 @@ sub _masonize {
 
   $interp->exec($comp,
     tracker_id => $self->tracker_id,
+    year_links => $self->year_links,
     %$args
   );
 
