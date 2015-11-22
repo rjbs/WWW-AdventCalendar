@@ -509,11 +509,11 @@ sub read_articles {
     die "no title set in $file\n" unless $document->header('title');
 
     my $article  = WWW::AdventCalendar::Article->new(
-      body   => $document->body,
-      date   => _parse_isodate($isodate),
-      title  => $document->header('title'),
-      topic  => $document->header('topic'),
-      author => $document->header('author')
+      body   => scalar $document->body,
+      date   => scalar _parse_isodate($isodate),
+      title  => scalar $document->header('title'),
+      topic  => scalar $document->header('topic'),
+      author => scalar $document->header('author')
              // scalar $self->default_author,
       calendar => $self,
     );
