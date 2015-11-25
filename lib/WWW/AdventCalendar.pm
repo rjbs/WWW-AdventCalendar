@@ -466,7 +466,7 @@ sub build {
       title     => HTML::Entities::encode_entities($article->title),
       link      => $self->uri . "$date.html",
       id        => $article->atom_id,
-      summary   => $article->body_html,
+      summary   => $article->body_html_for_rss,
       updated   => $self->_w3cdtf($article->date),
       (map {; category => $_ } @{ $self->categories }),
 
