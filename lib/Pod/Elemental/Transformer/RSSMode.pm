@@ -22,8 +22,8 @@ has _to_be_removed_regex => (
 
 sub _build_to_be_removed_regex {
     my $self = shift;
-    return qr/\Aweb_only/ if $self->web_mode;
-    return qr/\Arss_only/;
+    return qr/\Arss_only/ if $self->web_mode;
+    return qr/\Aweb_only/;
 }
 
 sub transform_node {
