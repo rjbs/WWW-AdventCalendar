@@ -34,8 +34,6 @@ sub transform_node {
 
     # turn the =for web_only or =for rss_only into =for html
     $self->_rename_nodes($node);
-
-    print STDERR $node->as_pod_string;
 }
 
 sub _rename_nodes {
@@ -60,7 +58,7 @@ sub _remove_nodes {
         grep { !(
             $_->can('command')
                  && $_->command eq 'for'
-                 && $_->content !~ $self->_to_be_removed_regex
+                 && $_->content =~ $self->_to_be_removed_regex
         ) } @{ $node->children }
     ]);
 }
