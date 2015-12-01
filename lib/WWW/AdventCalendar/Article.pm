@@ -208,6 +208,9 @@ sub _render_string_to_html {
     \s*</table>)\s*(?:<!--\shack\s-->)?\s*(</pre>)\s*
   }{my $str = $2; $str =~ s/\G^\s\s[^\$]*$//gm; $str}gesmx;
 
+  # eat all html errors (horrible)
+  $html =~ s{<h2 id="POD-ERRORS">POD ERRORS.*?</dl>}{}gsm;
+
   return $html;
 }
 
