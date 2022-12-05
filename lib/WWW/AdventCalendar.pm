@@ -6,7 +6,7 @@ use Moose;
 use MooseX::StrictConstructor;
 
 use autodie;
-use Calendar::Simple;
+use Calendar::Simple 2; # the default start_day has changed
 use Color::Palette 0.100002; # optimized_for, as_strict_css_hash
 use Color::Palette::Schema;
 use DateTime::Format::W3CDTF;
@@ -435,7 +435,7 @@ sub build {
       today  => $self->today,
       year   => $self->year,
       month  => \%month,
-      calendar => scalar calendar(12, $self->year),
+      calendar => scalar calendar(12, $self->year, 0),
       articles => $article,
     }),
   );
