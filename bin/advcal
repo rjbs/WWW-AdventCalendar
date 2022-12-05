@@ -20,6 +20,7 @@ use Getopt::Long::Descriptive 0.083;
 
     -t --tracker      include Google Analytics; -t TRACKER-ID
     -y --year-links   place year links at the bottom of the page
+    -p --https        website is https
 
 For more detailed information, see L<WWW::AdventCalendar>.
 
@@ -32,10 +33,11 @@ my ($opt, $usage) = describe_options(
   [ 'share-dir=s',     'root of shared files', { default => './share'    } ],
   [ 'output-dir|o=s',  'output directory',     { default => './out'      } ],
   [ 'today=s',         'the day we treat as "today"; default to today'     ],
-  [],
+  [                                                                        ],
   [ 'tracker-id|t=s',  'include Google Analytics; -t TRACKER-ID'           ],
-  [ 'uri=s',           'base URI of the calendar, including trailing slash' ],
+  [ 'uri=s',           'base URI of the calendar, including trailing slash'],
   [ 'year-links|y',    'add year links to bottom of index.html'            ],
+  [ 'https|p',         'website is https (so gravatar is, etc...)'         ],
 );
 
 my $arg = {};

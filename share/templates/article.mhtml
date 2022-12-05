@@ -10,6 +10,7 @@ $article
 <%method content>
 <%args>
 $article
+$https
 $prev => undef
 $next => undef
 </%args>
@@ -19,7 +20,7 @@ $next => undef
 
 <% $article->body_html %>
 
-<& /credit.mhtml, article => $article &>
+<& /credit.mhtml, article => $article , https => $https &>
 
 <ul id="pager">
 % if ($prev) {
