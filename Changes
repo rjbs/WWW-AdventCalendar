@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.113     2022-12-31 19:32:24-05:00 America/New_York
         - removed support for Google Analytics tracker
         - update packaging and metadata
         - minimum required Perl is now v5.12
