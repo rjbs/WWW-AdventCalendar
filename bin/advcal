@@ -18,7 +18,6 @@ use Getopt::Long::Descriptive 0.083;
     -o --output-dir   output directory
     --today           the day we treat as "today"; default to today
 
-    -t --tracker      include Google Analytics; -t TRACKER-ID
     -y --year-links   place year links at the bottom of the page
 
 For more detailed information, see L<WWW::AdventCalendar>.
@@ -108,6 +107,13 @@ my $colors = {
   codeNumbersFG => 'genericWhite',
   codeNumbersBorder => 'generic02',
 };
+
+if ($opt->tracker_id) {
+  warn <<END;
+--tracker no longer does anything.  If you want to track people reading your
+advent calendar, you can update the templates.
+END
+}
 
 if (my $file = $opt->config) {
   die "configuration file '$file' does not exist\n" unless -f $file;
